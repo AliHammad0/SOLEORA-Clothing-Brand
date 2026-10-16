@@ -218,9 +218,20 @@ const Login = () => {
         );
       }
 
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      const userData = {
+        id: data.user.id || data.user._id,
+        firstname: data.user.firstname,
+        lastname: data.user.lastname,
+        email: data.user.email,
+        isAdmin: data.user.isAdmin,
+        isActive: data.user.isActive,
+      };
 
+      // Save user and token after successful login
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(userData));
+
+      // Redirect after login
       navigate("/", { replace: true });
     } catch (err) {
       if (err.message === "Failed to fetch") {
