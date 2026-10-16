@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import {
   Menu,
@@ -8,6 +7,7 @@ import {
   ShoppingBag,
   ChevronDown,
   Globe,
+  Plus,
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 
@@ -51,6 +51,7 @@ const translations = {
     country: "Country",
     language: "Language",
     done: "DONE",
+    createProduct: "CREATE PRODUCT",
   },
   ur: {
     announcement: "6000 روپے سے زیادہ کے آرڈر پر مفت ڈیلیوری",
@@ -78,6 +79,7 @@ const translations = {
     country: "ملک",
     language: "زبان",
     done: "مکمل",
+    createProduct: "پروڈکٹ بنائیں",
   },
   bn: {
     announcement: "অর্ডারে ফ্রি ডেলিভারি",
@@ -105,6 +107,7 @@ const translations = {
     country: "দেশ",
     language: "ভাষা",
     done: "সম্পন্ন",
+    createProduct: "পণ্য তৈরি করুন",
   },
   hi: {
     announcement: "ऑर्डर पर मुफ़्त डिलीवरी",
@@ -132,6 +135,7 @@ const translations = {
     country: "देश",
     language: "भाषा",
     done: "हो गया",
+    createProduct: "उत्पाद बनाएं",
   },
   ar: {
     announcement: "توصيل مجاني للطلبات المؤهلة",
@@ -159,6 +163,7 @@ const translations = {
     country: "الدولة",
     language: "اللغة",
     done: "تم",
+    createProduct: "إنشاء منتج",
   },
   zh: {
     announcement: "符合条件的订单免费配送",
@@ -186,6 +191,7 @@ const translations = {
     country: "国家",
     language: "语言",
     done: "完成",
+    createProduct: "创建商品",
   },
   ja: {
     announcement: "対象注文は送料無料",
@@ -213,6 +219,7 @@ const translations = {
     country: "国",
     language: "言語",
     done: "完了",
+    createProduct: "商品を作成",
   },
   fr: {
     announcement: "LIVRAISON GRATUITE SUR LES COMMANDES ÉLIGIBLES",
@@ -240,6 +247,7 @@ const translations = {
     country: "Pays",
     language: "Langue",
     done: "TERMINÉ",
+    createProduct: "CRÉER UN PRODUIT",
   },
 };
 
@@ -316,6 +324,7 @@ const Header = () => {
 
     try {
       localStorage.setItem("countryCode", code);
+      localStorage.setItem("language", country.languages[0].code);
     } catch {
       // Continue even if browser storage is unavailable.
     }
@@ -337,15 +346,24 @@ const Header = () => {
     >
       <div className="bg-black px-3 py-2 text-center text-[10px] tracking-wide text-white sm:text-xs">
         {t.announcement}{" "}
-        {selectedCountry.code === "PK" ? "Rs. 6,000"
-          : selectedCountry.code === "US" ? "$60"
-          : selectedCountry.code === "GB" ? "£50"
-          : selectedCountry.code === "BD" ? "৳5,000"
-          : selectedCountry.code === "IN" ? "₹5,000"
-          : selectedCountry.code === "SA" ? "SAR 200"
-          : selectedCountry.code === "AE" ? "AED 200"
-          : selectedCountry.code === "CN" ? "¥300"
-          : selectedCountry.code === "JP" ? "¥5,000"
+        {selectedCountry.code === "PK"
+          ? "Rs. 6,000"
+          : selectedCountry.code === "US"
+          ? "$60"
+          : selectedCountry.code === "GB"
+          ? "£50"
+          : selectedCountry.code === "BD"
+          ? "৳5,000"
+          : selectedCountry.code === "IN"
+          ? "₹5,000"
+          : selectedCountry.code === "SA"
+          ? "SAR 200"
+          : selectedCountry.code === "AE"
+          ? "AED 200"
+          : selectedCountry.code === "CN"
+          ? "¥300"
+          : selectedCountry.code === "JP"
+          ? "¥5,000"
           : "€60"}{" "}
         <a href="/shipping" className="ms-2 underline underline-offset-2">
           {t.shopNow}
@@ -369,7 +387,9 @@ const Header = () => {
                 <div
                   key={link.id}
                   className="relative flex h-[76px] items-center"
-                  onMouseEnter={() => link.dropdown && setActiveDropdown(link.id)}
+                  onMouseEnter={() =>
+                    link.dropdown && setActiveDropdown(link.id)
+                  }
                   onMouseLeave={() => setActiveDropdown(null)}
                 >
                   <div className="flex items-center gap-1">
@@ -386,7 +406,9 @@ const Header = () => {
                       <button
                         type="button"
                         onClick={() =>
-                          setActiveDropdown(activeDropdown === link.id ? null : link.id)
+                          setActiveDropdown(
+                            activeDropdown === link.id ? null : link.id
+                          )
                         }
                         aria-label={`Toggle ${link.name} dropdown`}
                       >
@@ -425,6 +447,14 @@ const Header = () => {
             </a>
 
             <div className="flex flex-1 items-center justify-end gap-3 sm:gap-4">
+              <a
+                href="/admin/create-product"
+                className="hidden items-center gap-2 bg-black px-3 py-3 text-[10px] font-semibold text-white transition hover:bg-gray-800 xl:flex"
+              >
+                <Plus size={16} />
+                {t.createProduct}
+              </a>
+
               <div className="relative">
                 <button
                   type="button"
@@ -504,11 +534,19 @@ const Header = () => {
                 <Search size={21} strokeWidth={1.5} />
               </button>
 
-              <a href="/login" aria-label="My Account" className="hidden hover:opacity-60 sm:block">
+              <a
+                href="/login"
+                aria-label="My Account"
+                className="hidden hover:opacity-60 sm:block"
+              >
                 <UserRound size={21} strokeWidth={1.5} />
               </a>
 
-              <a href="/cart" aria-label="Shopping Bag" className="hover:opacity-60">
+              <a
+                href="/cart"
+                aria-label="Shopping Bag"
+                className="hover:opacity-60"
+              >
                 <ShoppingBag size={21} strokeWidth={1.5} />
               </a>
             </div>
@@ -519,7 +557,9 @@ const Header = () => {
               onSubmit={(e) => {
                 e.preventDefault();
                 if (searchText.trim()) {
-                  window.location.href = `/search?q=${encodeURIComponent(searchText.trim())}`;
+                  window.location.href = `/search?q=${encodeURIComponent(
+                    searchText.trim()
+                  )}`;
                 }
               }}
               className="flex items-center gap-3 border-t border-gray-200 py-4"
@@ -568,7 +608,9 @@ const Header = () => {
                     <button
                       type="button"
                       onClick={() =>
-                        setActiveDropdown(activeDropdown === link.id ? null : link.id)
+                        setActiveDropdown(
+                          activeDropdown === link.id ? null : link.id
+                        )
                       }
                       aria-label={`Toggle ${link.name} menu`}
                       className="p-3"
@@ -602,6 +644,15 @@ const Header = () => {
                 )}
               </div>
             ))}
+
+            <a
+              href="/admin/create-product"
+              onClick={() => setMobileMenu(false)}
+              className="flex items-center gap-3 border-b border-gray-100 py-4 text-xs font-semibold"
+            >
+              <Plus size={18} />
+              {t.createProduct}
+            </a>
 
             <a
               href="/login"
