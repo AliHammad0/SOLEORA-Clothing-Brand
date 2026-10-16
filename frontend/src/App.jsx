@@ -1,5 +1,6 @@
+
 import React from "react";
-import { Routes, Route, Outlet, Link } from "react-router-dom";
+import { Routes, Route, Outlet, Link, Navigate } from "react-router-dom";
 
 import Footer from "./Pages/Footer";
 import Header from "./Pages/Header";
@@ -19,13 +20,37 @@ import CreateProduct from "./Pages/CreateProduct";
 import GetNewArrivals from "./Pages/GetNewArrivals";
 import ProductDetails from "./Pages/ProductDetails";
 
-
 import { LanguageProvider, useLanguage } from "./context/LanguageContext";
 import AdminDashboard from "./Pages/AdminDashboard";
 import AdminProducts from "./Pages/AdminProducts";
 import AdminOrders from "./Pages/AdminOrders";
 import AdminCustomers from "./Pages/AdminCustomers";
 import AdminSettings from "./Pages/AdminSettings";
+
+// Protect admin pages
+const ProtectedAdmin = ({ children }) => {
+  const token = localStorage.getItem("token");
+  const storedUser = localStorage.getItem("user");
+
+  if (!token || !storedUser) {
+    return <Navigate to="/login" replace />;
+  }
+
+  try {
+    const user = JSON.parse(storedUser);
+
+    if (user.isAdmin !== true || user.isActive === false) {
+      return <Navigate to="/" replace />;
+    }
+
+    return children;
+  } catch {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+
+    return <Navigate to="/login" replace />;
+  }
+};
 
 const Layout = () => (
   <>
@@ -40,7 +65,6 @@ const Home = () => (
   <>
     <GetAllProducts />
     <GetNewArrivals />
-    {/* <NewArrivals /> */}
     <ShopByCategory />
     <SpecialPrices />
     <Testimonials />
@@ -72,19 +96,72 @@ const App = () => (
     <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<Home />} />
-        <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+        <Route
+          path="/terms-and-conditions"
+          element={<TermsAndConditions />}
+        />
         <Route path="/signup" element={<Signup />} />
         <Route path="/new" element={<GetNewArrivals />} />
-        <Route path="/create" element={<CreateProduct />} />
         <Route path="/login" element={<Login />} />
         <Route path="/product/:id" element={<ProductDetails />} />
         <Route path="/cart" element={<Cart />} />
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
-        <Route path="/admin/products" element={<AdminProducts />} />
-        <Route path="/admin/orders" element={<AdminOrders />} />
-        <Route path="/admin/users" element={<AdminCustomers />} />
-        <Route path="/admin/settings" element={<AdminSettings />} />
-        
+
+        {/* Admin-only pages */}
+        <Route
+          path="/admin/dashboard"
+          element={
+            <ProtectedAdmin>
+              <AdminDashboard />
+            </ProtectedAdmin>
+          }
+        />
+
+        <Route
+          path="/admin/products"
+          element={
+            <ProtectedAdmin>
+              <AdminProducts />
+            </ProtectedAdmin>
+          }
+        />
+
+        <Route
+          path="/admin/orders"
+          element={
+            <ProtectedAdmin>
+              <AdminOrders />
+            </ProtectedAdmin>
+          }
+        />
+
+        <Route
+          path="/admin/users"
+          element={
+            <ProtectedAdmin>
+              <AdminCustomers />
+            </ProtectedAdmin>
+          }
+        />
+
+        <Route
+          path="/admin/settings"
+          element={
+            <ProtectedAdmin>
+              <AdminSettings />
+            </ProtectedAdmin>
+          }
+        />
+
+        {/* Admin-only product creation */}
+        <Route
+          path="/create"
+          element={
+            <ProtectedAdmin>
+              <CreateProduct />
+            </ProtectedAdmin>
+          }
+        />
+
         <Route
           path="/ReturnsExchangePolicy"
           element={<ReturnsExchangePolicy />}
