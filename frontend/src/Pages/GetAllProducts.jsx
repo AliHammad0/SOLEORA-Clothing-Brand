@@ -1,8 +1,8 @@
-
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
-const API_URL = "http://localhost:8080/api/v1/products/all";
+const API_URL =
+  "https://soleora-clothing-brand-backend.vercel.app/api/v1/products/all";
 
 const GetAllProducts = () => {
   const [products, setProducts] = useState([]);
@@ -37,7 +37,12 @@ const GetAllProducts = () => {
 
   const getProductPrice = (product) => {
     const price = Number(product.price || 0);
+    const specialPrice = Number(product.specialPrice || 0);
     const discount = Number(product.discount || 0);
+
+    if (specialPrice > 0 && specialPrice < price) {
+      return specialPrice;
+    }
 
     if (discount > 0 && discount < 100) {
       return price - (price * discount) / 100;
@@ -50,12 +55,14 @@ const GetAllProducts = () => {
     return products.filter((product) => {
       const price = Number(product.price || 0);
       const specialPrice = Number(product.specialPrice || 0);
-      const isNewArrival = Boolean(product.isNewArrival);
-
       const hasSpecialPrice =
         specialPrice > 0 && specialPrice < price;
 
-      return !hasSpecialPrice && !isNewArrival;
+      return (
+        product.isActive !== false &&
+        !hasSpecialPrice &&
+        product.isNewArrival !== true
+      );
     });
   }, [products]);
 
@@ -189,9 +196,15 @@ const GetAllProducts = () => {
 
   const ProductCard = ({ product }) => {
     const price = Number(product.price || 0);
+    const specialPrice = Number(product.specialPrice || 0);
     const discount = Number(product.discount || 0);
     const finalPrice = getProductPrice(product);
-    const onSale = discount > 0 && discount < 100 && finalPrice < price;
+
+    const onSale = finalPrice < price;
+    const actualDiscount =
+      price > 0
+        ? Math.round(((price - finalPrice) / price) * 100)
+        : 0;
 
     const image = product.images?.[0];
     const isList = viewMode === "list";
@@ -219,6 +232,11 @@ const GetAllProducts = () => {
               src={image}
               alt={product.title || "Product"}
               loading="lazy"
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src =
+                  "https://placehold.co/600x750?text=SOLEORA";
+              }}
               className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
             />
           ) : (
@@ -229,7 +247,7 @@ const GetAllProducts = () => {
 
           {onSale && (
             <span className="absolute left-2 top-2 rounded-sm bg-red-600 px-2 py-1 text-[10px] font-semibold text-white sm:text-xs">
-              {discount}% OFF
+              {actualDiscount}% OFF
             </span>
           )}
         </Link>
@@ -247,7 +265,7 @@ const GetAllProducts = () => {
 
           {product.category && (
             <p className="mt-1 truncate text-[11px] text-gray-500 sm:text-sm">
-              {product.category}
+              {product.category?.name || product.category}
             </p>
           )}
 
@@ -273,7 +291,7 @@ const GetAllProducts = () => {
 
             {onSale && (
               <span className="rounded-sm bg-red-50 px-2 py-1 text-xs font-semibold text-red-600">
-                {discount}% OFF
+                {actualDiscount}% OFF
               </span>
             )}
           </div>

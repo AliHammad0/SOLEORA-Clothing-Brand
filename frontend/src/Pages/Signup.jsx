@@ -3,7 +3,8 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
 
-const API_URL = "http://localhost:8080/api/v1/users/signup";
+const API_URL =
+  "https://soleora-clothing-brand-backend.vercel.app/api/v1/users/signup";
 
 const Signup = () => {
   const { language } = useLanguage();
@@ -381,7 +382,10 @@ const Signup = () => {
           <form onSubmit={handleSubmit} className="mt-9 space-y-5">
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <div>
-                <label htmlFor="firstname" className="mb-2 block text-sm font-medium">
+                <label
+                  htmlFor="firstname"
+                  className="mb-2 block text-sm font-medium"
+                >
                   {text.first}
                 </label>
                 <input
@@ -398,7 +402,10 @@ const Signup = () => {
               </div>
 
               <div>
-                <label htmlFor="lastname" className="mb-2 block text-sm font-medium">
+                <label
+                  htmlFor="lastname"
+                  className="mb-2 block text-sm font-medium"
+                >
                   {text.last}
                 </label>
                 <input
@@ -416,7 +423,10 @@ const Signup = () => {
             </div>
 
             <div>
-              <label htmlFor="email" className="mb-2 block text-sm font-medium">
+              <label
+                htmlFor="email"
+                className="mb-2 block text-sm font-medium"
+              >
                 {text.email}
               </label>
               <input
@@ -434,7 +444,10 @@ const Signup = () => {
             </div>
 
             <div>
-              <label htmlFor="password" className="mb-2 block text-sm font-medium">
+              <label
+                htmlFor="password"
+                className="mb-2 block text-sm font-medium"
+              >
                 {text.password}
               </label>
 
@@ -450,14 +463,26 @@ const Signup = () => {
                   dir="ltr"
                   minLength={8}
                   required
-                  className={`${inputClass} ${isRTL ? "pl-12" : "pr-12"}`}
+                  className={`${inputClass} ${
+                    isRTL ? "pl-12" : "pr-12"
+                  }`}
                 />
 
                 <button
                   type="button"
-                  onClick={() => setShowPassword((previous) => !previous)}
-                  aria-label={showPassword ? text.hidePassword : text.showPassword}
-                  title={showPassword ? text.hidePassword : text.showPassword}
+                  onClick={() =>
+                    setShowPassword((previous) => !previous)
+                  }
+                  aria-label={
+                    showPassword
+                      ? text.hidePassword
+                      : text.showPassword
+                  }
+                  title={
+                    showPassword
+                      ? text.hidePassword
+                      : text.showPassword
+                  }
                   className={`absolute top-1/2 -translate-y-1/2 p-2 text-gray-500 transition hover:text-black focus:outline-none ${
                     isRTL ? "left-2" : "right-2"
                   }`}
@@ -468,7 +493,10 @@ const Signup = () => {
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="mb-2 block text-sm font-medium">
+              <label
+                htmlFor="confirmPassword"
+                className="mb-2 block text-sm font-medium"
+              >
                 {text.confirm}
               </label>
 
@@ -484,7 +512,9 @@ const Signup = () => {
                   dir="ltr"
                   minLength={8}
                   required
-                  className={`${inputClass} ${isRTL ? "pl-12" : "pr-12"}`}
+                  className={`${inputClass} ${
+                    isRTL ? "pl-12" : "pr-12"
+                  }`}
                 />
 
                 <button
@@ -562,3 +592,4 @@ const Signup = () => {
 };
 
 export default Signup;
+

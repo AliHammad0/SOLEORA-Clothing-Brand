@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-const API_URL = "http://localhost:8080/api/v1/products/new?limit=8";
+const API_URL =
+  "https://soleora-clothing-brand-backend.vercel.app/api/v1/products/new?limit=8";
 
 const GetNewArrivals = () => {
   const [products, setProducts] = useState([]);
@@ -65,7 +66,9 @@ const GetNewArrivals = () => {
         )}
 
         {!loading && error && (
-          <p className="py-12 text-center text-red-600">{error}</p>
+          <p className="py-12 text-center text-red-600">
+            {error}
+          </p>
         )}
 
         {!loading && !error && products.length === 0 && (
@@ -78,13 +81,17 @@ const GetNewArrivals = () => {
           <div className="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-3 lg:grid-cols-4 lg:gap-x-6">
             {products.map((product) => {
               const price = Number(product.price || 0);
+              const specialPrice = Number(product.specialPrice || 0);
+              const discount = Number(product.discount || 0);
 
-              const specialPrice = Number(
-                product.specialPrice || product.discountPrice || 0
-              );
+              const discountedPrice =
+                specialPrice > 0 && specialPrice < price
+                  ? specialPrice
+                  : discount > 0
+                    ? price - (price * discount) / 100
+                    : price;
 
-              const hasDiscount =
-                specialPrice > 0 && specialPrice < price;
+              const hasDiscount = discountedPrice < price;
 
               const image =
                 product.images?.[0] ||
@@ -137,7 +144,7 @@ const GetNewArrivals = () => {
                         {hasDiscount ? (
                           <>
                             <span className="text-sm font-bold text-black">
-                              PKR {specialPrice.toLocaleString("en-PK")}
+                              PKR {discountedPrice.toLocaleString("en-PK")}
                             </span>
 
                             <span className="text-sm text-gray-400 line-through">

@@ -3,7 +3,8 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
 
-const API_URL = "http://localhost:8080/api/v1/users/login";
+const API_URL =
+  "https://soleora-clothing-brand-backend.vercel.app/api/v1/users/login";
 
 const Login = () => {
   const { language } = useLanguage();
@@ -212,7 +213,9 @@ const Login = () => {
       }
 
       if (!data.token || !data.user) {
-        throw new Error("Login response is missing user or token data.");
+        throw new Error(
+          "Login response is missing user or token data."
+        );
       }
 
       localStorage.setItem("token", data.token);

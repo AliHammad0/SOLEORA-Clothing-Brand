@@ -2,7 +2,9 @@ import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
 
-const API_URL = "http://localhost:8080/api/v1/products/special";
+const API_URL =
+  "https://soleora-clothing-brand-backend.vercel.app/api/v1/products/special";
+
 const EXCHANGE_RATE = 280;
 
 const SpecialPrices = () => {
@@ -26,12 +28,16 @@ const SpecialPrices = () => {
         const data = await response.json();
 
         if (!response.ok || !data.ok) {
-          throw new Error(data.message || "Unable to load special prices.");
+          throw new Error(
+            data.message || "Unable to load special prices."
+          );
         }
 
         setProducts(data.products || []);
       } catch (err) {
-        setError(err.message || "Unable to connect to the server.");
+        setError(
+          err.message || "Unable to connect to the server."
+        );
       } finally {
         setLoading(false);
       }
@@ -78,7 +84,8 @@ const SpecialPrices = () => {
       );
 
       if (existingProduct) {
-        existingProduct.quantity = (existingProduct.quantity || 1) + 1;
+        existingProduct.quantity =
+          (existingProduct.quantity || 1) + 1;
       } else {
         cart.push({
           ...product,
@@ -194,10 +201,7 @@ const SpecialPrices = () => {
               const discount = getDiscount(price, specialPrice);
 
               return (
-                <article
-                  key={product._id}
-                  className="group min-w-0"
-                >
+                <article key={product._id} className="group min-w-0">
                   <Link
                     to={`/product/${product._id}`}
                     aria-label={`View ${product.title}`}
@@ -208,6 +212,11 @@ const SpecialPrices = () => {
                         src={product.images[0]}
                         alt={product.title || "Product"}
                         loading="lazy"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src =
+                            "https://placehold.co/600x750?text=SOLEORA";
+                        }}
                         className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                       />
                     ) : (

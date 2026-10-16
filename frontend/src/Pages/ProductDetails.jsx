@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
@@ -14,7 +15,8 @@ import {
   ZoomIn,
 } from "lucide-react";
 
-const API_URL = "http://localhost:8080/api/v1/products";
+const API_URL =
+  "https://soleora-clothing-brand-backend.vercel.app/api/v1/products";
 
 export default function ProductDetails() {
   const { id } = useParams();
@@ -44,7 +46,11 @@ export default function ProductDetails() {
         setActiveImage(0);
         setQuantity(1);
       } catch (err) {
-        setError(err.message || "Unable to load product");
+        setError(
+          err.message === "Failed to fetch"
+            ? "Unable to connect to the server. Check your backend and API URL."
+            : err.message || "Unable to load product"
+        );
       } finally {
         setLoading(false);
       }
@@ -101,7 +107,6 @@ export default function ProductDetails() {
     Math.max(0, Number(product.discount) || 0)
   );
 
-  // Special price has priority over percentage discount.
   const discountedPrice =
     specialPrice > 0 && specialPrice < originalPrice
       ? specialPrice
@@ -208,7 +213,6 @@ export default function ProductDetails() {
         </nav>
 
         <section className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-12">
-          {/* Product Images */}
           <div className="grid grid-cols-[60px_minmax(0,1fr)] gap-3 sm:grid-cols-[85px_minmax(0,1fr)] sm:gap-4">
             <div className="flex flex-col gap-3">
               {images.map((image, index) => (
@@ -272,7 +276,6 @@ export default function ProductDetails() {
             </div>
           </div>
 
-          {/* Product Information */}
           <div className="animate-[fadeIn_0.5s_ease-out]">
             <p className="mb-3 text-xs font-semibold tracking-[0.2em] text-gray-500">
               {product.brand || "SOLEORA COLLECTION"}
@@ -282,7 +285,6 @@ export default function ProductDetails() {
               {product.title}
             </h1>
 
-            {/* Price */}
             <div className="mt-5 flex flex-wrap items-center gap-3">
               <span
                 className={`text-3xl font-bold ${
@@ -305,7 +307,6 @@ export default function ProductDetails() {
               )}
             </div>
 
-            {/* Stock Status */}
             <div className="mt-6">
               {stock > 5 ? (
                 <div className="inline-flex items-center gap-2 rounded-full border border-green-200 bg-green-50 px-4 py-2 text-sm font-medium text-green-700">
@@ -328,11 +329,9 @@ export default function ProductDetails() {
               )}
             </div>
 
-            {/* Sizes */}
             {sizes.length > 0 && (
               <div className="mt-6">
                 <p className="mb-3 text-sm font-medium">Available Sizes:</p>
-
                 <div className="flex flex-wrap gap-2">
                   {sizes.map((size, index) => (
                     <span
@@ -346,7 +345,6 @@ export default function ProductDetails() {
               </div>
             )}
 
-            {/* Colors */}
             {colors.length > 0 && (
               <div className="mt-5">
                 <p className="mb-2 text-sm font-medium">Available Colors:</p>
@@ -356,10 +354,8 @@ export default function ProductDetails() {
               </div>
             )}
 
-            {/* Quantity */}
             <div className="mt-6">
               <p className="mb-3 text-sm font-medium">Quantity:</p>
-
               <div className="inline-flex h-11 items-center border border-gray-200">
                 <button
                   type="button"
@@ -395,7 +391,6 @@ export default function ProductDetails() {
               </div>
             </div>
 
-            {/* Add to Cart */}
             <button
               type="button"
               onClick={addToCart}
@@ -419,28 +414,23 @@ export default function ProductDetails() {
               </p>
             )}
 
-            {/* Service Benefits */}
             <div className="mt-8 grid grid-cols-3 divide-x divide-gray-200 border-b border-gray-100 pb-7">
               <div className="flex flex-col items-center gap-2 px-2 text-center transition-transform duration-300 hover:-translate-y-1">
                 <Truck size={24} />
                 <span className="text-xs">Fast Delivery</span>
               </div>
-
               <div className="flex flex-col items-center gap-2 px-2 text-center transition-transform duration-300 hover:-translate-y-1">
                 <ShieldCheck size={24} />
                 <span className="text-xs">Secure Payment</span>
               </div>
-
               <div className="flex flex-col items-center gap-2 px-2 text-center transition-transform duration-300 hover:-translate-y-1">
                 <RefreshCw size={24} />
                 <span className="text-xs">Easy Returns</span>
               </div>
             </div>
 
-            {/* Product Details */}
             <div className="mt-8">
               <h2 className="text-2xl font-bold">PRODUCT DETAILS</h2>
-
               <div className="mt-6 space-y-5 text-sm leading-7">
                 <div>
                   <h3 className="font-bold">FABRIC / MATERIAL:</h3>
@@ -465,25 +455,21 @@ export default function ProductDetails() {
               </div>
             </div>
 
-            {/* Quality Benefits */}
             <div className="mt-8 grid grid-cols-3 divide-x divide-gray-200 border-y border-gray-100 py-5">
               <div className="flex flex-col items-center gap-2 text-center transition-transform duration-300 hover:-translate-y-1">
                 <Leaf size={24} />
                 <span className="text-xs">Premium Quality</span>
               </div>
-
               <div className="flex flex-col items-center gap-2 text-center transition-transform duration-300 hover:-translate-y-1">
                 <Gem size={24} />
                 <span className="text-xs">Elegant Design</span>
               </div>
-
               <div className="flex flex-col items-center gap-2 text-center transition-transform duration-300 hover:-translate-y-1">
                 <Star size={24} />
                 <span className="text-xs">Quality Craftsmanship</span>
               </div>
             </div>
 
-            {/* Cart Summary */}
             {cart.length > 0 && (
               <div className="mt-8 animate-[fadeIn_0.4s_ease-out] border border-gray-200 p-4">
                 <h3 className="font-bold">Cart Summary</h3>
@@ -496,7 +482,6 @@ export default function ProductDetails() {
                     <span>
                       {item.title} × {item.quantity}
                     </span>
-
                     <span className="whitespace-nowrap">
                       {formatPrice(item.price * item.quantity)}
                     </span>
@@ -544,3 +529,4 @@ export default function ProductDetails() {
     </div>
   );
 }
+
