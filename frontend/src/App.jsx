@@ -20,6 +20,7 @@ import GetNewArrivals from "./Pages/GetNewArrivals";
 import ProductDetails from "./Pages/ProductDetails";
 
 import { LanguageProvider, useLanguage } from "./context/LanguageContext";
+import AdminDashboard from "./Pages/AdminDashboard";
 
 const Layout = () => (
   <>
@@ -73,6 +74,8 @@ const App = () => (
         <Route path="/login" element={<Login />} />
         <Route path="/product/:id" element={<ProductDetails />} />
         <Route path="/cart" element={<Cart />} />
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        
         <Route
           path="/ReturnsExchangePolicy"
           element={<ReturnsExchangePolicy />}
