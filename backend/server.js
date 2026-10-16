@@ -1,10 +1,9 @@
 import express from "express";
 import morgan from "morgan";
 import cors from "cors";
-import * as config from "./config/config.js";
+import mongoose from "mongoose";
 import productRoutes from "./routes/product.js";
 import userRouter from "./routes/users.js";
-import DBconfig from "./config/DBconfig.js";
 
 const app = express();
 
@@ -20,12 +19,27 @@ app.get("/", (req, res) => {
   res.send("SOLEORA Server is running successfully");
 });
 
-DBconfig();
+let connectionPromise;
 
-if (process.env.VERCEL !== "1") {
-  app.listen(config.PORT, () => {
-    console.log(`Server running on port ${config.PORT}`);
-  });
-}
+const connectDB = async () => {
+  if (!connectionPromise) {
+    connectionPromise = mongoose.connect(process.env.MONGO).catch((error) => {
+      connectionPromise = null;
+      throw error;
+    });
+  }
+
+  return connectionPromise;
+};
+
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    console.error("MongoDB connection failed:", error.message);
+    res.status(500).json({ ok: false, message: "Database connection failed" });
+  }
+});
 
 export default app;
