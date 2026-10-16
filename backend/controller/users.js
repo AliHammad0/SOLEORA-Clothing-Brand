@@ -55,6 +55,7 @@ export const signup = async (req, res) => {
       },
     });
   } catch (error) {
+    // Handle duplicate email errors from MongoDB
     if (error.code === 11000) {
       return res.status(409).json({
         ok: false,
@@ -65,6 +66,7 @@ export const signup = async (req, res) => {
     return res.status(500).json({
       ok: false,
       message: "Signup failed",
+      error: error.message,
     });
   }
 };
@@ -74,30 +76,12 @@ export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({
-        ok: false,
-        message: "Email and password are required",
-      });
-    }
-
-    const normalizedEmail = email.toLowerCase().trim();
-
-    const user = await User.findOne({
-      email: normalizedEmail,
-    });
+    const user = await User.findOne({ email });
 
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({
         ok: false,
         message: "Invalid email or password",
-      });
-    }
-
-    if (user.isActive === false) {
-      return res.status(403).json({
-        ok: false,
-        message: "This account is inactive",
       });
     }
 
@@ -107,27 +91,19 @@ export const login = async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    return res.status(200).json({
+    res.json({
       ok: true,
       message: "Login successful",
       token,
-      user: {
-        id: user._id,
-        firstname: user.firstname,
-        lastname: user.lastname,
-        email: user.email,
-        isAdmin: user.isAdmin,
-        isActive: user.isActive,
-      },
+      user,
     });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       ok: false,
-      message: "Login failed",
+      message: error.message,
     });
   }
 };
-
 // Get All Users
 export const getAllUsers = async (req, res) => {
   try {
@@ -145,6 +121,7 @@ export const getAllUsers = async (req, res) => {
     return res.status(500).json({
       ok: false,
       message: "Failed to fetch users",
+      error: error.message,
     });
   }
 };
@@ -154,6 +131,7 @@ export const getSingleUser = async (req, res) => {
   try {
     const { id } = req.params;
 
+    // Validate MongoDB ObjectId
     if (!/^[0-9a-fA-F]{24}$/.test(id)) {
       return res.status(400).json({
         ok: false,
@@ -179,6 +157,7 @@ export const getSingleUser = async (req, res) => {
     return res.status(500).json({
       ok: false,
       message: "Failed to fetch user",
+      error: error.message,
     });
   }
 };
@@ -189,6 +168,7 @@ export const updateUser = async (req, res) => {
     const { firstname, lastname, email, isActive } = req.body;
     const { id } = req.params;
 
+    // Validate MongoDB ObjectId
     if (!/^[0-9a-fA-F]{24}$/.test(id)) {
       return res.status(400).json({
         ok: false,
@@ -249,6 +229,7 @@ export const updateUser = async (req, res) => {
       });
     }
 
+    // Check whether the email is already used by another user
     if (updateData.email) {
       const existingUser = await User.findOne({
         email: updateData.email,
@@ -265,8 +246,13 @@ export const updateUser = async (req, res) => {
 
     const user = await User.findByIdAndUpdate(
       id,
-      { $set: updateData },
-      { new: true, runValidators: true }
+      {
+        $set: updateData,
+      },
+      {
+        new: true,
+        runValidators: true,
+      }
     ).select("-password");
 
     if (!user) {
@@ -282,6 +268,7 @@ export const updateUser = async (req, res) => {
       user,
     });
   } catch (error) {
+    // Handle duplicate email errors from MongoDB
     if (error.code === 11000) {
       return res.status(409).json({
         ok: false,
@@ -299,15 +286,17 @@ export const updateUser = async (req, res) => {
     return res.status(500).json({
       ok: false,
       message: "Failed to update user",
+      error: error.message,
     });
   }
 };
 
-// Delete User
+///delete User
 export const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
 
+    // Validate MongoDB ObjectId
     if (!/^[0-9a-fA-F]{24}$/.test(id)) {
       return res.status(400).json({
         ok: false,
@@ -338,6 +327,7 @@ export const deleteUser = async (req, res) => {
     return res.status(500).json({
       ok: false,
       message: "Failed to delete user",
+      error: error.message,
     });
   }
 };

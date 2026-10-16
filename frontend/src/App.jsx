@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Routes, Route, Outlet, Link } from "react-router-dom";
 
@@ -20,14 +19,13 @@ import CreateProduct from "./Pages/CreateProduct";
 import GetNewArrivals from "./Pages/GetNewArrivals";
 import ProductDetails from "./Pages/ProductDetails";
 
-import { LanguageProvider, useLanguage } from "./context/LanguageContext";
 
+import { LanguageProvider, useLanguage } from "./context/LanguageContext";
 import AdminDashboard from "./Pages/AdminDashboard";
 import AdminProducts from "./Pages/AdminProducts";
 import AdminOrders from "./Pages/AdminOrders";
 import AdminCustomers from "./Pages/AdminCustomers";
 import AdminSettings from "./Pages/AdminSettings";
-import AdminRoute from "./Pages/AdminRoute";
 
 const Layout = () => (
   <>
@@ -73,7 +71,6 @@ const App = () => (
   <LanguageProvider>
     <Routes>
       <Route element={<Layout />}>
-        {/* Public store routes */}
         <Route path="/" element={<Home />} />
         <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
         <Route path="/signup" element={<Signup />} />
@@ -82,20 +79,16 @@ const App = () => (
         <Route path="/login" element={<Login />} />
         <Route path="/product/:id" element={<ProductDetails />} />
         <Route path="/cart" element={<Cart />} />
-
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/products" element={<AdminProducts />} />
+        <Route path="/admin/orders" element={<AdminOrders />} />
+        <Route path="/admin/users" element={<AdminCustomers />} />
+        <Route path="/admin/settings" element={<AdminSettings />} />
+        
         <Route
           path="/ReturnsExchangePolicy"
           element={<ReturnsExchangePolicy />}
         />
-
-        {/* Admin-only routes */}
-        <Route element={<AdminRoute />}>
-          <Route path="/admin/dashboard" element={<AdminDashboard />} />
-          <Route path="/admin/products" element={<AdminProducts />} />
-          <Route path="/admin/orders" element={<AdminOrders />} />
-          <Route path="/admin/users" element={<AdminCustomers />} />
-          <Route path="/admin/settings" element={<AdminSettings />} />
-        </Route>
       </Route>
 
       <Route path="*" element={<NotFound />} />

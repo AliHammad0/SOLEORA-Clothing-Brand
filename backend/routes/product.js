@@ -1,25 +1,20 @@
 
 import express from "express";
-import {
-  signup,
-  login,
-  getAllUsers,
-  getSingleUser,
-  updateUser,
-  deleteUser,
-} from "../controller/users.js";
-import { verifyAdmin } from "../middleware/auth.js";
+import * as Product from "../controller/product.js";
 
-const userRouter = express.Router();
+const productRoutes = express.Router();
 
-// Public routes
-userRouter.post("/signup", signup);
-userRouter.post("/login", login);
+productRoutes.route("/create").post(Product.createProduct);
 
-// Admin only
-userRouter.get("/", verifyAdmin, getAllUsers);
-userRouter.get("/:id", verifyAdmin, getSingleUser);
-userRouter.put("/:id", verifyAdmin, updateUser);
-userRouter.delete("/:id", verifyAdmin, deleteUser);
+productRoutes.route("/all").get(Product.getAllProducts);
 
-export default userRouter;
+// New Arrivals
+productRoutes.route("/new").get(Product.getNewArrivals);
+productRoutes.route("/special").get(Product.getSpecialPrices);
+
+// Single Product
+productRoutes.route("/:id").get(Product.getSingleProduct);
+productRoutes.route("/:id").put(Product.updateProduct);
+productRoutes.route("/:id").delete(Product.deleteProduct);
+
+export default productRoutes;
