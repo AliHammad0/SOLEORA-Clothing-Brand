@@ -451,7 +451,7 @@ const Header = () => {
 
             <div className="flex flex-1 items-center justify-end gap-2 sm:gap-4">
               <a
-                href="/admin/create-product"
+                href="/create"
                 className="flex shrink-0 items-center gap-1 bg-black px-2 py-2 text-[10px] font-semibold text-white transition hover:bg-gray-800 sm:gap-2 sm:px-3 sm:py-3"
               >
                 <Plus size={16} />
