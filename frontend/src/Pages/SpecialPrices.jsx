@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
+
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
 
@@ -16,7 +17,6 @@ const SpecialPrices = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [addedProduct, setAddedProduct] = useState("");
-  const sectionRef = useRef(null);
 
   useEffect(() => {
     const fetchSpecialPrices = async () => {
@@ -35,9 +35,7 @@ const SpecialPrices = () => {
 
         setProducts(data.products || []);
       } catch (err) {
-        setError(
-          err.message || "Unable to connect to the server."
-        );
+        setError(err.message || "Unable to connect to the server.");
       } finally {
         setLoading(false);
       }
@@ -48,7 +46,7 @@ const SpecialPrices = () => {
 
   const filteredProducts = products.filter(
     (product) =>
-      product.gender === activeTab &&
+      product.gender?.toLowerCase() === activeTab.toLowerCase() &&
       product.isActive !== false &&
       Number(product.specialPrice) > 0 &&
       Number(product.specialPrice) < Number(product.price)
@@ -79,13 +77,15 @@ const SpecialPrices = () => {
     try {
       const cart = JSON.parse(localStorage.getItem("cart") || "[]");
 
-      const existingProduct = cart.find(
+      const existingIndex = cart.findIndex(
         (item) => item._id === product._id
       );
 
-      if (existingProduct) {
-        existingProduct.quantity =
-          (existingProduct.quantity || 1) + 1;
+      if (existingIndex !== -1) {
+        cart[existingIndex] = {
+          ...cart[existingIndex],
+          quantity: (Number(cart[existingIndex].quantity) || 1) + 1,
+        };
       } else {
         cart.push({
           ...product,
@@ -100,17 +100,91 @@ const SpecialPrices = () => {
       window.dispatchEvent(new Event("cartUpdated"));
 
       setAddedProduct(product._id);
-      setTimeout(() => setAddedProduct(""), 1500);
+      window.setTimeout(() => setAddedProduct(""), 1500);
     } catch {
       setError("Unable to add this product to cart.");
     }
   };
 
+  const ProductCard = ({ product }) => {
+    const price = Number(product.price || 0);
+    const specialPrice = Number(product.specialPrice || 0);
+    const discount = getDiscount(price, specialPrice);
+
+    return (
+      <article className="group min-w-0">
+        <Link
+          to={`/product/${product._id}`}
+          aria-label={`View ${product.title}`}
+          className="relative block aspect-[3/4] overflow-hidden bg-gray-50"
+        >
+          {product.images?.[0] ? (
+            <img
+              src={product.images[0]}
+              alt={product.title || "Product"}
+              loading="lazy"
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src =
+                  "https://placehold.co/600x750?text=SOLEORA";
+              }}
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center text-sm text-gray-400">
+              No image
+            </div>
+          )}
+
+          {discount > 0 && (
+            <span className="absolute left-2 top-2 bg-black px-2 py-1 text-xs font-semibold text-white">
+              -{discount}%
+            </span>
+          )}
+        </Link>
+
+        <div className="pt-3">
+          <Link
+            to={`/product/${product._id}`}
+            className="block hover:underline"
+          >
+            <h3 className="truncate text-sm font-semibold text-gray-900 sm:text-base">
+              {product.title}
+            </h3>
+          </Link>
+
+          {product.brand && (
+            <p className="mt-1 truncate text-xs text-gray-500">
+              {product.brand}
+            </p>
+          )}
+
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <span className="font-semibold text-red-600">
+              {formatPrice(specialPrice)}
+            </span>
+
+            <span className="text-xs text-gray-400 line-through">
+              {formatPrice(price)}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => handleAddToCart(product)}
+            className="mt-3 w-full bg-black px-2 py-3 text-xs font-semibold text-white transition hover:bg-red-600 sm:mt-4 sm:text-sm"
+          >
+            {addedProduct === product._id
+              ? "Added to Cart"
+              : "Add to Cart"}
+          </button>
+        </div>
+      </article>
+    );
+  };
+
   return (
-    <section
-      ref={sectionRef}
-      className="bg-white px-4 py-12 md:px-8 lg:px-16"
-    >
+    <section className="bg-white px-4 py-12 md:px-8 lg:px-16">
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -163,20 +237,35 @@ const SpecialPrices = () => {
         </div>
 
         {loading && (
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-            {[1, 2, 3, 4].map((item) => (
-              <div key={item} className="animate-pulse">
-                <div className="aspect-[3/4] bg-gray-100" />
-                <div className="mt-3 h-4 w-3/4 bg-gray-100" />
-                <div className="mt-2 h-4 w-1/2 bg-gray-100" />
-              </div>
-            ))}
-          </div>
+          <>
+            {/* Mobile loading slider */}
+            <div className="flex gap-4 overflow-hidden md:hidden">
+              {[1, 2].map((item) => (
+                <div key={item} className="w-[65%] shrink-0 animate-pulse">
+                  <div className="aspect-[3/4] bg-gray-100" />
+                  <div className="mt-3 h-4 w-3/4 bg-gray-100" />
+                  <div className="mt-2 h-4 w-1/2 bg-gray-100" />
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop loading grid */}
+            <div className="hidden grid-cols-4 gap-6 md:grid">
+              {[1, 2, 3, 4].map((item) => (
+                <div key={item} className="animate-pulse">
+                  <div className="aspect-[3/4] bg-gray-100" />
+                  <div className="mt-3 h-4 w-3/4 bg-gray-100" />
+                  <div className="mt-2 h-4 w-1/2 bg-gray-100" />
+                </div>
+              ))}
+            </div>
+          </>
         )}
 
         {!loading && error && (
           <div className="py-12 text-center">
             <p className="text-red-600">{error}</p>
+
             <button
               type="button"
               onClick={() => window.location.reload()}
@@ -194,84 +283,38 @@ const SpecialPrices = () => {
         )}
 
         {!loading && !error && filteredProducts.length > 0 && (
-          <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-6 lg:grid-cols-4">
-            {filteredProducts.map((product) => {
-              const price = Number(product.price || 0);
-              const specialPrice = Number(product.specialPrice || 0);
-              const discount = getDiscount(price, specialPrice);
-
-              return (
-                <article key={product._id} className="group min-w-0">
-                  <Link
-                    to={`/product/${product._id}`}
-                    aria-label={`View ${product.title}`}
-                    className="relative block aspect-[3/4] overflow-hidden bg-gray-50"
+          <>
+            {/* Mobile horizontal slider */}
+            <div className="md:hidden">
+              <div
+                className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-5"
+                style={{
+                  scrollbarWidth: "thin",
+                  WebkitOverflowScrolling: "touch",
+                }}
+              >
+                {filteredProducts.map((product) => (
+                  <div
+                    key={product._id}
+                    className="w-[65%] shrink-0 snap-start sm:w-[45%]"
                   >
-                    {product.images?.[0] ? (
-                      <img
-                        src={product.images[0]}
-                        alt={product.title || "Product"}
-                        loading="lazy"
-                        onError={(e) => {
-                          e.currentTarget.onerror = null;
-                          e.currentTarget.src =
-                            "https://placehold.co/600x750?text=SOLEORA";
-                        }}
-                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-sm text-gray-400">
-                        No image
-                      </div>
-                    )}
-
-                    {discount > 0 && (
-                      <span className="absolute left-2 top-2 bg-black px-2 py-1 text-xs font-semibold text-white">
-                        -{discount}%
-                      </span>
-                    )}
-                  </Link>
-
-                  <div className="pt-3">
-                    <Link
-                      to={`/product/${product._id}`}
-                      className="block hover:underline"
-                    >
-                      <h3 className="truncate text-sm font-semibold text-gray-900 sm:text-base">
-                        {product.title}
-                      </h3>
-                    </Link>
-
-                    {product.brand && (
-                      <p className="mt-1 text-xs text-gray-500">
-                        {product.brand}
-                      </p>
-                    )}
-
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      <span className="font-semibold text-red-600">
-                        {formatPrice(specialPrice)}
-                      </span>
-
-                      <span className="text-xs text-gray-400 line-through">
-                        {formatPrice(price)}
-                      </span>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => handleAddToCart(product)}
-                      className="mt-4 w-full bg-black px-3 py-3 text-xs font-semibold text-white transition hover:bg-red-600 sm:text-sm"
-                    >
-                      {addedProduct === product._id
-                        ? "Added to Cart"
-                        : "Add to Cart"}
-                    </button>
+                    <ProductCard product={product} />
                   </div>
-                </article>
-              );
-            })}
-          </div>
+                ))}
+              </div>
+
+              <p className="mt-1 text-center text-xs text-gray-400">
+                Swipe to explore more products →
+              </p>
+            </div>
+
+            {/* Desktop product grid */}
+            <div className="hidden grid-cols-2 gap-x-6 gap-y-8 md:grid lg:grid-cols-4">
+              {filteredProducts.map((product) => (
+                <ProductCard key={product._id} product={product} />
+              ))}
+            </div>
+          </>
         )}
 
         <div className="mt-10 text-center">
