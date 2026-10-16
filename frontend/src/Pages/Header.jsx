@@ -319,23 +319,26 @@ const Header = () => {
     const country = countries.find((item) => item.code === code);
     if (!country) return;
 
+    const nextLanguage = country.languages[0].code;
+
     setCountryCode(code);
-    setLanguage(country.languages[0].code);
+    setLanguage(nextLanguage);
 
     try {
       localStorage.setItem("countryCode", code);
-      localStorage.setItem("language", country.languages[0].code);
+      localStorage.setItem("language", nextLanguage);
     } catch {
-      // Continue even if browser storage is unavailable.
+      // Continue if browser storage is unavailable.
     }
   };
 
   const handleLanguageChange = (code) => {
     setLanguage(code);
+
     try {
       localStorage.setItem("language", code);
     } catch {
-      // Continue even if browser storage is unavailable.
+      // Continue if browser storage is unavailable.
     }
   };
 
@@ -371,8 +374,8 @@ const Header = () => {
       </div>
 
       <div className="border-b border-gray-200">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <div className="flex h-[76px] items-center justify-between gap-3">
+        <div className="mx-auto max-w-7xl px-3 sm:px-6">
+          <div className="flex min-h-[76px] items-center justify-between gap-2">
             <button
               type="button"
               onClick={() => setMobileMenu(!mobileMenu)}
@@ -441,18 +444,20 @@ const Header = () => {
 
             <a
               href="/"
-              className="text-center text-2xl font-bold tracking-[0.18em] sm:text-3xl"
+              className="shrink-0 text-center text-xl font-bold tracking-[0.12em] sm:text-3xl sm:tracking-[0.18em]"
             >
               SOLEORA
             </a>
 
-            <div className="flex flex-1 items-center justify-end gap-3 sm:gap-4">
+            <div className="flex flex-1 items-center justify-end gap-2 sm:gap-4">
               <a
                 href="/admin/create-product"
-                className="hidden items-center gap-2 bg-black px-3 py-3 text-[10px] font-semibold text-white transition hover:bg-gray-800 xl:flex"
+                className="flex shrink-0 items-center gap-1 bg-black px-2 py-2 text-[10px] font-semibold text-white transition hover:bg-gray-800 sm:gap-2 sm:px-3 sm:py-3"
               >
                 <Plus size={16} />
-                {t.createProduct}
+                <span className="hidden sm:inline">
+                  {t.createProduct || "CREATE PRODUCT"}
+                </span>
               </a>
 
               <div className="relative">
@@ -648,10 +653,10 @@ const Header = () => {
             <a
               href="/admin/create-product"
               onClick={() => setMobileMenu(false)}
-              className="flex items-center gap-3 border-b border-gray-100 py-4 text-xs font-semibold"
+              className="flex items-center gap-3 border-y border-gray-100 py-4 text-xs font-semibold"
             >
               <Plus size={18} />
-              {t.createProduct}
+              {t.createProduct || "CREATE PRODUCT"}
             </a>
 
             <a
