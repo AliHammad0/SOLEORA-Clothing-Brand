@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const API_URL =
   "https://soleora-clothing-brand-backend.vercel.app/api/v1/products/special";
@@ -193,6 +194,19 @@ const SpecialPrices = () => {
     />
   );
 
+  const moveSlider = (direction) => {
+    const slider = document.getElementById(
+      "special-prices-slider"
+    );
+
+    if (slider) {
+      slider.scrollBy({
+        left: direction * (slider.clientWidth / 2),
+        behavior: "smooth",
+      });
+    }
+  };
+
   return (
     <section className="bg-white px-4 py-12 md:px-8 lg:px-16">
       <div className="mx-auto max-w-7xl">
@@ -282,22 +296,43 @@ const SpecialPrices = () => {
 
         {!loading && !error && filteredProducts.length > 0 && (
           <>
-            {/* Mobile: horizontal slider with two products visible */}
-            <div
-              className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4 md:hidden"
-              style={{ scrollbarWidth: "thin" }}
-            >
-              {filteredProducts.map((product) => (
-                <div
-                  key={product._id}
-                  className="w-[calc((100%-16px)/2)] min-w-[calc((100%-16px)/2)] snap-start"
-                >
-                  {renderProduct(product)}
-                </div>
-              ))}
+            {/* Mobile slider with navigation arrows */}
+            <div className="relative md:hidden">
+              <button
+                type="button"
+                onClick={() => moveSlider(-1)}
+                aria-label="Previous products"
+                className="absolute left-1 top-1/3 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white shadow-md"
+              >
+                <ChevronLeft size={22} />
+              </button>
+
+              <div
+                id="special-prices-slider"
+                className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4"
+                style={{ scrollbarWidth: "none" }}
+              >
+                {filteredProducts.map((product) => (
+                  <div
+                    key={product._id}
+                    className="w-[calc((100%-16px)/2)] min-w-[calc((100%-16px)/2)] snap-start"
+                  >
+                    {renderProduct(product)}
+                  </div>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => moveSlider(1)}
+                aria-label="Next products"
+                className="absolute right-1 top-1/3 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white shadow-md"
+              >
+                <ChevronRight size={22} />
+              </button>
             </div>
 
-            {/* Desktop: regular product grid */}
+            {/* Desktop grid */}
             <div className="hidden grid-cols-3 gap-x-6 gap-y-8 md:grid lg:grid-cols-4">
               {filteredProducts.map(renderProduct)}
             </div>
