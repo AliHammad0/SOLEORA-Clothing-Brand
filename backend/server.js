@@ -10,6 +10,7 @@ const app = express();
 
 const allowedOrigins = [
   "https://soleora-clothing-brand.vercel.app",
+  "https://soleora-clothing-brand-git-clean-main-trade-rank-media.vercel.app",
   "http://localhost:5173",
 ];
 
