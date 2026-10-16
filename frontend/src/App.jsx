@@ -19,8 +19,13 @@ import CreateProduct from "./Pages/CreateProduct";
 import GetNewArrivals from "./Pages/GetNewArrivals";
 import ProductDetails from "./Pages/ProductDetails";
 
+
 import { LanguageProvider, useLanguage } from "./context/LanguageContext";
 import AdminDashboard from "./Pages/AdminDashboard";
+import AdminProducts from "./Pages/AdminProducts";
+import AdminOrders from "./Pages/AdminOrders";
+import AdminCustomers from "./Pages/AdminCustomers";
+import AdminSettings from "./Pages/AdminSettings";
 
 const Layout = () => (
   <>
@@ -75,6 +80,10 @@ const App = () => (
         <Route path="/product/:id" element={<ProductDetails />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/products" element={<AdminProducts />} />
+        <Route path="/admin/orders" element={<AdminOrders />} />
+        <Route path="/admin/users" element={<AdminCustomers />} />
+        <Route path="/admin/settings" element={<AdminSettings />} />
         
         <Route
           path="/ReturnsExchangePolicy"
