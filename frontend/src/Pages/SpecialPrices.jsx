@@ -1,16 +1,97 @@
-
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { useLanguage } from "../context/LanguageContext";
 
 const API_URL =
   "https://soleora-clothing-brand-backend.vercel.app/api/v1/products/special";
 
 const EXCHANGE_RATE = 280;
 
-const SpecialPrices = () => {
-  const { language } = useLanguage();
+const ProductCard = ({
+  product,
+  formatPrice,
+  addedProduct,
+  handleAddToCart,
+}) => {
+  const price = Number(product.price || 0);
+  const specialPrice = Number(product.specialPrice || 0);
+  const discount =
+    price > specialPrice && price > 0
+      ? Math.round(((price - specialPrice) / price) * 100)
+      : 0;
 
+  return (
+    <article className="group min-w-0">
+      <Link
+        to={`/product/${product._id}`}
+        aria-label={`View ${product.title}`}
+        className="relative block aspect-[3/4] overflow-hidden bg-gray-50"
+      >
+        {product.images?.[0] ? (
+          <img
+            src={product.images[0]}
+            alt={product.title || "Product"}
+            loading="lazy"
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src =
+                "https://placehold.co/600x750?text=SOLEORA";
+            }}
+            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center text-sm text-gray-400">
+            No image
+          </div>
+        )}
+
+        {discount > 0 && (
+          <span className="absolute left-2 top-2 bg-black px-2 py-1 text-[10px] font-semibold text-white sm:text-xs">
+            -{discount}%
+          </span>
+        )}
+      </Link>
+
+      <div className="pt-3">
+        <Link
+          to={`/product/${product._id}`}
+          className="block hover:underline"
+        >
+          <h3 className="truncate text-xs font-semibold text-gray-900 sm:text-base">
+            {product.title}
+          </h3>
+        </Link>
+
+        {product.brand && (
+          <p className="mt-1 truncate text-[10px] text-gray-500 sm:text-xs">
+            {product.brand}
+          </p>
+        )}
+
+        <div className="mt-2 flex flex-wrap items-center gap-1.5 sm:gap-2">
+          <span className="text-xs font-semibold text-red-600 sm:text-base">
+            {formatPrice(specialPrice)}
+          </span>
+
+          <span className="text-[10px] text-gray-400 line-through sm:text-xs">
+            {formatPrice(price)}
+          </span>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => handleAddToCart(product)}
+          className="mt-3 w-full bg-black px-2 py-2.5 text-[10px] font-semibold text-white transition hover:bg-red-600 sm:mt-4 sm:py-3 sm:text-sm"
+        >
+          {addedProduct === product._id
+            ? "Added to Cart"
+            : "Add to Cart"}
+        </button>
+      </div>
+    </article>
+  );
+};
+
+const SpecialPrices = () => {
   const [products, setProducts] = useState([]);
   const [activeTab, setActiveTab] = useState("Women");
   const [currency, setCurrency] = useState("PKR");
@@ -35,7 +116,9 @@ const SpecialPrices = () => {
 
         setProducts(data.products || []);
       } catch (err) {
-        setError(err.message || "Unable to connect to the server.");
+        setError(
+          err.message || "Unable to connect to the server."
+        );
       } finally {
         setLoading(false);
       }
@@ -46,7 +129,7 @@ const SpecialPrices = () => {
 
   const filteredProducts = products.filter(
     (product) =>
-      product.gender?.toLowerCase() === activeTab.toLowerCase() &&
+      product.gender === activeTab &&
       product.isActive !== false &&
       Number(product.specialPrice) > 0 &&
       Number(product.specialPrice) < Number(product.price)
@@ -67,25 +150,19 @@ const SpecialPrices = () => {
         })}`;
   };
 
-  const getDiscount = (price, specialPrice) => {
-    if (!price || specialPrice >= price) return 0;
-
-    return Math.round(((price - specialPrice) / price) * 100);
-  };
-
   const handleAddToCart = (product) => {
     try {
-      const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+      const cart = JSON.parse(
+        localStorage.getItem("cart") || "[]"
+      );
 
-      const existingIndex = cart.findIndex(
+      const existingProduct = cart.find(
         (item) => item._id === product._id
       );
 
-      if (existingIndex !== -1) {
-        cart[existingIndex] = {
-          ...cart[existingIndex],
-          quantity: (Number(cart[existingIndex].quantity) || 1) + 1,
-        };
+      if (existingProduct) {
+        existingProduct.quantity =
+          (existingProduct.quantity || 1) + 1;
       } else {
         cart.push({
           ...product,
@@ -100,88 +177,21 @@ const SpecialPrices = () => {
       window.dispatchEvent(new Event("cartUpdated"));
 
       setAddedProduct(product._id);
-      window.setTimeout(() => setAddedProduct(""), 1500);
+      setTimeout(() => setAddedProduct(""), 1500);
     } catch {
       setError("Unable to add this product to cart.");
     }
   };
 
-  const ProductCard = ({ product }) => {
-    const price = Number(product.price || 0);
-    const specialPrice = Number(product.specialPrice || 0);
-    const discount = getDiscount(price, specialPrice);
-
-    return (
-      <article className="group min-w-0">
-        <Link
-          to={`/product/${product._id}`}
-          aria-label={`View ${product.title}`}
-          className="relative block aspect-[3/4] overflow-hidden bg-gray-50"
-        >
-          {product.images?.[0] ? (
-            <img
-              src={product.images[0]}
-              alt={product.title || "Product"}
-              loading="lazy"
-              onError={(e) => {
-                e.currentTarget.onerror = null;
-                e.currentTarget.src =
-                  "https://placehold.co/600x750?text=SOLEORA";
-              }}
-              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-            />
-          ) : (
-            <div className="flex h-full items-center justify-center text-sm text-gray-400">
-              No image
-            </div>
-          )}
-
-          {discount > 0 && (
-            <span className="absolute left-2 top-2 bg-black px-2 py-1 text-xs font-semibold text-white">
-              -{discount}%
-            </span>
-          )}
-        </Link>
-
-        <div className="pt-3">
-          <Link
-            to={`/product/${product._id}`}
-            className="block hover:underline"
-          >
-            <h3 className="truncate text-sm font-semibold text-gray-900 sm:text-base">
-              {product.title}
-            </h3>
-          </Link>
-
-          {product.brand && (
-            <p className="mt-1 truncate text-xs text-gray-500">
-              {product.brand}
-            </p>
-          )}
-
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <span className="font-semibold text-red-600">
-              {formatPrice(specialPrice)}
-            </span>
-
-            <span className="text-xs text-gray-400 line-through">
-              {formatPrice(price)}
-            </span>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => handleAddToCart(product)}
-            className="mt-3 w-full bg-black px-2 py-3 text-xs font-semibold text-white transition hover:bg-red-600 sm:mt-4 sm:text-sm"
-          >
-            {addedProduct === product._id
-              ? "Added to Cart"
-              : "Add to Cart"}
-          </button>
-        </div>
-      </article>
-    );
-  };
+  const renderProduct = (product) => (
+    <ProductCard
+      key={product._id}
+      product={product}
+      formatPrice={formatPrice}
+      addedProduct={addedProduct}
+      handleAddToCart={handleAddToCart}
+    />
+  );
 
   return (
     <section className="bg-white px-4 py-12 md:px-8 lg:px-16">
@@ -237,29 +247,15 @@ const SpecialPrices = () => {
         </div>
 
         {loading && (
-          <>
-            {/* Mobile loading slider */}
-            <div className="flex gap-4 overflow-hidden md:hidden">
-              {[1, 2].map((item) => (
-                <div key={item} className="w-[65%] shrink-0 animate-pulse">
-                  <div className="aspect-[3/4] bg-gray-100" />
-                  <div className="mt-3 h-4 w-3/4 bg-gray-100" />
-                  <div className="mt-2 h-4 w-1/2 bg-gray-100" />
-                </div>
-              ))}
-            </div>
-
-            {/* Desktop loading grid */}
-            <div className="hidden grid-cols-4 gap-6 md:grid">
-              {[1, 2, 3, 4].map((item) => (
-                <div key={item} className="animate-pulse">
-                  <div className="aspect-[3/4] bg-gray-100" />
-                  <div className="mt-3 h-4 w-3/4 bg-gray-100" />
-                  <div className="mt-2 h-4 w-1/2 bg-gray-100" />
-                </div>
-              ))}
-            </div>
-          </>
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+            {[1, 2, 3, 4].map((item) => (
+              <div key={item} className="animate-pulse">
+                <div className="aspect-[3/4] bg-gray-100" />
+                <div className="mt-3 h-4 w-3/4 bg-gray-100" />
+                <div className="mt-2 h-4 w-1/2 bg-gray-100" />
+              </div>
+            ))}
+          </div>
         )}
 
         {!loading && error && (
@@ -276,43 +272,34 @@ const SpecialPrices = () => {
           </div>
         )}
 
-        {!loading && !error && filteredProducts.length === 0 && (
-          <p className="py-12 text-center text-gray-500">
-            No special price products available for {activeTab}.
-          </p>
-        )}
+        {!loading &&
+          !error &&
+          filteredProducts.length === 0 && (
+            <p className="py-12 text-center text-gray-500">
+              No special price products available for {activeTab}.
+            </p>
+          )}
 
         {!loading && !error && filteredProducts.length > 0 && (
           <>
-            {/* Mobile horizontal slider */}
-            <div className="md:hidden">
-              <div
-                className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-5"
-                style={{
-                  scrollbarWidth: "thin",
-                  WebkitOverflowScrolling: "touch",
-                }}
-              >
-                {filteredProducts.map((product) => (
-                  <div
-                    key={product._id}
-                    className="w-[65%] shrink-0 snap-start sm:w-[45%]"
-                  >
-                    <ProductCard product={product} />
-                  </div>
-                ))}
-              </div>
-
-              <p className="mt-1 text-center text-xs text-gray-400">
-                Swipe to explore more products →
-              </p>
+            {/* Mobile: horizontal slider with two products visible */}
+            <div
+              className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4 md:hidden"
+              style={{ scrollbarWidth: "thin" }}
+            >
+              {filteredProducts.map((product) => (
+                <div
+                  key={product._id}
+                  className="w-[calc((100%-16px)/2)] min-w-[calc((100%-16px)/2)] snap-start"
+                >
+                  {renderProduct(product)}
+                </div>
+              ))}
             </div>
 
-            {/* Desktop product grid */}
-            <div className="hidden grid-cols-2 gap-x-6 gap-y-8 md:grid lg:grid-cols-4">
-              {filteredProducts.map((product) => (
-                <ProductCard key={product._id} product={product} />
-              ))}
+            {/* Desktop: regular product grid */}
+            <div className="hidden grid-cols-3 gap-x-6 gap-y-8 md:grid lg:grid-cols-4">
+              {filteredProducts.map(renderProduct)}
             </div>
           </>
         )}
