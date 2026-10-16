@@ -1,6 +1,5 @@
-
 import React, { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   LayoutDashboard,
   Package,
@@ -21,43 +20,11 @@ const API_URL =
   "https://soleora-clothing-brand-backend.vercel.app/api/v1";
 
 const AdminDashboard = () => {
-  const navigate = useNavigate();
-
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [authorized, setAuthorized] = useState(false);
-  const [checkingAuth, setCheckingAuth] = useState(true);
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    const storedUser = localStorage.getItem("user");
-
-    if (!token || !storedUser) {
-      navigate("/login", { replace: true });
-      setCheckingAuth(false);
-      return;
-    }
-
-    try {
-      const user = JSON.parse(storedUser);
-
-      if (user.isAdmin !== true || user.isActive === false) {
-        navigate("/", { replace: true });
-        setCheckingAuth(false);
-        return;
-      }
-
-      setAuthorized(true);
-    } catch {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      navigate("/login", { replace: true });
-      setCheckingAuth(false);
-    }
-  }, [navigate]);
 
   const fetchProducts = async () => {
     try {
@@ -68,7 +35,9 @@ const AdminDashboard = () => {
       const data = await response.json();
 
       if (!response.ok || !data.ok) {
-        throw new Error(data.message || "Unable to load products.");
+        throw new Error(
+          data.message || "Unable to load products."
+        );
       }
 
       setProducts(data.products || []);
@@ -80,22 +49,8 @@ const AdminDashboard = () => {
   };
 
   useEffect(() => {
-    if (authorized) {
-      fetchProducts();
-    }
-  }, [authorized]);
-
-  if (checkingAuth) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <p className="text-sm text-gray-600">Checking admin access...</p>
-      </div>
-    );
-  }
-
-  if (!authorized) {
-    return null;
-  }
+    fetchProducts();
+  }, []);
 
   const activeProducts = products.filter(
     (product) => product.isActive !== false
@@ -108,15 +63,38 @@ const AdminDashboard = () => {
   );
 
   const filteredProducts = products.filter((product) =>
-    (product.title || "").toLowerCase().includes(search.toLowerCase())
+    (product.title || "")
+      .toLowerCase()
+      .includes(search.toLowerCase())
   );
 
   const navigation = [
-    { label: "Dashboard", icon: LayoutDashboard, href: "/admin/dashboard", active: true },
-    { label: "Products", icon: Package, href: "/admin/products" },
-    { label: "Orders", icon: ShoppingBag, href: "/admin/orders" },
-    { label: "Customers", icon: Users, href: "/admin/users" },
-    { label: "Settings", icon: Settings, href: "/admin/settings" },
+    {
+      label: "Dashboard",
+      icon: LayoutDashboard,
+      href: "/admin/dashboard",
+      active: true,
+    },
+    {
+      label: "Products",
+      icon: Package,
+      href: "/admin/products",
+    },
+    {
+      label: "Orders",
+      icon: ShoppingBag,
+      href: "/admin/orders",
+    },
+    {
+      label: "Customers",
+      icon: Users,
+      href: "/admin/users",
+    },
+    {
+      label: "Settings",
+      icon: Settings,
+      href: "/admin/settings",
+    },
   ];
 
   const stats = [
@@ -144,7 +122,8 @@ const AdminDashboard = () => {
         .reduce(
           (total, product) =>
             total +
-            Number(product.price || 0) * Number(product.stock || 0),
+            Number(product.price || 0) *
+              Number(product.stock || 0),
           0
         )
         .toLocaleString("en-PK")}`,
@@ -171,8 +150,12 @@ const AdminDashboard = () => {
       >
         <div className="flex h-20 items-center justify-between border-b border-gray-100 px-6">
           <div>
-            <h1 className="text-2xl font-black tracking-widest">SOLEORA</h1>
-            <p className="mt-1 text-xs text-gray-500">Admin Dashboard</p>
+            <h1 className="text-2xl font-black tracking-widest">
+              SOLEORA
+            </h1>
+            <p className="mt-1 text-xs text-gray-500">
+              Admin Dashboard
+            </p>
           </div>
 
           <button
@@ -224,7 +207,9 @@ const AdminDashboard = () => {
 
           <div className="mt-3 rounded-xl bg-gray-50 p-4">
             <p className="text-sm font-semibold">SOLEORA Store</p>
-            <p className="mt-1 text-xs text-gray-500">Product Management</p>
+            <p className="mt-1 text-xs text-gray-500">
+              Product Management
+            </p>
           </div>
         </div>
       </aside>
@@ -242,7 +227,9 @@ const AdminDashboard = () => {
             </button>
 
             <div>
-              <h2 className="text-lg font-bold sm:text-xl">Dashboard</h2>
+              <h2 className="text-lg font-bold sm:text-xl">
+                Dashboard
+              </h2>
               <p className="hidden text-xs text-gray-500 sm:block">
                 Welcome to your store management panel.
               </p>
@@ -255,7 +242,10 @@ const AdminDashboard = () => {
             disabled={loading}
             className="flex items-center gap-2 rounded-xl bg-black px-3 py-2.5 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50 sm:px-4"
           >
-            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+            <RefreshCw
+              size={16}
+              className={loading ? "animate-spin" : ""}
+            />
             <span className="hidden sm:inline">Refresh</span>
           </button>
         </header>
@@ -263,7 +253,9 @@ const AdminDashboard = () => {
         <div className="space-y-8 p-4 sm:p-8">
           <section>
             <div className="mb-6">
-              <p className="text-sm text-gray-500">Store overview</p>
+              <p className="text-sm text-gray-500">
+                Store overview
+              </p>
               <h3 className="mt-1 text-2xl font-bold sm:text-3xl">
                 Welcome Back, Admin
               </h3>
@@ -292,11 +284,14 @@ const AdminDashboard = () => {
                     className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
                   >
                     <div className="flex items-center justify-between">
-                      <p className="text-sm text-gray-500">{stat.title}</p>
+                      <p className="text-sm text-gray-500">
+                        {stat.title}
+                      </p>
                       <div className={`rounded-xl p-3 ${stat.color}`}>
                         <Icon size={21} />
                       </div>
                     </div>
+
                     <p className="mt-5 break-words text-2xl font-bold">
                       {loading ? "..." : stat.value}
                     </p>
@@ -309,7 +304,9 @@ const AdminDashboard = () => {
           <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-7">
             <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
               <div>
-                <h3 className="text-lg font-bold">Products Overview</h3>
+                <h3 className="text-lg font-bold">
+                  Products Overview
+                </h3>
                 <p className="mt-1 text-sm text-gray-500">
                   Products retrieved from your existing backend.
                 </p>
@@ -374,17 +371,26 @@ const AdminDashboard = () => {
                           <div className="font-semibold">
                             PKR {Number(product.price || 0).toLocaleString("en-PK")}
                           </div>
+
                           {Number(product.specialPrice) > 0 &&
-                            Number(product.specialPrice) < Number(product.price) && (
+                            Number(product.specialPrice) <
+                              Number(product.price) && (
                               <div className="mt-1 text-xs text-red-600">
                                 Offer: PKR{" "}
-                                {Number(product.specialPrice).toLocaleString("en-PK")}
+                                {Number(
+                                  product.specialPrice
+                                ).toLocaleString("en-PK")}
                               </div>
                             )}
                         </td>
 
-                        <td className="px-3 py-4">{product.stock ?? 0}</td>
-                        <td className="px-3 py-4">{product.gender || "—"}</td>
+                        <td className="px-3 py-4">
+                          {product.stock ?? 0}
+                        </td>
+
+                        <td className="px-3 py-4">
+                          {product.gender || "—"}
+                        </td>
 
                         <td className="px-3 py-4">
                           <span
@@ -394,23 +400,33 @@ const AdminDashboard = () => {
                                 : "bg-gray-100 text-gray-600"
                             }`}
                           >
-                            {product.isActive !== false ? "Active" : "Inactive"}
+                            {product.isActive !== false
+                              ? "Active"
+                              : "Inactive"}
                           </span>
                         </td>
                       </tr>
                     ))}
 
-                  {!loading && !error && filteredProducts.length === 0 && (
-                    <tr>
-                      <td colSpan="5" className="px-3 py-12 text-center text-gray-500">
-                        No products found.
-                      </td>
-                    </tr>
-                  )}
+                  {!loading &&
+                    !error &&
+                    filteredProducts.length === 0 && (
+                      <tr>
+                        <td
+                          colSpan="5"
+                          className="px-3 py-12 text-center text-gray-500"
+                        >
+                          No products found.
+                        </td>
+                      </tr>
+                    )}
 
                   {loading && (
                     <tr>
-                      <td colSpan="5" className="px-3 py-12 text-center text-gray-500">
+                      <td
+                        colSpan="5"
+                        className="px-3 py-12 text-center text-gray-500"
+                      >
                         Loading products...
                       </td>
                     </tr>

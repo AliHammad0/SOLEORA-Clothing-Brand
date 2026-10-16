@@ -1,4 +1,3 @@
-
 import express from "express";
 import {
   signup,
@@ -6,24 +5,17 @@ import {
   getAllUsers,
   getSingleUser,
   updateUser,
-  deleteUser,
+  deleteUser
 } from "../controller/users.js";
-
-import {
-  verifyToken,
-  verifyAdmin,
-} from "../middleware/authMiddleware.js";
 
 const userRouter = express.Router();
 
-// Public routes
 userRouter.post("/signup", signup);
 userRouter.post("/login", login);
 
-// Admin-only routes
-userRouter.get("/", verifyToken, verifyAdmin, getAllUsers);
-userRouter.get("/:id", verifyToken, verifyAdmin, getSingleUser);
-userRouter.put("/:id", verifyToken, verifyAdmin, updateUser);
-userRouter.delete("/:id", verifyToken, verifyAdmin, deleteUser);
+userRouter.get("/", getAllUsers);
+userRouter.get("/:id", getSingleUser);
+userRouter.put("/:id", updateUser);
+userRouter.delete("/:id", deleteUser);
 
 export default userRouter;

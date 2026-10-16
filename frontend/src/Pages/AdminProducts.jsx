@@ -1,10 +1,10 @@
 
-import React, { useEffect, useState, useCallback } from "react";
-import { Search, RefreshCw, Package, Plus } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Search, RefreshCw, Package } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const API_URL =
-  "https://soleora-clothing-brand-backend.vercel.app/api/v1";
+  "https://soleora-clothing-brand-backend.vercel.app/api/v1/products/all";
 
 export default function AdminProducts() {
   const [products, setProducts] = useState([]);
@@ -12,25 +12,12 @@ export default function AdminProducts() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const getProducts = useCallback(async () => {
+  const getProducts = async () => {
     try {
       setLoading(true);
       setError("");
 
-      const token = localStorage.getItem("token");
-
-      if (!token) {
-        throw new Error("Please login to access products.");
-      }
-
-      const response = await fetch(`${API_URL}/products/all`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-
+      const response = await fetch(API_URL);
       const data = await response.json();
 
       if (!response.ok || data.ok === false) {
@@ -43,14 +30,16 @@ export default function AdminProducts() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
     getProducts();
-  }, [getProducts]);
+  }, []);
 
   const filteredProducts = products.filter((product) =>
-    (product.title || "").toLowerCase().includes(search.toLowerCase())
+    (product.title || "")
+      .toLowerCase()
+      .includes(search.toLowerCase())
   );
 
   return (
@@ -65,18 +54,16 @@ export default function AdminProducts() {
 
         <Link
           to="/create"
-          className="flex items-center gap-2 rounded-lg bg-black px-4 py-3 text-white transition hover:bg-gray-800"
+          className="rounded-lg bg-black px-4 py-3 text-white"
         >
-          <Plus size={18} />
-          Add Product
+          + Add Product
         </Link>
       </div>
 
       <div className="mb-5 flex flex-wrap gap-3">
         <div className="flex flex-1 items-center gap-2 rounded-lg bg-white px-4">
-          <Search size={18} className="text-gray-500" />
+          <Search size={18} />
           <input
-            type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search products..."
@@ -85,37 +72,20 @@ export default function AdminProducts() {
         </div>
 
         <button
-          type="button"
           onClick={getProducts}
-          disabled={loading}
-          className="flex items-center gap-2 rounded-lg border bg-white px-4 py-3 disabled:opacity-50"
+          className="rounded-lg border bg-white px-4 py-3"
         >
-          <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
-          Refresh
+          <RefreshCw size={18} />
         </button>
       </div>
 
-      {loading && (
-        <p className="py-8 text-center text-gray-500">Loading products...</p>
-      )}
-
-      {error && (
-        <div className="rounded-lg bg-white p-6 text-center">
-          <p className="mb-4 text-red-600">{error}</p>
-          <button
-            type="button"
-            onClick={getProducts}
-            className="rounded-lg bg-black px-5 py-2 text-white"
-          >
-            Try Again
-          </button>
-        </div>
-      )}
+      {loading && <p>Loading products...</p>}
+      {error && <p className="text-red-600">{error}</p>}
 
       {!loading && !error && (
         <div className="overflow-x-auto rounded-xl bg-white shadow-sm">
           <table className="w-full min-w-[750px] text-left text-sm">
-            <thead className="bg-gray-50 text-gray-600">
+            <thead className="bg-gray-50">
               <tr>
                 <th className="p-4">Product</th>
                 <th className="p-4">Brand</th>
@@ -127,65 +97,33 @@ export default function AdminProducts() {
             </thead>
 
             <tbody>
-              {filteredProducts.map((product) => {
-                const image =
-                  product.images?.[0] || product.image || "";
-
-                const price =
-                  product.specialPrice ??
-                  product.discountPrice ??
-                  product.originalPrice ??
-                  product.price;
-
-                return (
-                  <tr key={product._id} className="border-t hover:bg-gray-50">
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        {image ? (
-                          <img
-                            src={image}
-                            alt={product.title || "Product"}
-                            className="h-12 w-12 rounded-lg bg-gray-100 object-cover"
-                            onError={(e) => {
-                              e.currentTarget.style.display = "none";
-                            }}
-                          />
-                        ) : (
-                          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gray-100">
-                            <Package size={20} />
-                          </div>
-                        )}
-
-                        <span className="font-medium">
-                          {product.title || "Untitled Product"}
-                        </span>
-                      </div>
-                    </td>
-
-                    <td className="p-4">{product.brand || "-"}</td>
-
-                    <td className="p-4 font-medium">
-                      {price != null ? `Rs. ${price}` : "-"}
-                    </td>
-
-                    <td className="p-4">{product.stock ?? "-"}</td>
-
-                    <td className="p-4">{product.gender || "-"}</td>
-
-                    <td className="p-4">
-                      <span
-                        className={`rounded-full px-3 py-1 ${
-                          product.isActive
-                            ? "bg-green-100 text-green-700"
-                            : "bg-red-100 text-red-700"
-                        }`}
-                      >
-                        {product.isActive ? "Active" : "Inactive"}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
+              {filteredProducts.map((product) => (
+                <tr key={product._id} className="border-t">
+                  <td className="p-4">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={product.images?.[0] || product.image || ""}
+                        alt={product.title}
+                        className="h-12 w-12 rounded-lg bg-gray-100 object-cover"
+                      />
+                      <span className="font-medium">{product.title}</span>
+                    </div>
+                  </td>
+                  <td className="p-4">{product.brand || "-"}</td>
+                  <td className="p-4">
+                    {product.specialPrice
+                      ? `Rs. ${product.specialPrice}`
+                      : `Rs. ${product.price ?? "-"}`}
+                  </td>
+                  <td className="p-4">{product.stock ?? "-"}</td>
+                  <td className="p-4">{product.gender || "-"}</td>
+                  <td className="p-4">
+                    <span className="rounded-full bg-gray-100 px-3 py-1">
+                      {product.isActive ? "Active" : "Inactive"}
+                    </span>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
 
