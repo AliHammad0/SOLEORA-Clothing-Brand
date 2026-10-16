@@ -53,7 +53,7 @@ export default function AdminProducts() {
         </div>
 
         <Link
-          to="/admin/create-product"
+          to="/create"
           className="rounded-lg bg-black px-4 py-3 text-white"
         >
           + Add Product
