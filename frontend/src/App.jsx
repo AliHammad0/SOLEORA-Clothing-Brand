@@ -1,5 +1,12 @@
+
 import React from "react";
-import { Routes, Route, Outlet, Link } from "react-router-dom";
+import {
+  Routes,
+  Route,
+  Outlet,
+  Link,
+  Navigate,
+} from "react-router-dom";
 
 import Footer from "./Pages/Footer";
 import Header from "./Pages/Header";
@@ -19,8 +26,8 @@ import CreateProduct from "./Pages/CreateProduct";
 import GetNewArrivals from "./Pages/GetNewArrivals";
 import ProductDetails from "./Pages/ProductDetails";
 
-
 import { LanguageProvider, useLanguage } from "./context/LanguageContext";
+
 import AdminDashboard from "./Pages/AdminDashboard";
 import AdminProducts from "./Pages/AdminProducts";
 import AdminOrders from "./Pages/AdminOrders";
@@ -35,6 +42,46 @@ const Layout = () => (
     <GoToTop />
   </>
 );
+
+// Admin Access Protection
+const AdminRoute = () => {
+  let user = null;
+
+  try {
+    user = JSON.parse(localStorage.getItem("user") || "null");
+  } catch {
+    user = null;
+  }
+
+  const token = localStorage.getItem("token");
+
+  if (!token || !user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (user.isAdmin !== true) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center px-5 text-center">
+        <h1 className="text-3xl font-bold text-red-600">
+          Access Denied
+        </h1>
+
+        <p className="mt-4 text-gray-600">
+          You can't access dashboard because you are not an admin.
+        </p>
+
+        <Link
+          to="/"
+          className="mt-6 bg-black px-6 py-3 text-white transition hover:bg-gray-800"
+        >
+          Go to Home
+        </Link>
+      </div>
+    );
+  }
+
+  return <Outlet />;
+};
 
 const Home = () => (
   <>
@@ -71,24 +118,47 @@ const App = () => (
   <LanguageProvider>
     <Routes>
       <Route element={<Layout />}>
+        {/* Public Pages */}
         <Route path="/" element={<Home />} />
-        <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+        <Route
+          path="/terms-and-conditions"
+          element={<TermsAndConditions />}
+        />
         <Route path="/signup" element={<Signup />} />
         <Route path="/new" element={<GetNewArrivals />} />
-        <Route path="/create" element={<CreateProduct />} />
         <Route path="/login" element={<Login />} />
         <Route path="/product/:id" element={<ProductDetails />} />
         <Route path="/cart" element={<Cart />} />
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
-        <Route path="/admin/products" element={<AdminProducts />} />
-        <Route path="/admin/orders" element={<AdminOrders />} />
-        <Route path="/admin/users" element={<AdminCustomers />} />
-        <Route path="/admin/settings" element={<AdminSettings />} />
-        
+
         <Route
           path="/ReturnsExchangePolicy"
           element={<ReturnsExchangePolicy />}
         />
+
+        {/* Protected Admin Pages */}
+        <Route element={<AdminRoute />}>
+          <Route
+            path="/admin/dashboard"
+            element={<AdminDashboard />}
+          />
+          <Route
+            path="/admin/products"
+            element={<AdminProducts />}
+          />
+          <Route
+            path="/admin/orders"
+            element={<AdminOrders />}
+          />
+          <Route
+            path="/admin/users"
+            element={<AdminCustomers />}
+          />
+          <Route
+            path="/admin/settings"
+            element={<AdminSettings />}
+          />
+          <Route path="/create" element={<CreateProduct />} />
+        </Route>
       </Route>
 
       <Route path="*" element={<NotFound />} />

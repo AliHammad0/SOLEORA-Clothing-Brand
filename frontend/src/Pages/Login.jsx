@@ -200,10 +200,7 @@ const Login = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
+        body: JSON.stringify({ email, password }),
       });
 
       const data = await response.json();
@@ -213,15 +210,17 @@ const Login = () => {
       }
 
       if (!data.token || !data.user) {
-        throw new Error(
-          "Login response is missing user or token data."
-        );
+        throw new Error("Login response is missing user or token data.");
       }
 
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
-      navigate("/", { replace: true });
+      if (data.user.isAdmin === true) {
+        navigate("/admin/dashboard", { replace: true });
+      } else {
+        navigate("/", { replace: true });
+      }
     } catch (err) {
       if (err.message === "Failed to fetch") {
         setError(
@@ -290,10 +289,7 @@ const Login = () => {
 
           <form onSubmit={handleSubmit} className="mt-9 space-y-5">
             <div>
-              <label
-                htmlFor="email"
-                className="mb-2 block text-sm font-medium"
-              >
+              <label htmlFor="email" className="mb-2 block text-sm font-medium">
                 {text.email}
               </label>
 
@@ -346,9 +342,7 @@ const Login = () => {
 
                 <button
                   type="button"
-                  onClick={() =>
-                    setShowPassword((previous) => !previous)
-                  }
+                  onClick={() => setShowPassword((previous) => !previous)}
                   aria-label={showPassword ? text.hide : text.show}
                   title={showPassword ? text.hide : text.show}
                   className={`absolute top-1/2 -translate-y-1/2 p-2 text-gray-500 transition hover:text-black focus:outline-none ${

@@ -1,3 +1,4 @@
+
 import User from "../model/users.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -42,20 +43,21 @@ export const signup = async (req, res) => {
       lastname: lastname.trim(),
       email: normalizedEmail,
       password: hashedPassword,
+      isAdmin: false,
     });
 
     return res.status(201).json({
       ok: true,
       message: "Signup successful",
       user: {
-        id: user._id,
+        _id: user._id,
         firstname: user.firstname,
         lastname: user.lastname,
         email: user.email,
+        isAdmin: false,
       },
     });
   } catch (error) {
-    // Handle duplicate email errors from MongoDB
     if (error.code === 11000) {
       return res.status(409).json({
         ok: false,
@@ -76,12 +78,30 @@ export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email });
+    if (!email || !password) {
+      return res.status(400).json({
+        ok: false,
+        message: "Email and password are required",
+      });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const user = await User.findOne({
+      email: normalizedEmail,
+    });
 
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({
         ok: false,
         message: "Invalid email or password",
+      });
+    }
+
+    if (user.isActive === false) {
+      return res.status(403).json({
+        ok: false,
+        message: "Your account is inactive",
       });
     }
 
@@ -91,19 +111,28 @@ export const login = async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    res.json({
+    return res.status(200).json({
       ok: true,
       message: "Login successful",
       token,
-      user,
+      user: {
+        _id: user._id,
+        firstname: user.firstname,
+        lastname: user.lastname,
+        email: user.email,
+        isAdmin: user.isAdmin === true,
+        isActive: user.isActive,
+      },
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       ok: false,
-      message: error.message,
+      message: "Login failed",
+      error: error.message,
     });
   }
 };
+
 // Get All Users
 export const getAllUsers = async (req, res) => {
   try {
@@ -131,7 +160,6 @@ export const getSingleUser = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Validate MongoDB ObjectId
     if (!/^[0-9a-fA-F]{24}$/.test(id)) {
       return res.status(400).json({
         ok: false,
@@ -168,7 +196,6 @@ export const updateUser = async (req, res) => {
     const { firstname, lastname, email, isActive } = req.body;
     const { id } = req.params;
 
-    // Validate MongoDB ObjectId
     if (!/^[0-9a-fA-F]{24}$/.test(id)) {
       return res.status(400).json({
         ok: false,
@@ -229,7 +256,6 @@ export const updateUser = async (req, res) => {
       });
     }
 
-    // Check whether the email is already used by another user
     if (updateData.email) {
       const existingUser = await User.findOne({
         email: updateData.email,
@@ -246,9 +272,7 @@ export const updateUser = async (req, res) => {
 
     const user = await User.findByIdAndUpdate(
       id,
-      {
-        $set: updateData,
-      },
+      { $set: updateData },
       {
         new: true,
         runValidators: true,
@@ -268,7 +292,6 @@ export const updateUser = async (req, res) => {
       user,
     });
   } catch (error) {
-    // Handle duplicate email errors from MongoDB
     if (error.code === 11000) {
       return res.status(409).json({
         ok: false,
@@ -291,12 +314,11 @@ export const updateUser = async (req, res) => {
   }
 };
 
-///delete User
+// Delete User
 export const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Validate MongoDB ObjectId
     if (!/^[0-9a-fA-F]{24}$/.test(id)) {
       return res.status(400).json({
         ok: false,
@@ -317,7 +339,7 @@ export const deleteUser = async (req, res) => {
       ok: true,
       message: "User deleted successfully",
       user: {
-        id: user._id,
+        _id: user._id,
         firstname: user.firstname,
         lastname: user.lastname,
         email: user.email,
