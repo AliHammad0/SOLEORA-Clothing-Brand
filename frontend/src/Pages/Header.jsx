@@ -8,6 +8,7 @@ import {
   ShoppingBag,
   ChevronDown,
   Globe,
+  LayoutDashboard,
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 
@@ -46,6 +47,7 @@ const translations = {
     formalShoes: "Formal Shoes",
     casualShoes: "Casual Shoes",
     account: "MY ACCOUNT",
+    dashboard: "DASHBOARD",
     searchPlaceholder: "Search products...",
     search: "SEARCH",
     country: "Country",
@@ -73,6 +75,7 @@ const translations = {
     formalShoes: "فارمل جوتے",
     casualShoes: "کیژول جوتے",
     account: "میرا اکاؤنٹ",
+    dashboard: "ڈیش بورڈ",
     searchPlaceholder: "پروڈکٹس تلاش کریں...",
     search: "تلاش کریں",
     country: "ملک",
@@ -100,6 +103,7 @@ const translations = {
     formalShoes: "ফরমাল জুতা",
     casualShoes: "ক্যাজুয়াল জুতা",
     account: "আমার অ্যাকাউন্ট",
+    dashboard: "ড্যাশবোর্ড",
     searchPlaceholder: "পণ্য খুঁজুন...",
     search: "খুঁজুন",
     country: "দেশ",
@@ -127,6 +131,7 @@ const translations = {
     formalShoes: "फॉर्मल जूते",
     casualShoes: "कैज़ुअल जूते",
     account: "मेरा अकाउंट",
+    dashboard: "डैशबोर्ड",
     searchPlaceholder: "उत्पाद खोजें...",
     search: "खोजें",
     country: "देश",
@@ -154,6 +159,7 @@ const translations = {
     formalShoes: "أحذية رسمية",
     casualShoes: "أحذية كاجوال",
     account: "حسابي",
+    dashboard: "لوحة التحكم",
     searchPlaceholder: "ابحث عن المنتجات...",
     search: "بحث",
     country: "الدولة",
@@ -181,6 +187,7 @@ const translations = {
     formalShoes: "正装鞋",
     casualShoes: "休闲鞋",
     account: "我的账户",
+    dashboard: "管理面板",
     searchPlaceholder: "搜索商品...",
     search: "搜索",
     country: "国家",
@@ -208,6 +215,7 @@ const translations = {
     formalShoes: "フォーマルシューズ",
     casualShoes: "カジュアルシューズ",
     account: "マイアカウント",
+    dashboard: "ダッシュボード",
     searchPlaceholder: "商品を検索...",
     search: "検索",
     country: "国",
@@ -235,6 +243,7 @@ const translations = {
     formalShoes: "Chaussures habillées",
     casualShoes: "Chaussures décontractées",
     account: "MON COMPTE",
+    dashboard: "TABLEAU DE BORD",
     searchPlaceholder: "Rechercher des produits...",
     search: "RECHERCHER",
     country: "Pays",
@@ -442,6 +451,14 @@ const Header = () => {
             </a>
 
             <div className="flex flex-1 items-center justify-end gap-2 sm:gap-4">
+              <a
+                href="/admin/dashboard"
+                className="hidden shrink-0 items-center gap-2 bg-black px-3 py-3 text-xs font-semibold text-white transition hover:bg-gray-800 sm:flex"
+              >
+                <LayoutDashboard size={16} />
+                <span>{t.dashboard || "DASHBOARD"}</span>
+              </a>
+
               <div className="relative">
                 <button
                   type="button"
@@ -631,6 +648,15 @@ const Header = () => {
                 )}
               </div>
             ))}
+
+            <a
+              href="/admin/dashboard"
+              onClick={() => setMobileMenu(false)}
+              className="flex items-center gap-3 border-y border-gray-100 py-4 text-xs font-semibold"
+            >
+              <LayoutDashboard size={18} />
+              {t.dashboard || "DASHBOARD"}
+            </a>
 
             <a
               href="/login"
