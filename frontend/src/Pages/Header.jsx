@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import {
   Menu,
@@ -7,7 +8,7 @@ import {
   ShoppingBag,
   ChevronDown,
   Globe,
-  Plus,
+  LayoutDashboard,
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 
@@ -46,12 +47,12 @@ const translations = {
     formalShoes: "Formal Shoes",
     casualShoes: "Casual Shoes",
     account: "MY ACCOUNT",
+    dashboard: "DASHBOARD",
     searchPlaceholder: "Search products...",
     search: "SEARCH",
     country: "Country",
     language: "Language",
     done: "DONE",
-    createProduct: "CREATE PRODUCT",
   },
   ur: {
     announcement: "6000 روپے سے زیادہ کے آرڈر پر مفت ڈیلیوری",
@@ -74,12 +75,12 @@ const translations = {
     formalShoes: "فارمل جوتے",
     casualShoes: "کیژول جوتے",
     account: "میرا اکاؤنٹ",
+    dashboard: "ڈیش بورڈ",
     searchPlaceholder: "پروڈکٹس تلاش کریں...",
     search: "تلاش کریں",
     country: "ملک",
     language: "زبان",
     done: "مکمل",
-    createProduct: "پروڈکٹ بنائیں",
   },
   bn: {
     announcement: "অর্ডারে ফ্রি ডেলিভারি",
@@ -102,12 +103,12 @@ const translations = {
     formalShoes: "ফরমাল জুতা",
     casualShoes: "ক্যাজুয়াল জুতা",
     account: "আমার অ্যাকাউন্ট",
+    dashboard: "ড্যাশবোর্ড",
     searchPlaceholder: "পণ্য খুঁজুন...",
     search: "খুঁজুন",
     country: "দেশ",
     language: "ভাষা",
     done: "সম্পন্ন",
-    createProduct: "পণ্য তৈরি করুন",
   },
   hi: {
     announcement: "ऑर्डर पर मुफ़्त डिलीवरी",
@@ -130,12 +131,12 @@ const translations = {
     formalShoes: "फॉर्मल जूते",
     casualShoes: "कैज़ुअल जूते",
     account: "मेरा अकाउंट",
+    dashboard: "डैशबोर्ड",
     searchPlaceholder: "उत्पाद खोजें...",
     search: "खोजें",
     country: "देश",
     language: "भाषा",
     done: "हो गया",
-    createProduct: "उत्पाद बनाएं",
   },
   ar: {
     announcement: "توصيل مجاني للطلبات المؤهلة",
@@ -158,12 +159,12 @@ const translations = {
     formalShoes: "أحذية رسمية",
     casualShoes: "أحذية كاجوال",
     account: "حسابي",
+    dashboard: "لوحة التحكم",
     searchPlaceholder: "ابحث عن المنتجات...",
     search: "بحث",
     country: "الدولة",
     language: "اللغة",
     done: "تم",
-    createProduct: "إنشاء منتج",
   },
   zh: {
     announcement: "符合条件的订单免费配送",
@@ -186,12 +187,12 @@ const translations = {
     formalShoes: "正装鞋",
     casualShoes: "休闲鞋",
     account: "我的账户",
+    dashboard: "管理面板",
     searchPlaceholder: "搜索商品...",
     search: "搜索",
     country: "国家",
     language: "语言",
     done: "完成",
-    createProduct: "创建商品",
   },
   ja: {
     announcement: "対象注文は送料無料",
@@ -214,12 +215,12 @@ const translations = {
     formalShoes: "フォーマルシューズ",
     casualShoes: "カジュアルシューズ",
     account: "マイアカウント",
+    dashboard: "ダッシュボード",
     searchPlaceholder: "商品を検索...",
     search: "検索",
     country: "国",
     language: "言語",
     done: "完了",
-    createProduct: "商品を作成",
   },
   fr: {
     announcement: "LIVRAISON GRATUITE SUR LES COMMANDES ÉLIGIBLES",
@@ -242,12 +243,12 @@ const translations = {
     formalShoes: "Chaussures habillées",
     casualShoes: "Chaussures décontractées",
     account: "MON COMPTE",
+    dashboard: "TABLEAU DE BORD",
     searchPlaceholder: "Rechercher des produits...",
     search: "RECHERCHER",
     country: "Pays",
     language: "Langue",
     done: "TERMINÉ",
-    createProduct: "CRÉER UN PRODUIT",
   },
 };
 
@@ -451,13 +452,11 @@ const Header = () => {
 
             <div className="flex flex-1 items-center justify-end gap-2 sm:gap-4">
               <a
-                href="/create"
-                className="flex shrink-0 items-center gap-1 bg-black px-2 py-2 text-[10px] font-semibold text-white transition hover:bg-gray-800 sm:gap-2 sm:px-3 sm:py-3"
+                href="/admin/dashboard"
+                className="hidden shrink-0 items-center gap-2 bg-black px-3 py-3 text-xs font-semibold text-white transition hover:bg-gray-800 sm:flex"
               >
-                <Plus size={16} />
-                <span className="hidden sm:inline">
-                  {t.createProduct || "CREATE PRODUCT"}
-                </span>
+                <LayoutDashboard size={16} />
+                <span>{t.dashboard || "DASHBOARD"}</span>
               </a>
 
               <div className="relative">
@@ -651,12 +650,12 @@ const Header = () => {
             ))}
 
             <a
-              href="/admin/create-product"
+              href="/admin/dashboard"
               onClick={() => setMobileMenu(false)}
               className="flex items-center gap-3 border-y border-gray-100 py-4 text-xs font-semibold"
             >
-              <Plus size={18} />
-              {t.createProduct || "CREATE PRODUCT"}
+              <LayoutDashboard size={18} />
+              {t.dashboard || "DASHBOARD"}
             </a>
 
             <a
