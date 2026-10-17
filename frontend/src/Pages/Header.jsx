@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import {
   Menu,
@@ -7,7 +8,6 @@ import {
   ShoppingBag,
   ChevronDown,
   Globe,
-  Plus,
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 
@@ -51,7 +51,6 @@ const translations = {
     country: "Country",
     language: "Language",
     done: "DONE",
-    createProduct: "CREATE PRODUCT",
   },
   ur: {
     announcement: "6000 روپے سے زیادہ کے آرڈر پر مفت ڈیلیوری",
@@ -79,7 +78,6 @@ const translations = {
     country: "ملک",
     language: "زبان",
     done: "مکمل",
-    createProduct: "پروڈکٹ بنائیں",
   },
   bn: {
     announcement: "অর্ডারে ফ্রি ডেলিভারি",
@@ -107,7 +105,6 @@ const translations = {
     country: "দেশ",
     language: "ভাষা",
     done: "সম্পন্ন",
-    createProduct: "পণ্য তৈরি করুন",
   },
   hi: {
     announcement: "ऑर्डर पर मुफ़्त डिलीवरी",
@@ -135,7 +132,6 @@ const translations = {
     country: "देश",
     language: "भाषा",
     done: "हो गया",
-    createProduct: "उत्पाद बनाएं",
   },
   ar: {
     announcement: "توصيل مجاني للطلبات المؤهلة",
@@ -163,7 +159,6 @@ const translations = {
     country: "الدولة",
     language: "اللغة",
     done: "تم",
-    createProduct: "إنشاء منتج",
   },
   zh: {
     announcement: "符合条件的订单免费配送",
@@ -191,7 +186,6 @@ const translations = {
     country: "国家",
     language: "语言",
     done: "完成",
-    createProduct: "创建商品",
   },
   ja: {
     announcement: "対象注文は送料無料",
@@ -219,7 +213,6 @@ const translations = {
     country: "国",
     language: "言語",
     done: "完了",
-    createProduct: "商品を作成",
   },
   fr: {
     announcement: "LIVRAISON GRATUITE SUR LES COMMANDES ÉLIGIBLES",
@@ -247,7 +240,6 @@ const translations = {
     country: "Pays",
     language: "Langue",
     done: "TERMINÉ",
-    createProduct: "CRÉER UN PRODUIT",
   },
 };
 
@@ -450,16 +442,6 @@ const Header = () => {
             </a>
 
             <div className="flex flex-1 items-center justify-end gap-2 sm:gap-4">
-              <a
-                href="/create"
-                className="flex shrink-0 items-center gap-1 bg-black px-2 py-2 text-[10px] font-semibold text-white transition hover:bg-gray-800 sm:gap-2 sm:px-3 sm:py-3"
-              >
-                <Plus size={16} />
-                <span className="hidden sm:inline">
-                  {t.createProduct || "CREATE PRODUCT"}
-                </span>
-              </a>
-
               <div className="relative">
                 <button
                   type="button"
@@ -649,15 +631,6 @@ const Header = () => {
                 )}
               </div>
             ))}
-
-            <a
-              href="/admin/create-product"
-              onClick={() => setMobileMenu(false)}
-              className="flex items-center gap-3 border-y border-gray-100 py-4 text-xs font-semibold"
-            >
-              <Plus size={18} />
-              {t.createProduct || "CREATE PRODUCT"}
-            </a>
 
             <a
               href="/login"
