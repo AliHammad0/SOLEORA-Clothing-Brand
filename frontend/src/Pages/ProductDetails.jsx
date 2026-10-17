@@ -146,52 +146,61 @@ export default function ProductDetails() {
   const formatPrice = (price) =>
     `Rs. ${Number(price || 0).toLocaleString("en-PK")}`;
 
-  const addToCart = () => {
-    setMessage("");
+ const addToCart = () => {
+  setMessage("");
 
-    if (stock <= 0) {
-      setMessage("This product is out of stock.");
-      return;
-    }
+  if (stock <= 0) {
+    setMessage("This product is out of stock.");
+    return;
+  }
 
-    if (quantity > stock) {
-      setMessage(`Only ${stock} items are available.`);
-      return;
-    }
+  if (quantity > stock) {
+    setMessage(`Only ${stock} items are available.`);
+    return;
+  }
 
-    const cartItem = {
-      _id: product._id,
-      title: product.title,
-      price: discountedPrice,
-      quantity,
-      image: images[0] || "",
-    };
-
-    setCart((previous) => {
-      const existing = previous.find(
-        (item) => item._id === product._id
-      );
-
-      if (existing) {
-        return previous.map((item) =>
-          item._id === product._id
-            ? {
-                ...item,
-                price: discountedPrice,
-                quantity: Math.min(
-                  item.quantity + quantity,
-                  stock
-                ),
-              }
-            : item
-        );
-      }
-
-      return [...previous, cartItem];
-    });
-
-    setMessage("Product added to cart successfully!");
+  const cartItem = {
+    _id: product._id,
+    title: product.title,
+    price: discountedPrice,
+    quantity,
+    image: images[0] || "",
   };
+
+  setCart((previous) => {
+    const existing = previous.find(
+      (item) => item._id === product._id
+    );
+
+    if (existing) {
+      return previous.map((item) =>
+        item._id === product._id
+          ? {
+              ...item,
+              price: discountedPrice,
+              quantity: item.quantity + quantity,
+            }
+          : item
+      );
+    }
+
+    return [...previous, cartItem];
+  });
+
+  // Update the available stock immediately on this page
+  setProduct((previous) => ({
+    ...previous,
+    stock: Math.max(
+      0,
+      (Number(previous.stock) || 0) - quantity
+    ),
+  }));
+
+  // Reset the selected quantity after adding to cart
+  setQuantity(1);
+
+  setMessage("Product added to cart successfully!");
+};
 
   return (
     <div className="min-h-screen bg-white text-slate-900">
