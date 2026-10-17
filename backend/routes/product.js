@@ -6,7 +6,7 @@ import { verifyAdmin } from "../middleware/auth.js";
 const productRoutes = express.Router();
 
 // Create Product - Admin Only
-productRoutes.route("/create").post(verifyAdmin, Product.createProduct);
+productRoutes.route("/create").post( Product.createProduct);
 
 // Get All Products - Public
 productRoutes.route("/all").get(Product.getAllProducts);
