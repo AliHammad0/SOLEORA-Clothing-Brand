@@ -34,6 +34,7 @@ import AdminOrders from "./Pages/AdminOrders";
 import AdminCustomers from "./Pages/AdminCustomers";
 import AdminSettings from "./Pages/AdminSettings";
 import AboutUs from "./Pages/AboutUs";
+import Profile from "./Pages/Profile";
 
 const Layout = () => (
   <>
@@ -142,6 +143,7 @@ const Home = () => (
     <SpecialPrices />
     <Testimonials />
     <ProductBenefits />
+    <Profile />
   </>
 );
 
