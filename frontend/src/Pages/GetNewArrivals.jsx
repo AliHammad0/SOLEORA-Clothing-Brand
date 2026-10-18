@@ -82,8 +82,12 @@ const GetNewArrivals = () => {
       );
     }
 
-    if (discount > 0 && discount < 100) {
-      return discount;
+    if (
+      discount > 0 &&
+      discount < 100 &&
+      originalPrice > 0
+    ) {
+      return Math.round(discount);
     }
 
     return 0;
@@ -96,6 +100,47 @@ const GetNewArrivals = () => {
 
   return (
     <section className="bg-white px-4 py-12 sm:px-8 lg:px-16">
+      <style>{`
+        @keyframes soleoraBadgeEnter {
+          0% {
+            opacity: 0;
+            transform: translateY(8px) scale(0.85);
+          }
+          70% {
+            transform: translateY(-2px) scale(1.04);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+
+        @keyframes soleoraBadgeShine {
+          0% {
+            transform: translateX(-160%) skewX(-20deg);
+          }
+          65%, 100% {
+            transform: translateX(220%) skewX(-20deg);
+          }
+        }
+
+        .soleora-discount-badge {
+          animation: soleoraBadgeEnter 650ms ease-out both;
+          box-shadow: 0 4px 14px rgba(100, 15, 35, 0.2);
+        }
+
+        .soleora-discount-shine {
+          animation: soleoraBadgeShine 3.5s ease-in-out infinite;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .soleora-discount-badge,
+          .soleora-discount-shine {
+            animation: none;
+          }
+        }
+      `}</style>
+
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex items-end justify-between">
           <div>
@@ -130,7 +175,7 @@ const GetNewArrivals = () => {
             <button
               type="button"
               onClick={() => window.location.reload()}
-              className="mt-4 border border-black px-5 py-2 text-sm hover:bg-black hover:text-white"
+              className="mt-4 border border-black px-5 py-2 text-sm transition-colors hover:bg-black hover:text-white"
             >
               Try Again
             </button>
@@ -151,7 +196,9 @@ const GetNewArrivals = () => {
               const discountPercent = getDiscountPercent(product);
 
               const hasDiscount =
-                discountPercent > 0 && finalPrice < originalPrice;
+                discountPercent > 0 &&
+                originalPrice > 0 &&
+                finalPrice < originalPrice;
 
               const image =
                 product.images?.[0] ||
@@ -160,7 +207,10 @@ const GetNewArrivals = () => {
                 "https://placehold.co/600x750?text=SOLEORA";
 
               return (
-                <article key={product._id} className="group min-w-0">
+                <article
+                  key={product._id}
+                  className="group min-w-0"
+                >
                   <Link
                     to={`/product/${product._id}`}
                     className="block"
@@ -176,17 +226,36 @@ const GetNewArrivals = () => {
                           e.currentTarget.src =
                             "https://placehold.co/600x750?text=SOLEORA";
                         }}
-                        className="aspect-[4/5] w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        className="aspect-[4/5] w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                       />
 
-                      <span className="absolute left-2 top-2 bg-white px-2 py-1 text-[10px] font-semibold text-black sm:left-3 sm:top-3 sm:px-3 sm:text-xs">
-                        NEW
+                      <span className="absolute left-2 top-2 bg-white px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-[1.5px] text-black shadow-sm sm:left-3 sm:top-3 sm:px-3 sm:text-[10px]">
+                        New Arrival
                       </span>
 
                       {hasDiscount && (
-                        <span className="absolute bottom-2 left-2 bg-black px-2 py-1 text-[10px] font-semibold text-white sm:bottom-3 sm:left-3 sm:px-3 sm:text-xs">
-                          {discountPercent}% OFF
-                        </span>
+                        <div className="absolute bottom-3 left-2.5 z-10 sm:bottom-4 sm:left-3">
+                          <span className="soleora-discount-badge relative inline-flex overflow-hidden items-center gap-1.5 rounded-full border border-white/20 bg-gradient-to-r from-[#4b071b] via-[#861b35] to-[#4b071b] px-3 py-2 text-white sm:gap-2 sm:px-4 sm:py-2.5">
+                            <span className="relative z-10 flex h-5 w-5 items-center justify-center rounded-full bg-white/15 text-[10px] font-bold sm:h-6 sm:w-6 sm:text-xs">
+                              %
+                            </span>
+
+                            <span className="relative z-10 flex flex-col leading-none">
+                              <span className="text-[9px] font-medium uppercase tracking-[1.5px] text-white/75 sm:text-[10px]">
+                                Special Offer
+                              </span>
+
+                              <span className="mt-1 text-xs font-extrabold tracking-wide sm:text-sm">
+                                {discountPercent}% OFF
+                              </span>
+                            </span>
+
+                            <span
+                              aria-hidden="true"
+                              className="soleora-discount-shine pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-white/25 to-transparent"
+                            />
+                          </span>
+                        </div>
                       )}
                     </div>
 
@@ -198,7 +267,7 @@ const GetNewArrivals = () => {
                           "Collection"}
                       </p>
 
-                      <h3 className="line-clamp-2 text-xs font-semibold text-gray-900 sm:text-base">
+                      <h3 className="line-clamp-2 text-xs font-semibold text-gray-900 transition-colors group-hover:text-[#861b35] sm:text-base">
                         {product.title}
                       </h3>
 
@@ -209,7 +278,13 @@ const GetNewArrivals = () => {
                           </span>
                         )}
 
-                        <span className="text-xs font-bold text-black sm:text-sm">
+                        <span
+                          className={`text-xs font-bold sm:text-sm ${
+                            hasDiscount
+                              ? "text-[#861b35]"
+                              : "text-black"
+                          }`}
+                        >
                           PKR {formatPrice(finalPrice)}
                         </span>
                       </div>
