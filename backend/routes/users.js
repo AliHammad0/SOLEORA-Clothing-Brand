@@ -7,15 +7,16 @@ import {
   updateUser,
   deleteUser
 } from "../controller/users.js";
+import { verifyAdmin } from "../middleware/auth.js";
 
 const userRouter = express.Router();
 
 userRouter.post("/signup", signup);
 userRouter.post("/login", login);
 
-userRouter.get("/", getAllUsers);
-userRouter.get("/:id", getSingleUser);
-userRouter.put("/:id", updateUser);
-userRouter.delete("/:id", deleteUser);
+userRouter.get("/", verifyAdmin, getAllUsers);
+userRouter.get("/:id", verifyAdmin, getSingleUser);
+userRouter.put("/:id", verifyAdmin, updateUser);
+userRouter.delete("/:id", verifyAdmin, deleteUser);
 
 export default userRouter;

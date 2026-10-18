@@ -25,6 +25,12 @@ import GetNewArrivals from "./Pages/GetNewArrivals";
 import ProductDetails from "./Pages/ProductDetails";
 import Profile from "./Pages/Profile";
 
+import AdminDashboard from "./Pages/AdminDashboard";
+import AdminProducts from "./Pages/AdminProducts";
+import AdminOrders from "./Pages/AdminOrders";
+import AdminCustomers from "./Pages/AdminCustomers";
+import AdminSettings from "./Pages/AdminSettings";
+
 import { LanguageProvider, useLanguage } from "./context/LanguageContext";
 
 const Layout = () => (
@@ -176,6 +182,26 @@ const App = () => (
         />
 
         <Route element={<AdminRoute />}>
+          <Route
+            path="/admin/dashboard"
+            element={<AdminDashboard />}
+          />
+          <Route
+            path="/admin/products"
+            element={<AdminProducts />}
+          />
+          <Route
+            path="/admin/orders"
+            element={<AdminOrders />}
+          />
+          <Route
+            path="/admin/users"
+            element={<AdminCustomers />}
+          />
+          <Route
+            path="/admin/settings"
+            element={<AdminSettings />}
+          />
           <Route path="/create" element={<CreateProduct />} />
         </Route>
       </Route>

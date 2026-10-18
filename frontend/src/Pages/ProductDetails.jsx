@@ -14,7 +14,7 @@ import {
   ZoomIn,
 } from "lucide-react";
 
-const API_URL = "http://localhost:8080/api/v1/products";
+const API_URL = "https://soleora-clothing-brand-backend.vercel.app/api/v1/products";
 
 export default function ProductDetails() {
   const { id } = useParams();

@@ -1,3 +1,4 @@
-config.js
+config/config.js
+config/DBconfig.js
 .env
 node_modules/

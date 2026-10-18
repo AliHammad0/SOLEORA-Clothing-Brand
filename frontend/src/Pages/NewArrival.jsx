@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ShoppingBag } from "lucide-react";
 
-const API_URL = "http://localhost:8080/api/v1/products/all";
+const API_URL = "https://soleora-clothing-brand-backend.vercel.app/api/v1/products/all";
 
 const NewArrivals = () => {
   const [products, setProducts] = useState([]);

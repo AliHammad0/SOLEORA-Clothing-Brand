@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
 
-const API_URL = "http://localhost:8080/api/v1/products/special";
+const API_URL = "https://soleora-clothing-brand-backend.vercel.app/api/v1/products/special";
 const EXCHANGE_RATE = 280;
 
 const SpecialPrices = () => {
