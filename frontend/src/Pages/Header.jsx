@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Menu,
   X,
@@ -48,6 +47,7 @@ const translations = {
     casualShoes: "Casual Shoes",
     account: "MY ACCOUNT",
     dashboard: "DASHBOARD",
+    profile: "PROFILE",
     searchPlaceholder: "Search products...",
     search: "SEARCH",
     country: "Country",
@@ -76,6 +76,7 @@ const translations = {
     casualShoes: "کیژول جوتے",
     account: "میرا اکاؤنٹ",
     dashboard: "ڈیش بورڈ",
+    profile: "پروفائل",
     searchPlaceholder: "پروڈکٹس تلاش کریں...",
     search: "تلاش کریں",
     country: "ملک",
@@ -104,6 +105,7 @@ const translations = {
     casualShoes: "ক্যাজুয়াল জুতা",
     account: "আমার অ্যাকাউন্ট",
     dashboard: "ড্যাশবোর্ড",
+    profile: "প্রোফাইল",
     searchPlaceholder: "পণ্য খুঁজুন...",
     search: "খুঁজুন",
     country: "দেশ",
@@ -132,6 +134,7 @@ const translations = {
     casualShoes: "कैज़ुअल जूते",
     account: "मेरा अकाउंट",
     dashboard: "डैशबोर्ड",
+    profile: "प्रोफ़ाइल",
     searchPlaceholder: "उत्पाद खोजें...",
     search: "खोजें",
     country: "देश",
@@ -160,6 +163,7 @@ const translations = {
     casualShoes: "أحذية كاجوال",
     account: "حسابي",
     dashboard: "لوحة التحكم",
+    profile: "الملف الشخصي",
     searchPlaceholder: "ابحث عن المنتجات...",
     search: "بحث",
     country: "الدولة",
@@ -188,6 +192,7 @@ const translations = {
     casualShoes: "休闲鞋",
     account: "我的账户",
     dashboard: "管理面板",
+    profile: "个人资料",
     searchPlaceholder: "搜索商品...",
     search: "搜索",
     country: "国家",
@@ -215,7 +220,8 @@ const translations = {
     formalShoes: "フォーマルシューズ",
     casualShoes: "カジュアルシューズ",
     account: "マイアカウント",
-    dashboard: "ダッシュボード",
+    dashboard: "管理パネル",
+    profile: "プロフィール",
     searchPlaceholder: "商品を検索...",
     search: "検索",
     country: "国",
@@ -244,6 +250,7 @@ const translations = {
     casualShoes: "Chaussures décontractées",
     account: "MON COMPTE",
     dashboard: "TABLEAU DE BORD",
+    profile: "MON PROFIL",
     searchPlaceholder: "Rechercher des produits...",
     search: "RECHERCHER",
     country: "Pays",
@@ -260,6 +267,14 @@ const getSavedValue = (key, fallback) => {
   }
 };
 
+const getSavedUser = () => {
+  try {
+    return JSON.parse(localStorage.getItem("user") || "null");
+  } catch {
+    return null;
+  }
+};
+
 const Header = () => {
   const { language, setLanguage } = useLanguage();
 
@@ -271,12 +286,43 @@ const Header = () => {
     getSavedValue("countryCode", "PK")
   );
   const [regionOpen, setRegionOpen] = useState(false);
+  const [authUser, setAuthUser] = useState(getSavedUser);
+
+  // Refresh authentication state after login/logout.
+  useEffect(() => {
+    const updateUser = () => {
+      setAuthUser(getSavedUser());
+    };
+
+    window.addEventListener("storage", updateUser);
+    window.addEventListener("focus", updateUser);
+    window.addEventListener("userLoggedIn", updateUser);
+    window.addEventListener("userLoggedOut", updateUser);
+    window.addEventListener("authChanged", updateUser);
+
+    return () => {
+      window.removeEventListener("storage", updateUser);
+      window.removeEventListener("focus", updateUser);
+      window.removeEventListener("userLoggedIn", updateUser);
+      window.removeEventListener("userLoggedOut", updateUser);
+      window.removeEventListener("authChanged", updateUser);
+    };
+  }, []);
+
+  const isLoggedIn = Boolean(
+    authUser && getSavedValue("token", "")
+  );
+
+  const isAdmin = isLoggedIn && authUser?.isAdmin === true;
 
   const selectedCountry =
-    countries.find((country) => country.code === countryCode) || countries[0];
+    countries.find((country) => country.code === countryCode) ||
+    countries[0];
 
   const t = translations[language] || translations.en;
   const isRTL = language === "ur" || language === "ar";
+
+  const accountHref = isLoggedIn ? "/profile" : "/login";
 
   const navLinks = [
     { id: "new", name: t.newArrivals, href: "/new" },
@@ -343,40 +389,42 @@ const Header = () => {
     }
   };
 
+  const deliveryAmount = {
+    PK: "Rs. 6,000",
+    US: "$60",
+    GB: "£50",
+    BD: "৳5,000",
+    IN: "₹5,000",
+    SA: "SAR 200",
+    AE: "AED 200",
+    CN: "¥300",
+    JP: "¥5,000",
+    FR: "€60",
+  };
+
   return (
     <header
       dir={isRTL ? "rtl" : "ltr"}
       className="relative z-50 w-full bg-white font-[Arial,sans-serif] text-black"
     >
+      {/* Announcement bar */}
       <div className="bg-black px-3 py-2 text-center text-[10px] tracking-wide text-white sm:text-xs">
         {t.announcement}{" "}
-        {selectedCountry.code === "PK"
-          ? "Rs. 6,000"
-          : selectedCountry.code === "US"
-          ? "$60"
-          : selectedCountry.code === "GB"
-          ? "£50"
-          : selectedCountry.code === "BD"
-          ? "৳5,000"
-          : selectedCountry.code === "IN"
-          ? "₹5,000"
-          : selectedCountry.code === "SA"
-          ? "SAR 200"
-          : selectedCountry.code === "AE"
-          ? "AED 200"
-          : selectedCountry.code === "CN"
-          ? "¥300"
-          : selectedCountry.code === "JP"
-          ? "¥5,000"
-          : "€60"}{" "}
-        <a href="/shipping" className="ms-2 underline underline-offset-2">
+        {deliveryAmount[selectedCountry.code] || "€60"}
+        {" "}
+        <a
+          href="/shipping"
+          className="ms-2 underline underline-offset-2"
+        >
           {t.shopNow}
         </a>
       </div>
 
+      {/* Main header */}
       <div className="border-b border-gray-200">
         <div className="mx-auto max-w-7xl px-3 sm:px-6">
           <div className="flex min-h-[76px] items-center justify-between gap-2">
+            {/* Mobile menu button */}
             <button
               type="button"
               onClick={() => setMobileMenu(!mobileMenu)}
@@ -386,6 +434,7 @@ const Header = () => {
               {mobileMenu ? <X size={23} /> : <Menu size={23} />}
             </button>
 
+            {/* Desktop navigation */}
             <nav className="hidden flex-1 items-center gap-5 md:flex lg:gap-7">
               {navLinks.map((link) => (
                 <div
@@ -443,6 +492,7 @@ const Header = () => {
               ))}
             </nav>
 
+            {/* Logo */}
             <a
               href="/"
               className="shrink-0 text-center text-xl font-bold tracking-[0.12em] sm:text-3xl sm:tracking-[0.18em]"
@@ -450,15 +500,29 @@ const Header = () => {
               SOLEORA
             </a>
 
+            {/* Header actions */}
             <div className="flex flex-1 items-center justify-end gap-2 sm:gap-4">
-              <a
-                href="/admin/dashboard"
-                className="hidden shrink-0 items-center gap-2 bg-black px-3 py-3 text-xs font-semibold text-white transition hover:bg-gray-800 sm:flex"
-              >
-                <LayoutDashboard size={16} />
-                <span>{t.dashboard || "DASHBOARD"}</span>
-              </a>
+              {/* Admin Dashboard / User Profile */}
+              {isLoggedIn && (
+                <a
+                  href={isAdmin ? "/admin/dashboard" : "/profile"}
+                  className="hidden shrink-0 items-center gap-2 bg-black px-3 py-3 text-xs font-semibold text-white transition hover:bg-gray-800 sm:flex"
+                >
+                  {isAdmin ? (
+                    <LayoutDashboard size={16} />
+                  ) : (
+                    <UserRound size={16} />
+                  )}
 
+                  <span>
+                    {isAdmin
+                      ? t.dashboard || "DASHBOARD"
+                      : t.profile || "PROFILE"}
+                  </span>
+                </a>
+              )}
+
+              {/* Country and language selector */}
               <div className="relative">
                 <button
                   type="button"
@@ -467,9 +531,11 @@ const Header = () => {
                   aria-label="Country and language settings"
                 >
                   <Globe size={19} strokeWidth={1.5} />
+
                   <span className="hidden lg:inline">
                     {selectedCountry.code} / {language.toUpperCase()}
                   </span>
+
                   <ChevronDown size={13} />
                 </button>
 
@@ -479,6 +545,7 @@ const Header = () => {
                       <h3 className="text-sm font-semibold">
                         {t.country} & {t.language}
                       </h3>
+
                       <button
                         type="button"
                         onClick={() => setRegionOpen(false)}
@@ -491,6 +558,7 @@ const Header = () => {
                     <label className="mb-2 block text-xs text-gray-500">
                       {t.country}
                     </label>
+
                     <select
                       value={countryCode}
                       onChange={(e) => handleCountryChange(e.target.value)}
@@ -506,6 +574,7 @@ const Header = () => {
                     <label className="mb-2 block text-xs text-gray-500">
                       {t.language}
                     </label>
+
                     <select
                       value={language}
                       onChange={(e) => handleLanguageChange(e.target.value)}
@@ -529,6 +598,7 @@ const Header = () => {
                 )}
               </div>
 
+              {/* Search */}
               <button
                 type="button"
                 onClick={() => setSearchOpen(!searchOpen)}
@@ -538,14 +608,16 @@ const Header = () => {
                 <Search size={21} strokeWidth={1.5} />
               </button>
 
+              {/* Account */}
               <a
-                href="/login"
-                aria-label="My Account"
+                href={accountHref}
+                aria-label={isLoggedIn ? "My Profile" : "My Account"}
                 className="hidden hover:opacity-60 sm:block"
               >
                 <UserRound size={21} strokeWidth={1.5} />
               </a>
 
+              {/* Cart */}
               <a
                 href="/cart"
                 aria-label="Shopping Bag"
@@ -556,10 +628,12 @@ const Header = () => {
             </div>
           </div>
 
+          {/* Search form */}
           {searchOpen && (
             <form
               onSubmit={(e) => {
                 e.preventDefault();
+
                 if (searchText.trim()) {
                   window.location.href = `/search?q=${encodeURIComponent(
                     searchText.trim()
@@ -569,6 +643,7 @@ const Header = () => {
               className="flex items-center gap-3 border-t border-gray-200 py-4"
             >
               <Search size={19} />
+
               <input
                 type="search"
                 value={searchText}
@@ -577,9 +652,11 @@ const Header = () => {
                 className="w-full bg-transparent text-sm outline-none"
                 autoFocus
               />
+
               <button type="submit" className="text-xs font-semibold">
                 {t.search}
               </button>
+
               <button
                 type="button"
                 onClick={() => setSearchOpen(false)}
@@ -592,6 +669,7 @@ const Header = () => {
         </div>
       </div>
 
+      {/* Mobile navigation */}
       {mobileMenu && (
         <nav className="absolute start-0 top-full z-50 w-full border-b border-gray-200 bg-white shadow-lg md:hidden">
           <div className="px-5 py-3">
@@ -649,22 +727,33 @@ const Header = () => {
               </div>
             ))}
 
-            <a
-              href="/admin/dashboard"
-              onClick={() => setMobileMenu(false)}
-              className="flex items-center gap-3 border-y border-gray-100 py-4 text-xs font-semibold"
-            >
-              <LayoutDashboard size={18} />
-              {t.dashboard || "DASHBOARD"}
-            </a>
+            {/* Mobile Dashboard / Profile */}
+            {isLoggedIn && (
+              <a
+                href={isAdmin ? "/admin/dashboard" : "/profile"}
+                onClick={() => setMobileMenu(false)}
+                className="flex items-center gap-3 border-y border-gray-100 py-4 text-xs font-semibold"
+              >
+                {isAdmin ? (
+                  <LayoutDashboard size={18} />
+                ) : (
+                  <UserRound size={18} />
+                )}
 
+                {isAdmin
+                  ? t.dashboard || "DASHBOARD"
+                  : t.profile || "PROFILE"}
+              </a>
+            )}
+
+            {/* Mobile account link */}
             <a
-              href="/login"
+              href={accountHref}
               onClick={() => setMobileMenu(false)}
               className="flex items-center gap-3 py-4 text-xs"
             >
               <UserRound size={18} />
-              {t.account}
+              {isLoggedIn ? t.profile || "PROFILE" : t.account}
             </a>
           </div>
         </nav>
