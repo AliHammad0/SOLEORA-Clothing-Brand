@@ -143,7 +143,7 @@ const Home = () => (
     <SpecialPrices />
     <Testimonials />
     <ProductBenefits />
-    <Profile />
+    
   </>
 );
 
@@ -184,6 +184,7 @@ const App = () => (
         <Route path="/product/:id" element={<ProductDetails />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/about" element={<AboutUs />} />
+         <Route path="/profile" element={<Profile />} />
 
         <Route
           path="/ReturnsExchangePolicy"
