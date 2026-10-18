@@ -1,4 +1,3 @@
-
 import React from "react";
 import {
   Routes,
@@ -10,7 +9,6 @@ import {
 
 import Footer from "./Pages/Footer";
 import Header from "./Pages/Header";
-import NewArrivals from "./Pages/NewArrival";
 import ShopByCategory from "./Pages/ShopByCategory";
 import SpecialPrices from "./Pages/SpecialPrices";
 import Testimonials from "./Pages/Testimonials";
@@ -25,16 +23,9 @@ import GetAllProducts from "./Pages/GetAllProducts";
 import CreateProduct from "./Pages/CreateProduct";
 import GetNewArrivals from "./Pages/GetNewArrivals";
 import ProductDetails from "./Pages/ProductDetails";
+import Profile from "./Pages/Profile";
 
 import { LanguageProvider, useLanguage } from "./context/LanguageContext";
-
-import AdminDashboard from "./Pages/AdminDashboard";
-import AdminProducts from "./Pages/AdminProducts";
-import AdminOrders from "./Pages/AdminOrders";
-import AdminCustomers from "./Pages/AdminCustomers";
-import AdminSettings from "./Pages/AdminSettings";
-import AboutUs from "./Pages/AboutUs";
-import Profile from "./Pages/Profile";
 
 const Layout = () => (
   <>
@@ -45,7 +36,6 @@ const Layout = () => (
   </>
 );
 
-// Animated Admin Access Protection
 const AdminRoute = () => {
   let user = null;
 
@@ -64,12 +54,10 @@ const AdminRoute = () => {
   if (user.isAdmin !== true) {
     return (
       <div className="relative flex min-h-[60vh] flex-col items-center justify-center overflow-hidden bg-white px-5 py-16 text-center">
-        {/* Animated background */}
         <div className="pointer-events-none absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 animate-pulse rounded-full bg-gray-100" />
 
         <div className="pointer-events-none absolute left-1/2 top-1/2 h-48 w-48 -translate-x-1/2 -translate-y-1/2 animate-[spin_12s_linear_infinite] rounded-full border border-gray-300" />
 
-        {/* Animated lock */}
         <div className="relative z-10 flex h-24 w-24 animate-[fadeIn_0.8s_ease-out] items-center justify-center rounded-full border border-gray-200 bg-white shadow-xl">
           <svg
             className="h-12 w-12 animate-[bounce_2s_ease-in-out_infinite] text-black"
@@ -138,12 +126,10 @@ const Home = () => (
   <>
     <GetAllProducts />
     <GetNewArrivals />
-    {/* <NewArrivals /> */}
     <ShopByCategory />
     <SpecialPrices />
     <Testimonials />
     <ProductBenefits />
-    
   </>
 );
 
@@ -170,7 +156,6 @@ const App = () => (
   <LanguageProvider>
     <Routes>
       <Route element={<Layout />}>
-        {/* Public Pages */}
         <Route path="/" element={<Home />} />
 
         <Route
@@ -183,7 +168,6 @@ const App = () => (
         <Route path="/login" element={<Login />} />
         <Route path="/product/:id" element={<ProductDetails />} />
         <Route path="/cart" element={<Cart />} />
-        <Route path="/about" element={<AboutUs />} />
         <Route path="/profile" element={<Profile />} />
 
         <Route
@@ -191,33 +175,7 @@ const App = () => (
           element={<ReturnsExchangePolicy />}
         />
 
-        {/* Protected Admin Pages */}
         <Route element={<AdminRoute />}>
-          <Route
-            path="/admin/dashboard"
-            element={<AdminDashboard />}
-          />
-
-          <Route
-            path="/admin/products"
-            element={<AdminProducts />}
-          />
-
-          <Route
-            path="/admin/orders"
-            element={<AdminOrders />}
-          />
-
-          <Route
-            path="/admin/users"
-            element={<AdminCustomers />}
-          />
-
-          <Route
-            path="/admin/settings"
-            element={<AdminSettings />}
-          />
-
           <Route path="/create" element={<CreateProduct />} />
         </Route>
       </Route>
