@@ -1,22 +1,41 @@
+
 import React, { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 const API_URL =
   "https://soleora-clothing-brand-backend.vercel.app/api/v1/products/all";
 
 const GetAllProducts = () => {
+  const location = useLocation();
+
   const [products, setProducts] = useState([]);
   const [sortBy, setSortBy] = useState("featured");
   const [viewMode, setViewMode] = useState("grid-2");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const gender = {
+    "/men": "Men",
+    "/women": "Women",
+    "/kids": "Kids",
+  }[location.pathname];
+
+  const pageTitle = {
+    "/men": "Men's Collection",
+    "/women": "Women's Collection",
+    "/kids": "Kids' Collection",
+  }[location.pathname];
+
   const fetchProducts = async () => {
     try {
       setLoading(true);
       setError("");
 
-      const response = await fetch(API_URL);
+      const url = gender
+        ? `${API_URL}?gender=${encodeURIComponent(gender)}`
+        : API_URL;
+
+      const response = await fetch(url);
       const data = await response.json();
 
       if (!response.ok || !data.ok) {
@@ -33,7 +52,7 @@ const GetAllProducts = () => {
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [location.pathname]);
 
   const getProductPrice = (product) => {
     const price = Number(product.price || 0);
@@ -55,14 +74,11 @@ const GetAllProducts = () => {
     return products.filter((product) => {
       const price = Number(product.price || 0);
       const specialPrice = Number(product.specialPrice || 0);
+      const isNewArrival = Boolean(product.isNewArrival);
       const hasSpecialPrice =
         specialPrice > 0 && specialPrice < price;
 
-      return (
-        product.isActive !== false &&
-        !hasSpecialPrice &&
-        product.isNewArrival !== true
-      );
+      return !hasSpecialPrice && !isNewArrival;
     });
   }, [products]);
 
@@ -196,15 +212,10 @@ const GetAllProducts = () => {
 
   const ProductCard = ({ product }) => {
     const price = Number(product.price || 0);
-    const specialPrice = Number(product.specialPrice || 0);
     const discount = Number(product.discount || 0);
+    const specialPrice = Number(product.specialPrice || 0);
     const finalPrice = getProductPrice(product);
-
     const onSale = finalPrice < price;
-    const actualDiscount =
-      price > 0
-        ? Math.round(((price - finalPrice) / price) * 100)
-        : 0;
 
     const image = product.images?.[0];
     const isList = viewMode === "list";
@@ -232,11 +243,6 @@ const GetAllProducts = () => {
               src={image}
               alt={product.title || "Product"}
               loading="lazy"
-              onError={(e) => {
-                e.currentTarget.onerror = null;
-                e.currentTarget.src =
-                  "https://placehold.co/600x750?text=SOLEORA";
-              }}
               className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
             />
           ) : (
@@ -247,7 +253,7 @@ const GetAllProducts = () => {
 
           {onSale && (
             <span className="absolute left-2 top-2 rounded-sm bg-red-600 px-2 py-1 text-[10px] font-semibold text-white sm:text-xs">
-              {actualDiscount}% OFF
+              {discount > 0 ? `${discount}% OFF` : "SPECIAL PRICE"}
             </span>
           )}
         </Link>
@@ -265,13 +271,7 @@ const GetAllProducts = () => {
 
           {product.category && (
             <p className="mt-1 truncate text-[11px] text-gray-500 sm:text-sm">
-              {product.category?.name || product.category}
-            </p>
-          )}
-
-          {isList && product.description && (
-            <p className="mt-2 hidden max-w-2xl text-sm leading-6 text-gray-500 sm:line-clamp-2 md:block">
-              {product.description}
+              {product.category}
             </p>
           )}
 
@@ -288,19 +288,12 @@ const GetAllProducts = () => {
                 maximumFractionDigits: 2,
               })}
             </span>
-
-            {onSale && (
-              <span className="rounded-sm bg-red-50 px-2 py-1 text-xs font-semibold text-red-600">
-                {actualDiscount}% OFF
-              </span>
-            )}
           </div>
 
           {isList && (
             <div className="mt-3 space-y-1 text-xs text-gray-500 sm:text-sm">
               {product.brand && <p>Brand: {product.brand}</p>}
               {product.stock != null && <p>Stock: {product.stock}</p>}
-              {product.sku && <p>SKU: {product.sku}</p>}
 
               <Link
                 to={productUrl}
@@ -318,6 +311,12 @@ const GetAllProducts = () => {
   return (
     <main className="min-h-screen bg-white px-3 py-6 sm:px-8 sm:py-8 lg:px-12">
       <div className="mx-auto max-w-[1600px]">
+        {gender && (
+          <h1 className="mb-6 text-2xl font-semibold text-gray-900 sm:text-3xl">
+            {pageTitle}
+          </h1>
+        )}
+
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 pb-5">
           <p className="text-sm text-gray-600">
             <span className="font-semibold text-black">
@@ -380,7 +379,7 @@ const GetAllProducts = () => {
 
         {!loading && !error && filteredProducts.length === 0 && (
           <div className="py-20 text-center text-gray-500">
-            No products found.
+            No products found in this collection.
           </div>
         )}
 

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -12,6 +13,9 @@ const GetNewArrivals = () => {
   useEffect(() => {
     const fetchNewArrivals = async () => {
       try {
+        setLoading(true);
+        setError("");
+
         const response = await fetch(API_URL);
         const data = await response.json();
 
@@ -22,7 +26,8 @@ const GetNewArrivals = () => {
         setProducts(
           (data.products || []).filter(
             (product) =>
-              product.isActive === true &&
+              product.isActive !== false &&
+              product.active !== false &&
               product.isNewArrival === true
           )
         );
@@ -35,6 +40,59 @@ const GetNewArrivals = () => {
 
     fetchNewArrivals();
   }, []);
+
+  const getOriginalPrice = (product) =>
+    Number(product.originalPrice ?? product.price ?? 0);
+
+  const getSpecialPrice = (product) =>
+    Number(product.specialPrice ?? product.discountPrice ?? 0);
+
+  const getFinalPrice = (product) => {
+    const originalPrice = getOriginalPrice(product);
+    const specialPrice = getSpecialPrice(product);
+    const discount = Number(product.discount || 0);
+
+    if (
+      specialPrice > 0 &&
+      originalPrice > 0 &&
+      specialPrice < originalPrice
+    ) {
+      return specialPrice;
+    }
+
+    if (discount > 0 && discount < 100 && originalPrice > 0) {
+      return originalPrice - (originalPrice * discount) / 100;
+    }
+
+    return originalPrice;
+  };
+
+  const getDiscountPercent = (product) => {
+    const originalPrice = getOriginalPrice(product);
+    const specialPrice = getSpecialPrice(product);
+    const discount = Number(product.discount || 0);
+
+    if (
+      specialPrice > 0 &&
+      originalPrice > 0 &&
+      specialPrice < originalPrice
+    ) {
+      return Math.round(
+        ((originalPrice - specialPrice) / originalPrice) * 100
+      );
+    }
+
+    if (discount > 0 && discount < 100) {
+      return discount;
+    }
+
+    return 0;
+  };
+
+  const formatPrice = (price) =>
+    price.toLocaleString("en-PK", {
+      maximumFractionDigits: 2,
+    });
 
   return (
     <section className="bg-white px-4 py-12 sm:px-8 lg:px-16">
@@ -66,9 +124,17 @@ const GetNewArrivals = () => {
         )}
 
         {!loading && error && (
-          <p className="py-12 text-center text-red-600">
-            {error}
-          </p>
+          <div className="py-12 text-center">
+            <p className="text-sm text-red-600">{error}</p>
+
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="mt-4 border border-black px-5 py-2 text-sm hover:bg-black hover:text-white"
+            >
+              Try Again
+            </button>
+          </div>
         )}
 
         {!loading && !error && products.length === 0 && (
@@ -78,23 +144,19 @@ const GetNewArrivals = () => {
         )}
 
         {!loading && !error && products.length > 0 && (
-          <div className="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-3 lg:grid-cols-4 lg:gap-x-6">
+          <div className="grid grid-cols-2 gap-x-3 gap-y-8 sm:gap-x-5 md:grid-cols-3 lg:grid-cols-4 lg:gap-x-6">
             {products.map((product) => {
-              const price = Number(product.price || 0);
-              const specialPrice = Number(product.specialPrice || 0);
-              const discount = Number(product.discount || 0);
+              const originalPrice = getOriginalPrice(product);
+              const finalPrice = getFinalPrice(product);
+              const discountPercent = getDiscountPercent(product);
 
-              const discountedPrice =
-                specialPrice > 0 && specialPrice < price
-                  ? specialPrice
-                  : discount > 0
-                    ? price - (price * discount) / 100
-                    : price;
-
-              const hasDiscount = discountedPrice < price;
+              const hasDiscount =
+                discountPercent > 0 && finalPrice < originalPrice;
 
               const image =
                 product.images?.[0] ||
+                product.imageUrls?.[0] ||
+                product.image ||
                 "https://placehold.co/600x750?text=SOLEORA";
 
               return (
@@ -117,50 +179,52 @@ const GetNewArrivals = () => {
                         className="aspect-[4/5] w-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
 
-                      <span className="absolute left-3 top-3 bg-white px-3 py-1 text-xs font-semibold text-black">
+                      <span className="absolute left-2 top-2 bg-white px-2 py-1 text-[10px] font-semibold text-black sm:left-3 sm:top-3 sm:px-3 sm:text-xs">
                         NEW
                       </span>
 
                       {hasDiscount && (
-                        <span className="absolute bottom-3 left-3 bg-black px-3 py-1 text-xs font-semibold text-white">
-                          SALE
+                        <span className="absolute bottom-2 left-2 bg-black px-2 py-1 text-[10px] font-semibold text-white sm:bottom-3 sm:left-3 sm:px-3 sm:text-xs">
+                          {discountPercent}% OFF
                         </span>
                       )}
                     </div>
 
-                    <div className="pt-4">
-                      <p className="mb-1 text-xs uppercase tracking-wider text-gray-500">
+                    <div className="pt-3 sm:pt-4">
+                      <p className="mb-1 truncate text-[10px] uppercase tracking-wider text-gray-500 sm:text-xs">
                         {product.category?.name ||
                           product.category ||
                           product.gender ||
                           "Collection"}
                       </p>
 
-                      <h3 className="line-clamp-2 text-sm font-semibold text-gray-900 sm:text-base">
+                      <h3 className="line-clamp-2 text-xs font-semibold text-gray-900 sm:text-base">
                         {product.title}
                       </h3>
 
-                      <div className="mt-2 flex flex-wrap items-center gap-2">
-                        {hasDiscount ? (
-                          <>
-                            <span className="text-sm font-bold text-black">
-                              PKR {discountedPrice.toLocaleString("en-PK")}
-                            </span>
-
-                            <span className="text-sm text-gray-400 line-through">
-                              PKR {price.toLocaleString("en-PK")}
-                            </span>
-                          </>
-                        ) : (
-                          <span className="text-sm font-bold text-black">
-                            PKR {price.toLocaleString("en-PK")}
+                      <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+                        {hasDiscount && (
+                          <span className="text-[11px] text-gray-400 line-through sm:text-sm">
+                            PKR {formatPrice(originalPrice)}
                           </span>
                         )}
+
+                        <span className="text-xs font-bold text-black sm:text-sm">
+                          PKR {formatPrice(finalPrice)}
+                        </span>
                       </div>
 
                       {product.colors?.length > 0 && (
-                        <p className="mt-2 text-xs text-gray-500">
+                        <p className="mt-2 truncate text-[10px] text-gray-500 sm:text-xs">
                           Colors: {product.colors.join(", ")}
+                        </p>
+                      )}
+
+                      {product.stock != null && (
+                        <p className="mt-1 text-[10px] text-gray-500 sm:text-xs">
+                          {product.stock > 0
+                            ? `${product.stock} in stock`
+                            : "Out of stock"}
                         </p>
                       )}
                     </div>
