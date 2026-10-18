@@ -14,7 +14,6 @@ import SpecialPrices from "./Pages/SpecialPrices";
 import Testimonials from "./Pages/Testimonials";
 import ProductBenefits from "./Pages/ProductBenefits";
 import GoToTop from "./Pages/GoToTop";
-import TermsAndConditions from "./Pages/TermsAndConditions";
 import ReturnsExchangePolicy from "./Pages/ReturnPolicy";
 import Login from "./Pages/Login";
 import Cart from "./Pages/Cart";
@@ -32,6 +31,8 @@ import AdminCustomers from "./Pages/AdminCustomers";
 import AdminSettings from "./Pages/AdminSettings";
 
 import { LanguageProvider, useLanguage } from "./context/LanguageContext";
+import AboutUs from "./Pages/About";
+import TermsAndConditions from "./Pages/Terms";
 
 const Layout = () => (
   <>
@@ -175,6 +176,8 @@ const App = () => (
         <Route path="/product/:id" element={<ProductDetails />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/about" element={<AboutUs />} />
+         <Route path="/terms" element={<TermsAndConditions />} />
 
         <Route
           path="/ReturnsExchangePolicy"
