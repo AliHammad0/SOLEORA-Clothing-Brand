@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic&family=Noto+Nastaliq+Urdu&family=Noto+Sans+Bengali&family=Noto+Sans+Devanagari&family=Noto+Sans+JP&family=Noto+Sans+SC&display=swap');
+
+body {
+  font-family: Arial, sans-serif;
+}
+
+body.lang-en,
+body.lang-fr {
+  font-family: Arial, sans-serif;
+}
+
+body.lang-ur {
+  font-family: "Noto Nastaliq Urdu", serif;
+}
+
+body.lang-hi {
+  font-family: "Noto Sans Devanagari", sans-serif;
+}
+
+body.lang-bn {
+  font-family: "Noto Sans Bengali", sans-serif;
+}
+
+body.lang-ar {
+  font-family: "Noto Naskh Arabic", serif;
+}
+
+body.lang-zh {
+  font-family: "Noto Sans SC", sans-serif;
+}
+
+body.lang-ja {
+  font-family: "Noto Sans JP", sans-serif;
+}
