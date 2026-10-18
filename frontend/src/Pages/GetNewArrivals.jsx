@@ -7,6 +7,8 @@ const API_URL =
 const FALLBACK_IMAGE =
   "https://placehold.co/600x750/f5f3f0/252525?text=SOLEORA";
 
+const CART_KEY = "cart";
+
 const formatPrice = (price) =>
   Number(price || 0).toLocaleString("en-PK", {
     maximumFractionDigits: 2,
@@ -64,6 +66,8 @@ const GetNewArrivals = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [addingProduct, setAddingProduct] = useState("");
+  const [cartMessage, setCartMessage] = useState("");
 
   useEffect(() => {
     const controller = new AbortController();
@@ -85,14 +89,14 @@ const GetNewArrivals = () => {
           );
         }
 
-        const newArrivals = (data.products || []).filter(
-          (product) =>
-            product.isActive !== false &&
-            product.active !== false &&
-            product.isNewArrival === true
+        setProducts(
+          (data.products || []).filter(
+            (product) =>
+              product.isActive !== false &&
+              product.active !== false &&
+              product.isNewArrival === true
+          )
         );
-
-        setProducts(newArrivals);
       } catch (err) {
         if (err.name !== "AbortError") {
           setError(
@@ -110,6 +114,78 @@ const GetNewArrivals = () => {
 
     return () => controller.abort();
   }, []);
+
+  const handleAddToCart = (product) => {
+    setCartMessage("");
+
+    const stock = Number(product.stock);
+
+    if (product.stock != null && stock <= 0) {
+      setCartMessage("This product is out of stock.");
+      return;
+    }
+
+    try {
+      const storedCart = JSON.parse(
+        localStorage.getItem(CART_KEY) || "[]"
+      );
+
+      if (!Array.isArray(storedCart)) {
+        throw new Error("Invalid cart data");
+      }
+
+      const existingIndex = storedCart.findIndex(
+        (item) =>
+          String(item._id || item.id) === String(product._id)
+      );
+
+      if (existingIndex !== -1) {
+        const currentQuantity = Number(
+          storedCart[existingIndex].quantity || 1
+        );
+
+        if (
+          product.stock != null &&
+          currentQuantity >= stock
+        ) {
+          setCartMessage("Available stock limit reached.");
+          return;
+        }
+
+        storedCart[existingIndex] = {
+          ...storedCart[existingIndex],
+          quantity: currentQuantity + 1,
+        };
+      } else {
+        storedCart.push({
+          ...product,
+          _id: product._id,
+          quantity: 1,
+          price: getProductPricing(product).finalPrice,
+          image: getProductImage(product),
+        });
+      }
+
+      localStorage.setItem(
+        CART_KEY,
+        JSON.stringify(storedCart)
+      );
+
+      window.dispatchEvent(new Event("cartUpdated"));
+      window.dispatchEvent(new Event("storage"));
+
+      setAddingProduct(String(product._id));
+      setCartMessage(`${product.title} added to cart.`);
+
+      window.setTimeout(() => {
+        setAddingProduct("");
+      }, 1600);
+    } catch {
+      setCartMessage(
+        "Unable to update your cart. Please try again."
+      );
+    }
+  };
 
   return (
     <section className="bg-white px-4 py-12 sm:px-8 sm:py-16 lg:px-16 lg:py-20">
@@ -160,7 +236,6 @@ const GetNewArrivals = () => {
       `}</style>
 
       <div className="mx-auto max-w-7xl">
-        {/* Section heading */}
         <div className="mb-7 flex items-end justify-between gap-3 sm:mb-10">
           <div>
             <p className="mb-2 text-[10px] font-semibold uppercase tracking-[3px] text-[#861b35] sm:text-xs">
@@ -178,12 +253,12 @@ const GetNewArrivals = () => {
 
           {!loading && !error && products.length > 0 && (
             <span className="shrink-0 pb-1 text-[10px] uppercase tracking-wider text-neutral-500 sm:text-xs">
-              {products.length} {products.length === 1 ? "Piece" : "Pieces"}
+              {products.length}{" "}
+              {products.length === 1 ? "Piece" : "Pieces"}
             </span>
           )}
         </div>
 
-        {/* Loading state */}
         {loading && (
           <div
             className="grid grid-cols-2 gap-x-3 gap-y-7 sm:grid-cols-3 sm:gap-x-5 lg:grid-cols-4 lg:gap-x-6"
@@ -201,7 +276,6 @@ const GetNewArrivals = () => {
           </div>
         )}
 
-        {/* Error state */}
         {!loading && error && (
           <div
             className="border border-neutral-200 px-5 py-12 text-center sm:py-16"
@@ -225,7 +299,6 @@ const GetNewArrivals = () => {
           </div>
         )}
 
-        {/* Empty state */}
         {!loading && !error && products.length === 0 && (
           <div className="border border-neutral-200 px-5 py-14 text-center sm:py-20">
             <p className="text-sm font-semibold uppercase tracking-wider text-neutral-900">
@@ -245,7 +318,6 @@ const GetNewArrivals = () => {
           </div>
         )}
 
-        {/* Product grid */}
         {!loading && !error && products.length > 0 && (
           <div className="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-10 lg:grid-cols-4 lg:gap-x-6">
             {products.map((product) => {
@@ -257,6 +329,9 @@ const GetNewArrivals = () => {
               } = getProductPricing(product);
 
               const image = getProductImage(product);
+              const isOutOfStock =
+                product.stock != null &&
+                Number(product.stock) <= 0;
 
               return (
                 <article
@@ -268,7 +343,6 @@ const GetNewArrivals = () => {
                     className="block focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#861b35]"
                     aria-label={`View ${product.title || "product"}`}
                   >
-                    {/* Product image */}
                     <div className="relative isolate aspect-[4/5] overflow-hidden bg-[#f5f4f2]">
                       <img
                         src={image}
@@ -282,12 +356,10 @@ const GetNewArrivals = () => {
                         className="soleora-product-image h-full w-full object-cover group-hover:scale-[1.04]"
                       />
 
-                      {/* New arrival label */}
                       <span className="absolute left-2 top-2 bg-white/95 px-2 py-1.5 text-[8px] font-semibold uppercase tracking-[1px] text-neutral-900 shadow-sm sm:left-3 sm:top-3 sm:px-3 sm:text-[9px]">
                         New Arrival
                       </span>
 
-                      {/* Discount badge */}
                       {hasDiscount && (
                         <div className="absolute bottom-2 left-2 z-10 sm:bottom-4 sm:left-3">
                           <span className="soleora-discount-badge relative inline-flex items-center gap-1.5 overflow-hidden rounded-full border border-white/20 bg-gradient-to-r from-[#390617] via-[#861b35] to-[#530c23] px-2.5 py-2 text-white sm:gap-2 sm:px-3.5 sm:py-2.5">
@@ -314,7 +386,6 @@ const GetNewArrivals = () => {
                       )}
                     </div>
 
-                    {/* Product details */}
                     <div className="pt-3 sm:pt-4">
                       <p className="mb-1.5 truncate text-[9px] font-medium uppercase tracking-[1.2px] text-neutral-500 sm:text-[10px] sm:tracking-[1.5px]">
                         {product.category?.name ||
@@ -327,7 +398,6 @@ const GetNewArrivals = () => {
                         {product.title || "Untitled Product"}
                       </h3>
 
-                      {/* Prices */}
                       <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
                         {hasDiscount && (
                           <span className="text-[10px] text-neutral-400 line-through sm:text-xs">
@@ -346,7 +416,6 @@ const GetNewArrivals = () => {
                         </span>
                       </div>
 
-                      {/* Available colors */}
                       {Array.isArray(product.colors) &&
                         product.colors.length > 0 && (
                           <p className="mt-2 truncate text-[9px] text-neutral-500 sm:text-[10px]">
@@ -357,29 +426,53 @@ const GetNewArrivals = () => {
                           </p>
                         )}
 
-                      {/* Stock status */}
                       {product.stock != null && (
                         <p
                           className={`mt-2 text-[9px] font-medium sm:text-[10px] ${
-                            Number(product.stock) > 0
-                              ? "text-neutral-500"
-                              : "text-red-600"
+                            isOutOfStock
+                              ? "text-red-600"
+                              : "text-neutral-500"
                           }`}
                         >
-                          {Number(product.stock) > 0
-                            ? `${product.stock} available`
-                            : "Out of stock"}
+                          {isOutOfStock
+                            ? "Out of stock"
+                            : `${product.stock} available`}
                         </p>
                       )}
                     </div>
                   </Link>
+
+                  <button
+                    type="button"
+                    disabled={
+                      isOutOfStock ||
+                      addingProduct === String(product._id)
+                    }
+                    onClick={() => handleAddToCart(product)}
+                    className="mt-3 min-h-10 w-full bg-neutral-950 px-2 py-3 text-[9px] font-semibold uppercase tracking-[1.2px] text-white transition-colors duration-300 hover:bg-[#861b35] disabled:cursor-not-allowed disabled:bg-neutral-300 sm:text-[10px] sm:tracking-[1.5px]"
+                  >
+                    {isOutOfStock
+                      ? "Out of Stock"
+                      : addingProduct === String(product._id)
+                        ? "Added to Cart ✓"
+                        : "Add to Cart"}
+                  </button>
                 </article>
               );
             })}
           </div>
         )}
 
-        {/* View all products */}
+        {cartMessage && (
+          <p
+            className="mt-5 text-center text-xs text-neutral-600"
+            role="status"
+            aria-live="polite"
+          >
+            {cartMessage}
+          </p>
+        )}
+
         {!loading && !error && products.length > 0 && (
           <div className="mt-10 text-center sm:mt-14">
             <Link
