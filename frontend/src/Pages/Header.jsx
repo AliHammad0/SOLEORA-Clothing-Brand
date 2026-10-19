@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Menu,
   X,
@@ -10,98 +10,25 @@ import {
   Globe,
   LayoutDashboard,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { useLanguage } from "../context/LanguageContext";
 import { selectCartCount } from "../redux/slices/cartSlice";
 
+const API_URL =
+  "https://soleora-clothing-brand-backend.vercel.app/api/v1/products/search";
+
 const countries = [
-  {
-    code: "PK",
-    name: "Pakistan",
-    currency: "PKR",
-    languages: [
-      { code: "en", name: "English" },
-      { code: "ur", name: "اردو" },
-    ],
-  },
-  {
-    code: "BD",
-    name: "Bangladesh",
-    currency: "BDT",
-    languages: [
-      { code: "bn", name: "বাংলা" },
-      { code: "en", name: "English" },
-    ],
-  },
-  {
-    code: "IN",
-    name: "India",
-    currency: "INR",
-    languages: [
-      { code: "hi", name: "हिन्दी" },
-      { code: "en", name: "English" },
-      { code: "bn", name: "বাংলা" },
-      { code: "ur", name: "اردو" },
-    ],
-  },
-  {
-    code: "US",
-    name: "United States",
-    currency: "USD",
-    languages: [{ code: "en", name: "English" }],
-  },
-  {
-    code: "GB",
-    name: "United Kingdom",
-    currency: "GBP",
-    languages: [{ code: "en", name: "English" }],
-  },
-  {
-    code: "SA",
-    name: "Saudi Arabia",
-    currency: "SAR",
-    languages: [
-      { code: "ar", name: "العربية" },
-      { code: "en", name: "English" },
-    ],
-  },
-  {
-    code: "AE",
-    name: "United Arab Emirates",
-    currency: "AED",
-    languages: [
-      { code: "ar", name: "العربية" },
-      { code: "en", name: "English" },
-    ],
-  },
-  {
-    code: "CN",
-    name: "China",
-    currency: "CNY",
-    languages: [
-      { code: "zh", name: "简体中文" },
-      { code: "en", name: "English" },
-    ],
-  },
-  {
-    code: "JP",
-    name: "Japan",
-    currency: "JPY",
-    languages: [
-      { code: "ja", name: "日本語" },
-      { code: "en", name: "English" },
-    ],
-  },
-  {
-    code: "FR",
-    name: "France",
-    currency: "EUR",
-    languages: [
-      { code: "fr", name: "Français" },
-      { code: "en", name: "English" },
-    ],
-  },
+  { code: "PK", name: "Pakistan", currency: "PKR", languages: [{ code: "en", name: "English" }, { code: "ur", name: "اردو" }] },
+  { code: "BD", name: "Bangladesh", currency: "BDT", languages: [{ code: "bn", name: "বাংলা" }, { code: "en", name: "English" }] },
+  { code: "IN", name: "India", currency: "INR", languages: [{ code: "hi", name: "हिन्दी" }, { code: "en", name: "English" }, { code: "bn", name: "বাংলা" }, { code: "ur", name: "اردو" }] },
+  { code: "US", name: "United States", currency: "USD", languages: [{ code: "en", name: "English" }] },
+  { code: "GB", name: "United Kingdom", currency: "GBP", languages: [{ code: "en", name: "English" }] },
+  { code: "SA", name: "Saudi Arabia", currency: "SAR", languages: [{ code: "ar", name: "العربية" }, { code: "en", name: "English" }] },
+  { code: "AE", name: "United Arab Emirates", currency: "AED", languages: [{ code: "ar", name: "العربية" }, { code: "en", name: "English" }] },
+  { code: "CN", name: "China", currency: "CNY", languages: [{ code: "zh", name: "简体中文" }, { code: "en", name: "English" }] },
+  { code: "JP", name: "Japan", currency: "JPY", languages: [{ code: "ja", name: "日本語" }, { code: "en", name: "English" }] },
+  { code: "FR", name: "France", currency: "EUR", languages: [{ code: "fr", name: "Français" }, { code: "en", name: "English" }] },
 ];
 
 const translations = {
@@ -133,6 +60,9 @@ const translations = {
     country: "Country",
     language: "Language",
     done: "DONE",
+    searching: "Searching...",
+    noResults: "No products found",
+    viewAll: "View all results",
   },
   ur: {
     announcement: "6000 روپے سے زیادہ کے آرڈر پر مفت ڈیلیوری",
@@ -162,6 +92,9 @@ const translations = {
     country: "ملک",
     language: "زبان",
     done: "مکمل",
+    searching: "تلاش جاری ہے...",
+    noResults: "کوئی پروڈکٹ نہیں ملی",
+    viewAll: "تمام نتائج دیکھیں",
   },
   bn: {
     announcement: "অর্ডারে ফ্রি ডেলিভারি",
@@ -191,6 +124,9 @@ const translations = {
     country: "দেশ",
     language: "ভাষা",
     done: "সম্পন্ন",
+    searching: "খোঁজা হচ্ছে...",
+    noResults: "কোনো পণ্য পাওয়া যায়নি",
+    viewAll: "সব ফলাফল দেখুন",
   },
   hi: {
     announcement: "ऑर्डर पर मुफ़्त डिलीवरी",
@@ -220,6 +156,9 @@ const translations = {
     country: "देश",
     language: "भाषा",
     done: "हो गया",
+    searching: "खोज रहे हैं...",
+    noResults: "कोई उत्पाद नहीं मिला",
+    viewAll: "सभी परिणाम देखें",
   },
   ar: {
     announcement: "توصيل مجاني للطلبات المؤهلة",
@@ -249,6 +188,9 @@ const translations = {
     country: "الدولة",
     language: "اللغة",
     done: "تم",
+    searching: "جارٍ البحث...",
+    noResults: "لم يتم العثور على منتجات",
+    viewAll: "عرض جميع النتائج",
   },
   zh: {
     announcement: "符合条件的订单免费配送",
@@ -278,6 +220,9 @@ const translations = {
     country: "国家",
     language: "语言",
     done: "完成",
+    searching: "正在搜索...",
+    noResults: "未找到商品",
+    viewAll: "查看所有结果",
   },
   ja: {
     announcement: "対象注文は送料無料",
@@ -307,6 +252,9 @@ const translations = {
     country: "国",
     language: "言語",
     done: "完了",
+    searching: "検索中...",
+    noResults: "商品が見つかりません",
+    viewAll: "すべての結果を見る",
   },
   fr: {
     announcement: "LIVRAISON GRATUITE SUR LES COMMANDES ÉLIGIBLES",
@@ -336,6 +284,9 @@ const translations = {
     country: "Pays",
     language: "Langue",
     done: "TERMINÉ",
+    searching: "Recherche...",
+    noResults: "Aucun produit trouvé",
+    viewAll: "Voir tous les résultats",
   },
 };
 
@@ -351,14 +302,28 @@ const getAuthUser = () => {
   try {
     const user = JSON.parse(localStorage.getItem("user"));
     const token = localStorage.getItem("token");
-
     return token && user ? user : null;
   } catch {
     return null;
   }
 };
 
+const getProductImage = (product) => {
+  if (typeof product.image === "string") return product.image;
+  if (Array.isArray(product.image)) return product.image[0] || "";
+  if (Array.isArray(product.images)) return product.images[0] || "";
+  return product.imageUrl || "";
+};
+
+const getProductPrice = (product) =>
+  product.specialPrice ??
+  product.discountPrice ??
+  product.price ??
+  product.originalPrice ??
+  0;
+
 const Header = () => {
+  const navigate = useNavigate();
   const { language, setLanguage } = useLanguage();
   const cartCount = useSelector(selectCartCount);
 
@@ -366,6 +331,9 @@ const Header = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [searchText, setSearchText] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState("");
   const [countryCode, setCountryCode] = useState(() =>
     getSavedValue("countryCode", "PK")
   );
@@ -389,6 +357,63 @@ const Header = () => {
       window.removeEventListener("authChanged", updateAuthUser);
     };
   }, []);
+
+  // Live API search suggestions
+  useEffect(() => {
+    const keyword = searchText.trim();
+
+    if (!searchOpen || !keyword) {
+      setSuggestions([]);
+      setSearchLoading(false);
+      setSearchError("");
+      return;
+    }
+
+    let cancelled = false;
+    const controller = new AbortController();
+
+    const timer = setTimeout(async () => {
+      setSearchLoading(true);
+      setSearchError("");
+
+      try {
+        const response = await fetch(
+          `${API_URL}?q=${encodeURIComponent(keyword)}`,
+          { signal: controller.signal }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || result.ok === false) {
+          throw new Error(result.message || "Search failed");
+        }
+
+        const list = Array.isArray(result)
+          ? result
+          : result.products ||
+            result.data?.products ||
+            result.data ||
+            [];
+
+        if (!cancelled) {
+          setSuggestions(Array.isArray(list) ? list.slice(0, 6) : []);
+        }
+      } catch (error) {
+        if (!cancelled && error.name !== "AbortError") {
+          setSuggestions([]);
+          setSearchError("Search is temporarily unavailable.");
+        }
+      } finally {
+        if (!cancelled) setSearchLoading(false);
+      }
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [searchText, searchOpen]);
 
   const isLoggedIn = Boolean(authUser);
   const isAdmin =
@@ -443,16 +468,13 @@ const Header = () => {
     if (!country) return;
 
     const nextLanguage = country.languages[0].code;
-
     setCountryCode(code);
     setLanguage(nextLanguage);
 
     try {
       localStorage.setItem("countryCode", code);
       localStorage.setItem("language", nextLanguage);
-    } catch {
-      // Storage may be unavailable.
-    }
+    } catch {}
   };
 
   const handleLanguageChange = (code) => {
@@ -462,9 +484,7 @@ const Header = () => {
 
     try {
       localStorage.setItem("language", code);
-    } catch {
-      // Storage may be unavailable.
-    }
+    } catch {}
   };
 
   const announcementAmount = {
@@ -483,11 +503,30 @@ const Header = () => {
   const accountDestination = isAdmin ? "/admin/dashboard" : "/profile";
   const accountLabel = isAdmin ? t.dashboard : t.profile || "PROFILE";
 
+  const openSearchResults = (event) => {
+    event.preventDefault();
+
+    const keyword = searchText.trim();
+    if (!keyword) return;
+
+    setSearchOpen(false);
+    setSuggestions([]);
+    navigate(`/search?q=${encodeURIComponent(keyword)}`);
+  };
+
+  const closeSearch = () => {
+    setSearchOpen(false);
+    setSearchText("");
+    setSuggestions([]);
+    setSearchError("");
+  };
+
   return (
     <header
       dir={isRTL ? "rtl" : "ltr"}
       className="relative z-50 w-full bg-white font-[Arial,sans-serif] text-black"
     >
+      {/* Announcement */}
       <div className="bg-black px-3 py-2 text-center text-[10px] tracking-wide text-white sm:text-xs">
         {t.announcement} {announcementAmount[selectedCountry.code] || "€60"}{" "}
         <Link to="/shipping" className="ms-2 underline underline-offset-2">
@@ -495,23 +534,25 @@ const Header = () => {
         </Link>
       </div>
 
+      {/* Main Header */}
       <div className="border-b border-gray-200">
         <div className="mx-auto max-w-7xl px-3 sm:px-6">
-          <div className="flex min-h-[76px] items-center justify-between gap-2">
+          <div className="flex min-h-[68px] items-center justify-between gap-2 sm:min-h-[76px]">
             <button
               type="button"
               onClick={() => {
                 setMobileMenu((previous) => !previous);
                 setActiveDropdown(null);
               }}
-              className="flex h-10 w-10 shrink-0 items-center justify-center md:hidden"
+              className="flex h-10 w-9 shrink-0 items-center justify-center md:hidden"
               aria-label={mobileMenu ? "Close menu" : "Open menu"}
               aria-expanded={mobileMenu}
             >
               {mobileMenu ? <X size={23} /> : <Menu size={23} />}
             </button>
 
-            <nav className="hidden flex-1 items-center gap-5 md:flex lg:gap-7">
+            {/* Desktop Navigation */}
+            <nav className="hidden flex-1 items-center gap-4 md:flex lg:gap-7">
               {navLinks.map((link) => (
                 <div
                   key={link.id}
@@ -541,6 +582,7 @@ const Header = () => {
                         }
                         aria-label={`Toggle ${link.name} dropdown`}
                         aria-expanded={activeDropdown === link.id}
+                        className="flex h-6 w-6 items-center justify-center"
                       >
                         <ChevronDown
                           size={14}
@@ -558,6 +600,7 @@ const Header = () => {
                         <Link
                           key={item.href}
                           to={item.href}
+                          onClick={() => setActiveDropdown(null)}
                           className="block px-5 py-3 text-xs text-gray-700 transition hover:bg-gray-50 hover:text-black"
                         >
                           {item.name}
@@ -569,14 +612,16 @@ const Header = () => {
               ))}
             </nav>
 
+            {/* Logo */}
             <Link
               to="/"
-              className="shrink-0 text-center text-xl font-bold tracking-[0.12em] sm:text-3xl sm:tracking-[0.18em]"
+              className="shrink-0 text-center text-lg font-bold tracking-[0.1em] sm:text-3xl sm:tracking-[0.18em]"
             >
               SOLEORA
             </Link>
 
-            <div className="flex flex-1 items-center justify-end gap-2 sm:gap-4">
+            {/* Header Actions */}
+            <div className="flex flex-1 items-center justify-end gap-1 sm:gap-3 md:gap-4">
               {isLoggedIn && (
                 <Link
                   to={accountDestination}
@@ -591,11 +636,12 @@ const Header = () => {
                 </Link>
               )}
 
-              <div className="relative">
+              {/* Country & Language */}
+              <div className="relative shrink-0">
                 <button
                   type="button"
                   onClick={() => setRegionOpen((previous) => !previous)}
-                  className="flex items-center gap-1.5 text-xs hover:opacity-60"
+                  className="flex h-10 items-center justify-center gap-1 px-1 text-xs hover:opacity-60 sm:gap-1.5"
                   aria-label="Country and language settings"
                   aria-expanded={regionOpen}
                 >
@@ -607,29 +653,45 @@ const Header = () => {
                 </button>
 
                 {regionOpen && (
-                  <div className="absolute end-0 top-full z-[60] mt-4 w-72 max-w-[calc(100vw-24px)] border border-gray-200 bg-white p-5 shadow-xl">
+                  <div
+                    className="
+                      absolute end-0 top-full z-[100] mt-3
+                      w-[min(18rem,calc(100vw-1.5rem))]
+                      max-w-[calc(100vw-1.5rem)]
+                      overflow-hidden rounded-sm border border-gray-200
+                      bg-white p-4 shadow-2xl
+                      sm:p-5
+                    "
+                  >
                     <div className="mb-4 flex items-center justify-between gap-3">
                       <h3 className="text-sm font-semibold">
                         {t.country} & {t.language}
                       </h3>
+
                       <button
                         type="button"
                         onClick={() => setRegionOpen(false)}
                         aria-label="Close settings"
+                        className="flex h-8 w-8 shrink-0 items-center justify-center hover:bg-gray-100"
                       >
                         <X size={17} />
                       </button>
                     </div>
 
-                    <label className="mb-2 block text-xs text-gray-500">
+                    <label
+                      htmlFor="header-country"
+                      className="mb-2 block text-xs text-gray-500"
+                    >
                       {t.country}
                     </label>
+
                     <select
+                      id="header-country"
                       value={countryCode}
                       onChange={(event) =>
                         handleCountryChange(event.target.value)
                       }
-                      className="mb-4 w-full border border-gray-300 bg-white px-3 py-3 text-sm outline-none focus:border-black"
+                      className="mb-4 block w-full min-w-0 border border-gray-300 bg-white px-3 py-3 text-sm outline-none focus:border-black"
                     >
                       {countries.map((country) => (
                         <option key={country.code} value={country.code}>
@@ -638,15 +700,20 @@ const Header = () => {
                       ))}
                     </select>
 
-                    <label className="mb-2 block text-xs text-gray-500">
+                    <label
+                      htmlFor="header-language"
+                      className="mb-2 block text-xs text-gray-500"
+                    >
                       {t.language}
                     </label>
+
                     <select
+                      id="header-language"
                       value={language}
                       onChange={(event) =>
                         handleLanguageChange(event.target.value)
                       }
-                      className="w-full border border-gray-300 bg-white px-3 py-3 text-sm outline-none focus:border-black"
+                      className="block w-full min-w-0 border border-gray-300 bg-white px-3 py-3 text-sm outline-none focus:border-black"
                     >
                       {selectedCountry.languages.map((lang) => (
                         <option key={lang.code} value={lang.code}>
@@ -666,21 +733,26 @@ const Header = () => {
                 )}
               </div>
 
+              {/* Search Toggle */}
               <button
                 type="button"
-                onClick={() => setSearchOpen((previous) => !previous)}
+                onClick={() => {
+                  setSearchOpen((previous) => !previous);
+                  setRegionOpen(false);
+                }}
                 aria-label="Search"
                 aria-expanded={searchOpen}
-                className="flex h-10 w-8 shrink-0 items-center justify-center hover:opacity-60"
+                className="flex h-10 w-9 shrink-0 items-center justify-center hover:opacity-60"
               >
                 <Search size={21} strokeWidth={1.5} />
               </button>
 
+              {/* Account */}
               <Link
                 to={isLoggedIn ? accountDestination : "/login"}
                 aria-label={isLoggedIn ? accountLabel : "My Account"}
                 title={isLoggedIn ? accountLabel : "My Account"}
-                className="hidden hover:opacity-60 sm:block"
+                className="hidden h-10 w-8 shrink-0 items-center justify-center hover:opacity-60 sm:flex"
               >
                 {isAdmin ? (
                   <LayoutDashboard size={21} strokeWidth={1.5} />
@@ -689,6 +761,7 @@ const Header = () => {
                 )}
               </Link>
 
+              {/* Cart */}
               <Link
                 to="/cart"
                 aria-label={`Shopping Bag, ${cartCount} items`}
@@ -698,7 +771,7 @@ const Header = () => {
                 <ShoppingBag size={21} strokeWidth={1.5} />
 
                 {cartCount > 0 && (
-                  <span className="absolute -right-1 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-black px-1 text-[10px] font-semibold leading-none text-white">
+                  <span className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-black px-1 text-[10px] font-semibold leading-none text-white">
                     {cartCount > 99 ? "99+" : cartCount}
                   </span>
                 )}
@@ -706,45 +779,153 @@ const Header = () => {
             </div>
           </div>
 
+          {/* Live Search Bar */}
           {searchOpen && (
-            <form
-              onSubmit={(event) => {
-                event.preventDefault();
-
-                if (searchText.trim()) {
-                  window.location.href = `/search?q=${encodeURIComponent(
-                    searchText.trim()
-                  )}`;
-                }
-              }}
-              className="flex items-center gap-3 border-t border-gray-200 py-4"
-            >
-              <Search size={19} />
-              <input
-                type="search"
-                value={searchText}
-                onChange={(event) => setSearchText(event.target.value)}
-                placeholder={t.searchPlaceholder}
-                className="w-full min-w-0 bg-transparent text-sm outline-none"
-                autoFocus
-              />
-              <button type="submit" className="shrink-0 text-xs font-semibold">
-                {t.search}
-              </button>
-              <button
-                type="button"
-                onClick={() => setSearchOpen(false)}
-                aria-label="Close search"
+            <div className="relative border-t border-gray-200 py-3 sm:py-4">
+              <form
+                onSubmit={openSearchResults}
+                className="flex min-w-0 items-center gap-2 border border-gray-300 bg-white px-3 sm:gap-3 sm:px-4"
               >
-                <X size={19} />
-              </button>
-            </form>
+                <Search size={19} className="shrink-0" />
+
+                <input
+                  type="search"
+                  value={searchText}
+                  onChange={(event) => setSearchText(event.target.value)}
+                  placeholder={t.searchPlaceholder}
+                  className="h-12 w-full min-w-0 flex-1 bg-transparent text-sm outline-none"
+                  autoComplete="off"
+                  autoFocus
+                  aria-label={t.searchPlaceholder}
+                />
+
+                {searchLoading && (
+                  <span className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-gray-300 border-t-black" />
+                )}
+
+                {searchText && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchText("");
+                      setSuggestions([]);
+                      setSearchError("");
+                    }}
+                    aria-label="Clear search"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center text-gray-500 hover:text-black"
+                  >
+                    <X size={17} />
+                  </button>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={!searchText.trim()}
+                  className="shrink-0 text-[10px] font-semibold tracking-wide disabled:opacity-40 sm:text-xs"
+                >
+                  {t.search}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={closeSearch}
+                  aria-label="Close search"
+                  className="flex h-8 w-7 shrink-0 items-center justify-center hover:text-gray-500"
+                >
+                  <X size={19} />
+                </button>
+              </form>
+
+              {/* API Suggestions */}
+              {searchText.trim() && (
+                <div className="absolute inset-x-0 top-full z-[90] max-h-[65vh] overflow-y-auto border border-t-0 border-gray-200 bg-white shadow-xl">
+                  {searchLoading && suggestions.length === 0 && (
+                    <p className="px-4 py-5 text-sm text-gray-500">
+                      {t.searching}
+                    </p>
+                  )}
+
+                  {!searchLoading && searchError && (
+                    <p className="px-4 py-5 text-sm text-red-600">
+                      {searchError}
+                    </p>
+                  )}
+
+                  {!searchLoading &&
+                    !searchError &&
+                    suggestions.length === 0 && (
+                      <p className="px-4 py-5 text-sm text-gray-500">
+                        {t.noResults}
+                      </p>
+                    )}
+
+                  {suggestions.map((product, index) => {
+                    const id = product._id || product.id;
+                    const title =
+                      product.title || product.name || "Product";
+                    const image = getProductImage(product);
+                    const price = getProductPrice(product);
+
+                    return (
+                      <Link
+                        key={id || product.slug || `${title}-${index}`}
+                        to={id ? `/product/${id}` : "/search"}
+                        onClick={closeSearch}
+                        className="flex items-center gap-3 border-b border-gray-100 px-3 py-3 transition last:border-b-0 hover:bg-gray-50 sm:px-4"
+                      >
+                        <div className="h-14 w-12 shrink-0 overflow-hidden bg-[#f1eee7] sm:h-16 sm:w-14">
+                          {image ? (
+                            <img
+                              src={image}
+                              alt={title}
+                              className="h-full w-full object-cover"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="flex h-full items-center justify-center">
+                              <ShoppingBag
+                                size={18}
+                                className="text-gray-400"
+                              />
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">
+                            {title}
+                          </p>
+                          <p className="mt-1 truncate text-xs text-gray-500">
+                            {product.brand || product.category || "SOLEORA"}
+                          </p>
+                        </div>
+
+                        <p className="shrink-0 text-xs font-semibold sm:text-sm">
+                          Rs. {Number(price || 0).toLocaleString("en-PK")}
+                        </p>
+                      </Link>
+                    );
+                  })}
+
+                  {suggestions.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={openSearchResults}
+                      className="w-full border-t border-gray-200 px-4 py-4 text-left text-xs font-semibold uppercase tracking-wider hover:bg-gray-50"
+                    >
+                      {t.viewAll} "{searchText.trim()}"
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
 
+      {/* Mobile Navigation */}
       {mobileMenu && (
-        <nav className="absolute start-0 top-full z-50 max-h-[calc(100vh-100px)] w-full overflow-y-auto border-b border-gray-200 bg-white shadow-lg md:hidden">
+        <nav className="absolute inset-x-0 top-full z-50 max-h-[calc(100dvh-100px)] overflow-y-auto border-b border-gray-200 bg-white shadow-lg md:hidden">
           <div className="px-5 py-3">
             {navLinks.map((link) => (
               <div key={link.id} className="border-b border-gray-100">
@@ -801,25 +982,10 @@ const Header = () => {
               </div>
             ))}
 
-            {isLoggedIn && (
-              <Link
-                to={accountDestination}
-                onClick={() => setMobileMenu(false)}
-                className="flex items-center gap-3 border-y border-gray-100 py-4 text-xs font-semibold"
-              >
-                {isAdmin ? (
-                  <LayoutDashboard size={18} />
-                ) : (
-                  <UserRound size={18} />
-                )}
-                {accountLabel}
-              </Link>
-            )}
-
             <Link
               to={isLoggedIn ? accountDestination : "/login"}
               onClick={() => setMobileMenu(false)}
-              className="flex items-center gap-3 py-4 text-xs"
+              className="flex items-center gap-3 border-b border-gray-100 py-4 text-xs"
             >
               {isAdmin ? (
                 <LayoutDashboard size={18} />
