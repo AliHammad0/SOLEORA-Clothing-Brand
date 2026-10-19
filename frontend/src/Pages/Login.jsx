@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
@@ -216,7 +215,10 @@ const Login = () => {
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
-      if (data.user.isAdmin === true) {
+      // Notify Header immediately after login
+      window.dispatchEvent(new Event("userLoggedIn"));
+
+      if (data.user.isAdmin === true || data.user.isAdmin === "true") {
         navigate("/admin/dashboard", { replace: true });
       } else {
         navigate("/", { replace: true });

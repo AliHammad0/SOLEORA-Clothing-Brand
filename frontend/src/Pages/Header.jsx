@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import {
   Menu,
@@ -10,6 +9,7 @@ import {
   Globe,
   LayoutDashboard,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
 
 const countries = [
@@ -369,9 +369,7 @@ const Header = () => {
   const [authUser, setAuthUser] = useState(getAuthUser);
 
   useEffect(() => {
-    const updateAuthUser = () => {
-      setAuthUser(getAuthUser());
-    };
+    const updateAuthUser = () => setAuthUser(getAuthUser());
 
     window.addEventListener("storage", updateAuthUser);
     window.addEventListener("focus", updateAuthUser);
@@ -390,12 +388,10 @@ const Header = () => {
 
   const isLoggedIn = Boolean(authUser);
   const isAdmin =
-    authUser?.isAdmin === true ||
-    authUser?.isAdmin === "true";
+    authUser?.isAdmin === true || authUser?.isAdmin === "true";
 
   const selectedCountry =
-    countries.find((country) => country.code === countryCode) ||
-    countries[0];
+    countries.find((country) => country.code === countryCode) || countries[0];
 
   const t = translations[language] || translations.en;
   const isRTL = language === "ur" || language === "ar";
@@ -451,21 +447,19 @@ const Header = () => {
       localStorage.setItem("countryCode", code);
       localStorage.setItem("language", nextLanguage);
     } catch {
-      // Browser storage may be unavailable.
+      // Storage may be unavailable.
     }
   };
 
   const handleLanguageChange = (code) => {
-    if (!selectedCountry.languages.some((item) => item.code === code)) {
-      return;
-    }
+    if (!selectedCountry.languages.some((item) => item.code === code)) return;
 
     setLanguage(code);
 
     try {
       localStorage.setItem("language", code);
     } catch {
-      // Browser storage may be unavailable.
+      // Storage may be unavailable.
     }
   };
 
@@ -482,14 +476,8 @@ const Header = () => {
     FR: "€60",
   };
 
-  const renderAccountDestination = () =>
-    isAdmin ? "/admin/dashboard" : "/profile";
-
-  const renderAccountLabel = () =>
-    isAdmin ? t.dashboard : t.profile || "PROFILE";
-
-  const renderAccountIcon = () =>
-    isAdmin ? <LayoutDashboard size={18} /> : <UserRound size={18} />;
+  const accountDestination = isAdmin ? "/admin/dashboard" : "/profile";
+  const accountLabel = isAdmin ? t.dashboard : t.profile || "PROFILE";
 
   return (
     <header
@@ -497,11 +485,10 @@ const Header = () => {
       className="relative z-50 w-full bg-white font-[Arial,sans-serif] text-black"
     >
       <div className="bg-black px-3 py-2 text-center text-[10px] tracking-wide text-white sm:text-xs">
-        {t.announcement}{" "}
-        {announcementAmount[selectedCountry.code] || "€60"}{" "}
-        <a href="/shipping" className="ms-2 underline underline-offset-2">
+        {t.announcement} {announcementAmount[selectedCountry.code] || "€60"}{" "}
+        <Link to="/shipping" className="ms-2 underline underline-offset-2">
           {t.shopNow}
-        </a>
+        </Link>
       </div>
 
       <div className="border-b border-gray-200">
@@ -531,14 +518,14 @@ const Header = () => {
                   onMouseLeave={() => setActiveDropdown(null)}
                 >
                   <div className="flex items-center gap-1">
-                    <a
-                      href={link.href}
+                    <Link
+                      to={link.href}
                       className={`text-[11px] tracking-wide hover:underline hover:underline-offset-8 lg:text-xs ${
                         link.id === "sale" ? "text-red-600" : ""
                       }`}
                     >
                       {link.name}
-                    </a>
+                    </Link>
 
                     {link.dropdown && (
                       <button
@@ -564,13 +551,13 @@ const Header = () => {
                   {link.dropdown && activeDropdown === link.id && (
                     <div className="absolute start-0 top-full z-50 w-56 border border-gray-100 bg-white py-3 shadow-lg">
                       {link.dropdown.map((item) => (
-                        <a
+                        <Link
                           key={item.href}
-                          href={item.href}
+                          to={item.href}
                           className="block px-5 py-3 text-xs text-gray-700 transition hover:bg-gray-50 hover:text-black"
                         >
                           {item.name}
-                        </a>
+                        </Link>
                       ))}
                     </div>
                   )}
@@ -578,17 +565,17 @@ const Header = () => {
               ))}
             </nav>
 
-            <a
-              href="/"
+            <Link
+              to="/"
               className="shrink-0 text-center text-xl font-bold tracking-[0.12em] sm:text-3xl sm:tracking-[0.18em]"
             >
               SOLEORA
-            </a>
+            </Link>
 
             <div className="flex flex-1 items-center justify-end gap-2 sm:gap-4">
               {isLoggedIn && (
-                <a
-                  href={renderAccountDestination()}
+                <Link
+                  to={accountDestination}
                   className="hidden shrink-0 items-center gap-2 bg-black px-3 py-3 text-xs font-semibold text-white transition hover:bg-gray-800 sm:flex"
                 >
                   {isAdmin ? (
@@ -596,8 +583,8 @@ const Header = () => {
                   ) : (
                     <UserRound size={16} />
                   )}
-                  <span>{renderAccountLabel()}</span>
-                </a>
+                  <span>{accountLabel}</span>
+                </Link>
               )}
 
               <div className="relative">
@@ -685,21 +672,26 @@ const Header = () => {
                 <Search size={21} strokeWidth={1.5} />
               </button>
 
-              <a
-                href="/login"
-                aria-label="My Account"
+              <Link
+                to={isLoggedIn ? accountDestination : "/login"}
+                aria-label={isLoggedIn ? accountLabel : "My Account"}
+                title={isLoggedIn ? accountLabel : "My Account"}
                 className="hidden hover:opacity-60 sm:block"
               >
-                <UserRound size={21} strokeWidth={1.5} />
-              </a>
+                {isAdmin ? (
+                  <LayoutDashboard size={21} strokeWidth={1.5} />
+                ) : (
+                  <UserRound size={21} strokeWidth={1.5} />
+                )}
+              </Link>
 
-              <a
-                href="/cart"
+              <Link
+                to="/cart"
                 aria-label="Shopping Bag"
                 className="flex h-10 w-8 shrink-0 items-center justify-center hover:opacity-60"
               >
                 <ShoppingBag size={21} strokeWidth={1.5} />
-              </a>
+              </Link>
             </div>
           </div>
 
@@ -746,15 +738,15 @@ const Header = () => {
             {navLinks.map((link) => (
               <div key={link.id} className="border-b border-gray-100">
                 <div className="flex items-center justify-between gap-3">
-                  <a
-                    href={link.href}
+                  <Link
+                    to={link.href}
                     onClick={() => setMobileMenu(false)}
                     className={`py-4 text-xs tracking-wider ${
                       link.id === "sale" ? "text-red-600" : ""
                     }`}
                   >
                     {link.name}
-                  </a>
+                  </Link>
 
                   {link.dropdown && (
                     <button
@@ -781,9 +773,9 @@ const Header = () => {
                 {link.dropdown && activeDropdown === link.id && (
                   <div className="pb-3 ps-4">
                     {link.dropdown.map((item) => (
-                      <a
+                      <Link
                         key={item.href}
-                        href={item.href}
+                        to={item.href}
                         onClick={() => {
                           setMobileMenu(false);
                           setActiveDropdown(null);
@@ -791,7 +783,7 @@ const Header = () => {
                         className="block py-3 text-xs text-gray-600 hover:text-black"
                       >
                         {item.name}
-                      </a>
+                      </Link>
                     ))}
                   </div>
                 )}
@@ -799,24 +791,32 @@ const Header = () => {
             ))}
 
             {isLoggedIn && (
-              <a
-                href={renderAccountDestination()}
+              <Link
+                to={accountDestination}
                 onClick={() => setMobileMenu(false)}
                 className="flex items-center gap-3 border-y border-gray-100 py-4 text-xs font-semibold"
               >
-                {renderAccountIcon()}
-                {renderAccountLabel()}
-              </a>
+                {isAdmin ? (
+                  <LayoutDashboard size={18} />
+                ) : (
+                  <UserRound size={18} />
+                )}
+                {accountLabel}
+              </Link>
             )}
 
-            <a
-              href={isLoggedIn ? "/profile" : "/login"}
+            <Link
+              to={isLoggedIn ? accountDestination : "/login"}
               onClick={() => setMobileMenu(false)}
               className="flex items-center gap-3 py-4 text-xs"
             >
-              <UserRound size={18} />
-              {isLoggedIn ? t.profile || "PROFILE" : t.account}
-            </a>
+              {isAdmin ? (
+                <LayoutDashboard size={18} />
+              ) : (
+                <UserRound size={18} />
+              )}
+              {isLoggedIn ? accountLabel : t.account}
+            </Link>
           </div>
         </nav>
       )}
