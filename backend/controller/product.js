@@ -1,6 +1,7 @@
 import Product from "../model/product.js";
 
 // Create Product
+
 export const createProduct = async (req, res) => {
   try {
     const {
@@ -11,6 +12,7 @@ export const createProduct = async (req, res) => {
       specialPrice,
       discount,
       brand,
+      category,
       images,
       stock,
       sizes,
@@ -21,10 +23,16 @@ export const createProduct = async (req, res) => {
       isActive,
     } = req.body;
 
-    if (!title || !description || price == null || price === "") {
+    if (
+      !title ||
+      !description ||
+      price == null ||
+      price === "" ||
+      !category
+    ) {
       return res.status(400).json({
         ok: false,
-        message: "Please provide title, description and price",
+        message: "Please provide title, description, price and category",
       });
     }
 
@@ -36,12 +44,13 @@ export const createProduct = async (req, res) => {
       specialPrice: specialPrice ?? null,
       discount: discount ?? 0,
       brand,
+      category,
       images,
       stock,
       sizes,
       colors,
       gender,
-      isFeatured,
+      isFeatured: isFeatured ?? false,
       isNewArrival: isNewArrival ?? false,
       isActive: isActive ?? true,
     });
@@ -72,6 +81,7 @@ export const createProduct = async (req, res) => {
     });
   }
 };
+
 
 // New Arrivals
 export const getNewArrivals = async (req, res) => {

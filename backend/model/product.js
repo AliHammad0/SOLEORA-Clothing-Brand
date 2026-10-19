@@ -45,6 +45,11 @@ const productSchema = new mongoose.Schema(
       default: "SOLEORA",
       trim: true,
     },
+    category: {
+      type: String,
+      required: true,
+      trim: true,
+    },
 
     images: {
       type: [String],
