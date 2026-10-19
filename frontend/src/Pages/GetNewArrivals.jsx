@@ -9,6 +9,7 @@ const GetNewArrivals = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [addedProduct, setAddedProduct] = useState("");
 
   useEffect(() => {
     const fetchNewArrivals = async () => {
@@ -94,6 +95,31 @@ const GetNewArrivals = () => {
       maximumFractionDigits: 2,
     });
 
+  const addToCart = (product) => {
+    try {
+      const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+      const existingProduct = cart.find(
+        (item) => item._id === product._id
+      );
+
+      if (existingProduct) {
+        existingProduct.quantity = (existingProduct.quantity || 1) + 1;
+      } else {
+        cart.push({
+          ...product,
+          price: getFinalPrice(product),
+          quantity: 1,
+        });
+      }
+
+      localStorage.setItem("cart", JSON.stringify(cart));
+      setAddedProduct(product._id);
+      window.dispatchEvent(new Event("storage"));
+    } catch {
+      alert("Product cart mein add nahi ho saka. Dobara try karein.");
+    }
+  };
+
   return (
     <section className="bg-white px-4 py-12 sm:px-8 lg:px-16">
       <div className="mx-auto max-w-7xl">
@@ -102,11 +128,9 @@ const GetNewArrivals = () => {
             <p className="mb-2 text-xs font-semibold uppercase tracking-[3px] text-gray-500">
               Just Arrived
             </p>
-
             <h2 className="text-3xl font-bold uppercase tracking-wide text-black sm:text-4xl">
               New Arrivals
             </h2>
-
             <p className="mt-2 text-sm text-gray-500">
               Discover our latest collection.
             </p>
@@ -126,7 +150,6 @@ const GetNewArrivals = () => {
         {!loading && error && (
           <div className="py-12 text-center">
             <p className="text-sm text-red-600">{error}</p>
-
             <button
               type="button"
               onClick={() => window.location.reload()}
@@ -149,7 +172,6 @@ const GetNewArrivals = () => {
               const originalPrice = getOriginalPrice(product);
               const finalPrice = getFinalPrice(product);
               const discountPercent = getDiscountPercent(product);
-
               const hasDiscount =
                 discountPercent > 0 && finalPrice < originalPrice;
 
@@ -213,22 +235,18 @@ const GetNewArrivals = () => {
                           PKR {formatPrice(finalPrice)}
                         </span>
                       </div>
-
-                      {product.colors?.length > 0 && (
-                        <p className="mt-2 truncate text-[10px] text-gray-500 sm:text-xs">
-                          Colors: {product.colors.join(", ")}
-                        </p>
-                      )}
-
-                      {product.stock != null && (
-                        <p className="mt-1 text-[10px] text-gray-500 sm:text-xs">
-                          {product.stock > 0
-                            ? `${product.stock} in stock`
-                            : "Out of stock"}
-                        </p>
-                      )}
                     </div>
                   </Link>
+
+                  <button
+                    type="button"
+                    onClick={() => addToCart(product)}
+                    className="mt-3 w-full bg-black px-3 py-3 text-xs font-semibold uppercase tracking-wider text-white transition hover:bg-gray-800 sm:text-sm"
+                  >
+                    {addedProduct === product._id
+                      ? "Added to Cart ✓"
+                      : "Add to Cart"}
+                  </button>
                 </article>
               );
             })}
