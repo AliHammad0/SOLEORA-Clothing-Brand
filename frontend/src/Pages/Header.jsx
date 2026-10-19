@@ -358,7 +358,7 @@ const Header = () => {
     };
   }, []);
 
-  // Live API search suggestions
+  // API se live product search
   useEffect(() => {
     const keyword = searchText.trim();
 
@@ -393,6 +393,7 @@ const Header = () => {
           : result.products ||
             result.data?.products ||
             result.data ||
+            result.results ||
             [];
 
         if (!cancelled) {
@@ -414,6 +415,25 @@ const Header = () => {
       controller.abort();
     };
   }, [searchText, searchOpen]);
+
+  // Modal open hone par body scroll band
+  useEffect(() => {
+    if (!regionOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleEscape = (event) => {
+      if (event.key === "Escape") setRegionOpen(false);
+    };
+
+    window.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [regionOpen]);
 
   const isLoggedIn = Boolean(authUser);
   const isAdmin =
@@ -468,6 +488,7 @@ const Header = () => {
     if (!country) return;
 
     const nextLanguage = country.languages[0].code;
+
     setCountryCode(code);
     setLanguage(nextLanguage);
 
@@ -524,7 +545,9 @@ const Header = () => {
   return (
     <header
       dir={isRTL ? "rtl" : "ltr"}
-      className="relative z-50 w-full bg-white font-[Arial,sans-serif] text-black"
+      className={`relative w-full bg-white font-[Arial,sans-serif] text-black ${
+        regionOpen ? "z-[9999]" : "z-50"
+      }`}
     >
       {/* Announcement */}
       <div className="bg-black px-3 py-2 text-center text-[10px] tracking-wide text-white sm:text-xs">
@@ -538,11 +561,13 @@ const Header = () => {
       <div className="border-b border-gray-200">
         <div className="mx-auto max-w-7xl px-3 sm:px-6">
           <div className="flex min-h-[68px] items-center justify-between gap-2 sm:min-h-[76px]">
+            {/* Mobile menu button */}
             <button
               type="button"
               onClick={() => {
                 setMobileMenu((previous) => !previous);
                 setActiveDropdown(null);
+                setRegionOpen(false);
               }}
               className="flex h-10 w-9 shrink-0 items-center justify-center md:hidden"
               aria-label={mobileMenu ? "Close menu" : "Open menu"}
@@ -636,102 +661,29 @@ const Header = () => {
                 </Link>
               )}
 
-              {/* Country & Language */}
-              <div className="relative shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setRegionOpen((previous) => !previous)}
-                  className="flex h-10 items-center justify-center gap-1 px-1 text-xs hover:opacity-60 sm:gap-1.5"
-                  aria-label="Country and language settings"
-                  aria-expanded={regionOpen}
-                >
-                  <Globe size={19} strokeWidth={1.5} />
-                  <span className="hidden lg:inline">
-                    {selectedCountry.code} / {language.toUpperCase()}
-                  </span>
-                  <ChevronDown size={13} />
-                </button>
-
-                {regionOpen && (
-                  <div
-                    className="
-                      absolute end-0 top-full z-[100] mt-3
-                      w-[min(18rem,calc(100vw-1.5rem))]
-                      max-w-[calc(100vw-1.5rem)]
-                      overflow-hidden rounded-sm border border-gray-200
-                      bg-white p-4 shadow-2xl
-                      sm:p-5
-                    "
-                  >
-                    <div className="mb-4 flex items-center justify-between gap-3">
-                      <h3 className="text-sm font-semibold">
-                        {t.country} & {t.language}
-                      </h3>
-
-                      <button
-                        type="button"
-                        onClick={() => setRegionOpen(false)}
-                        aria-label="Close settings"
-                        className="flex h-8 w-8 shrink-0 items-center justify-center hover:bg-gray-100"
-                      >
-                        <X size={17} />
-                      </button>
-                    </div>
-
-                    <label
-                      htmlFor="header-country"
-                      className="mb-2 block text-xs text-gray-500"
-                    >
-                      {t.country}
-                    </label>
-
-                    <select
-                      id="header-country"
-                      value={countryCode}
-                      onChange={(event) =>
-                        handleCountryChange(event.target.value)
-                      }
-                      className="mb-4 block w-full min-w-0 border border-gray-300 bg-white px-3 py-3 text-sm outline-none focus:border-black"
-                    >
-                      {countries.map((country) => (
-                        <option key={country.code} value={country.code}>
-                          {country.name} ({country.currency})
-                        </option>
-                      ))}
-                    </select>
-
-                    <label
-                      htmlFor="header-language"
-                      className="mb-2 block text-xs text-gray-500"
-                    >
-                      {t.language}
-                    </label>
-
-                    <select
-                      id="header-language"
-                      value={language}
-                      onChange={(event) =>
-                        handleLanguageChange(event.target.value)
-                      }
-                      className="block w-full min-w-0 border border-gray-300 bg-white px-3 py-3 text-sm outline-none focus:border-black"
-                    >
-                      {selectedCountry.languages.map((lang) => (
-                        <option key={lang.code} value={lang.code}>
-                          {lang.name}
-                        </option>
-                      ))}
-                    </select>
-
-                    <button
-                      type="button"
-                      onClick={() => setRegionOpen(false)}
-                      className="mt-5 w-full bg-black py-3 text-xs font-semibold text-white transition hover:bg-gray-800"
-                    >
-                      {t.done}
-                    </button>
-                  </div>
-                )}
-              </div>
+              {/* Country & Language button */}
+              <button
+                type="button"
+                onClick={() => {
+                  setRegionOpen((previous) => !previous);
+                  setMobileMenu(false);
+                  setSearchOpen(false);
+                }}
+                className="flex h-10 shrink-0 items-center justify-center gap-1 px-1 text-xs hover:opacity-60 sm:gap-1.5"
+                aria-label="Country and language settings"
+                aria-expanded={regionOpen}
+              >
+                <Globe size={19} strokeWidth={1.5} />
+                <span className="hidden lg:inline">
+                  {selectedCountry.code} / {language.toUpperCase()}
+                </span>
+                <ChevronDown
+                  size={13}
+                  className={`transition-transform ${
+                    regionOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
 
               {/* Search Toggle */}
               <button
@@ -739,6 +691,7 @@ const Header = () => {
                 onClick={() => {
                   setSearchOpen((previous) => !previous);
                   setRegionOpen(false);
+                  setMobileMenu(false);
                 }}
                 aria-label="Search"
                 aria-expanded={searchOpen}
@@ -836,7 +789,7 @@ const Header = () => {
                 </button>
               </form>
 
-              {/* API Suggestions */}
+              {/* API Search Suggestions */}
               {searchText.trim() && (
                 <div className="absolute inset-x-0 top-full z-[90] max-h-[65vh] overflow-y-auto border border-t-0 border-gray-200 bg-white shadow-xl">
                   {searchLoading && suggestions.length === 0 && (
@@ -861,8 +814,7 @@ const Header = () => {
 
                   {suggestions.map((product, index) => {
                     const id = product._id || product.id;
-                    const title =
-                      product.title || product.name || "Product";
+                    const title = product.title || product.name || "Product";
                     const image = getProductImage(product);
                     const price = getProductPrice(product);
 
@@ -925,7 +877,7 @@ const Header = () => {
 
       {/* Mobile Navigation */}
       {mobileMenu && (
-        <nav className="absolute inset-x-0 top-full z-50 max-h-[calc(100dvh-100px)] overflow-y-auto border-b border-gray-200 bg-white shadow-lg md:hidden">
+        <nav className="absolute inset-x-0 top-full z-[60] max-h-[calc(100dvh-100px)] overflow-y-auto border-b border-gray-200 bg-white shadow-lg md:hidden">
           <div className="px-5 py-3">
             {navLinks.map((link) => (
               <div key={link.id} className="border-b border-gray-100">
@@ -1005,6 +957,89 @@ const Header = () => {
             </Link>
           </div>
         </nav>
+      )}
+
+      {/* Responsive Country & Language Modal */}
+      {regionOpen && (
+        <div
+          className="fixed inset-0 z-[10000] flex items-center justify-center overflow-y-auto bg-black/50 p-4 sm:p-6"
+          onClick={() => setRegionOpen(false)}
+          role="presentation"
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="region-modal-title"
+            onClick={(event) => event.stopPropagation()}
+            className="relative my-auto max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto overscroll-contain rounded-sm border border-gray-200 bg-white p-4 shadow-2xl sm:max-h-[calc(100dvh-3rem)] sm:p-6"
+          >
+            <div className="mb-5 flex items-center justify-between gap-3">
+              <h2
+                id="region-modal-title"
+                className="text-sm font-semibold sm:text-base"
+              >
+                {t.country} & {t.language}
+              </h2>
+
+              <button
+                type="button"
+                onClick={() => setRegionOpen(false)}
+                aria-label="Close country and language settings"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full hover:bg-gray-100"
+              >
+                <X size={19} />
+              </button>
+            </div>
+
+            <label
+              htmlFor="header-country"
+              className="mb-2 block text-xs text-gray-500"
+            >
+              {t.country}
+            </label>
+
+            <select
+              id="header-country"
+              value={countryCode}
+              onChange={(event) => handleCountryChange(event.target.value)}
+              className="mb-5 block w-full min-w-0 rounded-none border border-gray-300 bg-white px-3 py-3 text-sm outline-none focus:border-black"
+            >
+              {countries.map((country) => (
+                <option key={country.code} value={country.code}>
+                  {country.name} ({country.currency})
+                </option>
+              ))}
+            </select>
+
+            <label
+              htmlFor="header-language"
+              className="mb-2 block text-xs text-gray-500"
+            >
+              {t.language}
+            </label>
+
+            <select
+              id="header-language"
+              value={language}
+              onChange={(event) => handleLanguageChange(event.target.value)}
+              className="block w-full min-w-0 rounded-none border border-gray-300 bg-white px-3 py-3 text-sm outline-none focus:border-black"
+            >
+              {selectedCountry.languages.map((lang) => (
+                <option key={lang.code} value={lang.code}>
+                  {lang.name}
+                </option>
+              ))}
+            </select>
+
+            <button
+              type="button"
+              onClick={() => setRegionOpen(false)}
+              className="mt-6 w-full bg-black py-3.5 text-xs font-semibold text-white transition hover:bg-gray-800"
+            >
+              {t.done}
+            </button>
+          </section>
+        </div>
       )}
     </header>
   );
