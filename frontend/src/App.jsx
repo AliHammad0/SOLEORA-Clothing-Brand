@@ -24,6 +24,7 @@ import GetAllProducts from "./Pages/GetAllProducts";
 import CreateProduct from "./Pages/CreateProduct";
 import GetNewArrivals from "./Pages/GetNewArrivals";
 import ProductDetails from "./Pages/ProductDetails";
+import CategoryProducts from "./Pages/CategoryProducts";
 
 import {
   LanguageProvider,
@@ -188,6 +189,22 @@ const App = () => (
         <Route path="/cart" element={<Cart />} />
         <Route path="/about" element={<AboutUs />} />
         <Route path="/profile" element={<Profile />} />
+
+        {/* Category Pages */}
+        <Route
+          path="/men"
+          element={<CategoryProducts category="Men" />}
+        />
+
+        <Route
+          path="/women"
+          element={<CategoryProducts category="Women" />}
+        />
+
+        <Route
+          path="/kids"
+          element={<CategoryProducts category="Kids" />}
+        />
 
         <Route
           path="/ReturnsExchangePolicy"

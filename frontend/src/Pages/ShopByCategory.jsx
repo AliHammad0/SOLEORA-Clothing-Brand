@@ -397,12 +397,10 @@ export default function ShopByCategory() {
 
     const interval = window.setInterval(() => {
       if (document.hidden) return;
-
-      // Allow manual swiping/clicking to finish before autoplay resumes.
       if (interactionTimeoutRef.current) return;
 
       goToSlide(activeIndexRef.current + 1);
-    }, 1000);
+    }, 3000);
 
     return () => window.clearInterval(interval);
   }, [isVisible]);
