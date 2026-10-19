@@ -241,3 +241,42 @@ export const deleteProduct = async (req, res) => {
     });
   }
 };
+
+
+
+export const searchProducts = async (req, res) => {
+  try {
+    const { q } = req.query;
+
+    if (!q || !q.trim()) {
+      return res.status(400).json({
+        ok: false,
+        message: "Search keyword is required",
+      });
+    }
+
+    const keyword = q.trim();
+
+    const products = await Product.find({
+      isActive: true,
+      $or: [
+        { title: { $regex: keyword, $options: "i" } },
+        { brand: { $regex: keyword, $options: "i" } },
+        { category: { $regex: keyword, $options: "i" } },
+        { description: { $regex: keyword, $options: "i" } },
+      ],
+    });
+
+    return res.status(200).json({
+      ok: true,
+      count: products.length,
+      products,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      ok: false,
+      message: "Product search failed",
+      error: error.message,
+    });
+  }
+};

@@ -19,6 +19,9 @@ productRoutes.route("/special").get(Product.getSpecialPrices);
 
 // Get Single Product - Public
 productRoutes.route("/:id").get(Product.getSingleProduct);
+//Search Product Public
+productRoutes.route("/search").get(Product.searchProducts);
+
 
 // Update Product - Admin Only
 productRoutes.route("/:id").put(verifyAdmin, Product.updateProduct);

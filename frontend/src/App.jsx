@@ -38,6 +38,7 @@ import AdminCustomers from "./Pages/AdminCustomers";
 import AdminSettings from "./Pages/AdminSettings";
 import AboutUs from "./Pages/AboutUs";
 import Profile from "./Pages/Profile";
+import ProductSearch from "./Pages/ProductSearch";
 
 const Layout = () => (
   <>
@@ -189,6 +190,7 @@ const App = () => (
         <Route path="/cart" element={<Cart />} />
         <Route path="/about" element={<AboutUs />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/search" element={<ProductSearch />} />
 
         {/* Category Pages */}
         <Route
