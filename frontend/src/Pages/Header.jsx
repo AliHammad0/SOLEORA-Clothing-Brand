@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import {
   Menu,
@@ -10,7 +11,9 @@ import {
   LayoutDashboard,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useSelector } from "react-redux";
 import { useLanguage } from "../context/LanguageContext";
+import { selectCartCount } from "../redux/slices/cartSlice";
 
 const countries = [
   {
@@ -357,6 +360,7 @@ const getAuthUser = () => {
 
 const Header = () => {
   const { language, setLanguage } = useLanguage();
+  const cartCount = useSelector(selectCartCount);
 
   const [mobileMenu, setMobileMenu] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -687,10 +691,17 @@ const Header = () => {
 
               <Link
                 to="/cart"
-                aria-label="Shopping Bag"
-                className="flex h-10 w-8 shrink-0 items-center justify-center hover:opacity-60"
+                aria-label={`Shopping Bag, ${cartCount} items`}
+                title="Shopping Bag"
+                className="relative flex h-10 w-8 shrink-0 items-center justify-center hover:opacity-60"
               >
                 <ShoppingBag size={21} strokeWidth={1.5} />
+
+                {cartCount > 0 && (
+                  <span className="absolute -right-1 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-black px-1 text-[10px] font-semibold leading-none text-white">
+                    {cartCount > 99 ? "99+" : cartCount}
+                  </span>
+                )}
               </Link>
             </div>
           </div>
@@ -816,6 +827,15 @@ const Header = () => {
                 <UserRound size={18} />
               )}
               {isLoggedIn ? accountLabel : t.account}
+            </Link>
+
+            <Link
+              to="/cart"
+              onClick={() => setMobileMenu(false)}
+              className="flex items-center gap-3 py-4 text-xs"
+            >
+              <ShoppingBag size={18} />
+              Shopping Bag ({cartCount})
             </Link>
           </div>
         </nav>

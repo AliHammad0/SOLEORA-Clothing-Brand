@@ -1,6 +1,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 import {
   ShoppingCart,
   Truck,
@@ -15,11 +16,21 @@ import {
   ZoomIn,
 } from "lucide-react";
 
+import {
+  addToCart,
+  selectCartItems,
+  selectCartTotal,
+} from "../redux/slices/cartSlice";
+
 const API_URL =
   "https://soleora-clothing-brand-backend.vercel.app/api/v1/products";
 
 export default function ProductDetails() {
   const { id } = useParams();
+  const dispatch = useDispatch();
+
+  const cartItems = useSelector(selectCartItems);
+  const cartTotal = useSelector(selectCartTotal);
 
   const [product, setProduct] = useState(null);
   const [quantity, setQuantity] = useState(1);
@@ -27,7 +38,6 @@ export default function ProductDetails() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
-  const [cart, setCart] = useState([]);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -99,8 +109,13 @@ export default function ProductDetails() {
     );
   }
 
-  const originalPrice = Number(product.price) || 0;
-  const specialPrice = Number(product.specialPrice) || 0;
+  const originalPrice = Number(
+    product.originalPrice ?? product.price ?? 0
+  );
+
+  const specialPrice = Number(
+    product.specialPrice ?? product.discountPrice ?? 0
+  );
 
   const discount = Math.min(
     100,
@@ -121,7 +136,9 @@ export default function ProductDetails() {
 
   const images = Array.isArray(product.images)
     ? product.images.filter(Boolean)
-    : [];
+    : product.image
+      ? [product.image]
+      : [];
 
   const discountPercentage =
     onSale && originalPrice > 0
@@ -130,9 +147,7 @@ export default function ProductDetails() {
         )
       : 0;
 
-  const sizes = Array.isArray(product.sizes)
-    ? product.sizes
-    : [];
+  const sizes = Array.isArray(product.sizes) ? product.sizes : [];
 
   const colors = Array.isArray(product.colors)
     ? product.colors
@@ -140,67 +155,55 @@ export default function ProductDetails() {
       ? [product.color]
       : [];
 
-  const fabric =
-    product.fabric || product.material || "Not specified";
+  const fabric = product.fabric || product.material || "Not specified";
 
   const formatPrice = (price) =>
     `Rs. ${Number(price || 0).toLocaleString("en-PK")}`;
 
- const addToCart = () => {
-  setMessage("");
+  const productId = String(product._id || product.id || "");
 
-  if (stock <= 0) {
-    setMessage("This product is out of stock.");
-    return;
-  }
+  const cartItem = cartItems.find(
+    (item) => String(item._id || item.id) === productId
+  );
 
-  if (quantity > stock) {
-    setMessage(`Only ${stock} items are available.`);
-    return;
-  }
+  const alreadyInCart = cartItem?.quantity || 0;
+  const remainingStock = Math.max(0, stock - alreadyInCart);
 
-  const cartItem = {
-    _id: product._id,
-    title: product.title,
-    price: discountedPrice,
-    quantity,
-    image: images[0] || "",
-  };
+  const handleAddToCart = () => {
+    setMessage("");
 
-  setCart((previous) => {
-    const existing = previous.find(
-      (item) => item._id === product._id
-    );
-
-    if (existing) {
-      return previous.map((item) =>
-        item._id === product._id
-          ? {
-              ...item,
-              price: discountedPrice,
-              quantity: item.quantity + quantity,
-            }
-          : item
-      );
+    if (!productId) {
+      setMessage("Product ID is missing.");
+      return;
     }
 
-    return [...previous, cartItem];
-  });
+    if (stock <= 0) {
+      setMessage("This product is out of stock.");
+      return;
+    }
 
-  // Update the available stock immediately on this page
-  setProduct((previous) => ({
-    ...previous,
-    stock: Math.max(
-      0,
-      (Number(previous.stock) || 0) - quantity
-    ),
-  }));
+    if (quantity > remainingStock) {
+      setMessage(
+        remainingStock > 0
+          ? `You can add only ${remainingStock} more item(s).`
+          : "Available stock is already in your cart."
+      );
+      return;
+    }
 
-  // Reset the selected quantity after adding to cart
-  setQuantity(1);
+    dispatch(
+      addToCart({
+        ...product,
+        _id: productId,
+        price: discountedPrice,
+        stock,
+        image: images[0] || product.image || "",
+      })
+    );
 
-  setMessage("Product added to cart successfully!");
-};
+    setMessage("Product added to cart successfully!");
+    setQuantity(1);
+  };
 
   return (
     <div className="min-h-screen bg-white text-slate-900">
@@ -209,13 +212,9 @@ export default function ProductDetails() {
           <Link to="/" className="transition-colors hover:text-black">
             Home
           </Link>
-
           <ChevronRight size={15} />
-
           <span>{product.gender || "Collection"}</span>
-
           <ChevronRight size={15} />
-
           <span className="line-clamp-1 text-gray-900">
             {product.title}
           </span>
@@ -261,7 +260,7 @@ export default function ProductDetails() {
               )}
 
               {discountPercentage > 0 && (
-                <span className="absolute left-3 top-3 inline-flex items-center gap-1 bg-red-600 px-3 py-2 text-xs font-bold text-white shadow-lg transition-all duration-300 hover:scale-110 sm:text-sm">
+                <span className="absolute left-3 top-3 bg-red-600 px-3 py-2 text-xs font-bold text-white shadow-lg sm:text-sm">
                   -{discountPercentage}% OFF
                 </span>
               )}
@@ -308,7 +307,6 @@ export default function ProductDetails() {
                   <span className="text-lg text-gray-400 line-through">
                     {formatPrice(originalPrice)}
                   </span>
-
                   <span className="bg-red-50 px-2 py-1 text-sm font-semibold text-red-600">
                     Save {formatPrice(originalPrice - discountedPrice)}
                   </span>
@@ -323,17 +321,17 @@ export default function ProductDetails() {
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500 opacity-60" />
                     <span className="relative h-2.5 w-2.5 rounded-full bg-green-600" />
                   </span>
-                  In Stock — {stock} items available
+                  In Stock — {remainingStock} items available
                 </div>
-              ) : stock > 0 ? (
+              ) : stock > 0 && remainingStock > 0 ? (
                 <div className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-4 py-2 text-sm font-medium text-orange-700">
                   <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-orange-500" />
-                  Only {stock} left in stock!
+                  Only {remainingStock} left in stock!
                 </div>
               ) : (
                 <div className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700">
                   <span className="h-2.5 w-2.5 rounded-full bg-red-500" />
-                  Out of Stock
+                  {stock <= 0 ? "Out of Stock" : "All available stock is in your cart"}
                 </div>
               )}
             </div>
@@ -387,11 +385,11 @@ export default function ProductDetails() {
                   type="button"
                   onClick={() => {
                     setQuantity((previous) =>
-                      Math.min(stock, previous + 1)
+                      Math.min(remainingStock, previous + 1)
                     );
                     setMessage("");
                   }}
-                  disabled={quantity >= stock}
+                  disabled={quantity >= remainingStock}
                   aria-label="Increase quantity"
                   className="h-full px-4 transition-colors hover:bg-gray-100 active:scale-90 disabled:opacity-30"
                 >
@@ -402,12 +400,14 @@ export default function ProductDetails() {
 
             <button
               type="button"
-              onClick={addToCart}
-              disabled={stock <= 0 || quantity > stock}
+              onClick={handleAddToCart}
+              disabled={stock <= 0 || remainingStock <= 0 || quantity > remainingStock}
               className="mt-6 flex h-14 w-full items-center justify-center gap-3 bg-slate-900 px-6 font-medium text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-700 hover:shadow-xl active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-gray-400 disabled:hover:translate-y-0 disabled:hover:shadow-none"
             >
               <ShoppingCart size={20} />
-              {stock <= 0 ? "Out of Stock" : "Add to Cart"}
+              {stock <= 0 || remainingStock <= 0
+                ? "Out of Available Stock"
+                : "Add to Cart"}
             </button>
 
             {message && (
@@ -449,9 +449,7 @@ export default function ProductDetails() {
                 <div>
                   <h3 className="font-bold">COLOR:</h3>
                   <p className="text-gray-600">
-                    {colors.length > 0
-                      ? colors.join(", ")
-                      : "Not specified"}
+                    {colors.length > 0 ? colors.join(", ") : "Not specified"}
                   </p>
                 </div>
 
@@ -479,33 +477,34 @@ export default function ProductDetails() {
               </div>
             </div>
 
-            {cart.length > 0 && (
+            {cartItems.length > 0 && (
               <div className="mt-8 animate-[fadeIn_0.4s_ease-out] border border-gray-200 p-4">
-                <h3 className="font-bold">Cart Summary</h3>
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="font-bold">Cart Summary</h3>
+                  <Link to="/cart" className="text-sm underline">
+                    View Cart
+                  </Link>
+                </div>
 
-                {cart.map((item) => (
+                {cartItems.map((item) => (
                   <div
-                    key={item._id}
+                    key={item._id || item.id}
                     className="mt-3 flex justify-between gap-4 text-sm"
                   >
                     <span>
-                      {item.title} × {item.quantity}
+                      {item.title || item.name} × {item.quantity}
                     </span>
                     <span className="whitespace-nowrap">
-                      {formatPrice(item.price * item.quantity)}
+                      {formatPrice(
+                        Number(item.price ?? item.specialPrice ?? item.discountPrice ?? item.originalPrice ?? 0) *
+                          item.quantity
+                      )}
                     </span>
                   </div>
                 ))}
 
                 <p className="mt-4 border-t pt-3 font-bold">
-                  Total:{" "}
-                  {formatPrice(
-                    cart.reduce(
-                      (total, item) =>
-                        total + item.price * item.quantity,
-                      0
-                    )
-                  )}
+                  Total: {formatPrice(cartTotal)}
                 </p>
               </div>
             )}
@@ -538,4 +537,3 @@ export default function ProductDetails() {
     </div>
   );
 }
-

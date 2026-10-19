@@ -1,3 +1,4 @@
+
 import React from "react";
 import {
   Routes,
@@ -9,7 +10,6 @@ import {
 
 import Footer from "./Pages/Footer";
 import Header from "./Pages/Header";
-import NewArrivals from "./Pages/NewArrival";
 import ShopByCategory from "./Pages/ShopByCategory";
 import SpecialPrices from "./Pages/SpecialPrices";
 import Testimonials from "./Pages/Testimonials";
@@ -25,7 +25,10 @@ import CreateProduct from "./Pages/CreateProduct";
 import GetNewArrivals from "./Pages/GetNewArrivals";
 import ProductDetails from "./Pages/ProductDetails";
 
-import { LanguageProvider, useLanguage } from "./context/LanguageContext";
+import {
+  LanguageProvider,
+  useLanguage,
+} from "./context/LanguageContext";
 
 import AdminDashboard from "./Pages/AdminDashboard";
 import AdminProducts from "./Pages/AdminProducts";
@@ -44,7 +47,6 @@ const Layout = () => (
   </>
 );
 
-// Funny Admin Access Protection
 const AdminRoute = () => {
   let user = null;
 
@@ -60,17 +62,16 @@ const AdminRoute = () => {
     return <Navigate to="/login" replace />;
   }
 
-  const isAdmin = user.isAdmin === true || user.isAdmin === "true";
+  const isAdmin =
+    user.isAdmin === true || user.isAdmin === "true";
 
   if (!isAdmin) {
     return (
       <div className="relative flex min-h-[70vh] flex-col items-center justify-center overflow-hidden bg-[#faf9f6] px-5 py-16 text-center">
-        {/* Funny animated background */}
         <div className="pointer-events-none absolute left-1/2 top-1/2 h-72 w-72 -translate-x-1/2 -translate-y-1/2 animate-pulse rounded-full bg-amber-100/60" />
 
         <div className="pointer-events-none absolute left-1/2 top-1/2 h-60 w-60 -translate-x-1/2 -translate-y-1/2 animate-[spin_18s_linear_infinite] rounded-full border border-dashed border-amber-300" />
 
-        {/* Funny security emoji */}
         <div className="relative z-10 flex h-32 w-32 animate-bounce items-center justify-center rounded-full border border-amber-200 bg-white text-7xl shadow-xl">
           🕵️‍♂️
         </div>
@@ -145,7 +146,6 @@ const Home = () => (
   <>
     <GetAllProducts />
     <GetNewArrivals />
-    {/* <NewArrivals /> */}
     <ShopByCategory />
     <SpecialPrices />
     <Testimonials />
@@ -160,7 +160,9 @@ const NotFound = () => {
     <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 text-center">
       <h1 className="text-5xl font-bold text-black">404</h1>
 
-      <p className="mt-3 text-gray-600">{t("notFound")}</p>
+      <p className="mt-3 text-gray-600">
+        {t("notFound")}
+      </p>
 
       <Link
         to="/"
@@ -219,7 +221,10 @@ const App = () => (
             element={<AdminSettings />}
           />
 
-          <Route path="/create" element={<CreateProduct />} />
+          <Route
+            path="/create"
+            element={<CreateProduct />}
+          />
         </Route>
       </Route>
 

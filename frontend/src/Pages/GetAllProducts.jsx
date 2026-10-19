@@ -1,12 +1,19 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  addToCart as addProductToCart,
+  selectCartItems,
+} from "../redux/slices/cartSlice";
 
 const API_URL =
   "https://soleora-clothing-brand-backend.vercel.app/api/v1/products/all";
 
 const GetAllProducts = () => {
   const location = useLocation();
+  const dispatch = useDispatch();
+  const cartItems = useSelector(selectCartItems);
 
   const [products, setProducts] = useState([]);
   const [sortBy, setSortBy] = useState("featured");
@@ -59,11 +66,17 @@ const GetAllProducts = () => {
     const price = Number(
       product.price ?? product.originalPrice ?? 0
     );
+
     const specialPrice = Number(product.specialPrice || 0);
+    const discountPrice = Number(product.discountPrice || 0);
     const discount = Number(product.discount || 0);
 
     if (specialPrice > 0 && specialPrice < price) {
       return specialPrice;
+    }
+
+    if (discountPrice > 0 && discountPrice < price) {
+      return discountPrice;
     }
 
     if (discount > 0 && discount < 100) {
@@ -74,57 +87,38 @@ const GetAllProducts = () => {
   };
 
   const addToCart = (product) => {
-    try {
-      const savedCart = localStorage.getItem("cart");
-      const cart = savedCart ? JSON.parse(savedCart) : [];
+    const productId = product._id || product.id;
+    const stock = Number(product.stock ?? 0);
 
-      if (!Array.isArray(cart)) {
-        throw new Error("Invalid cart data");
-      }
-
-      const existingIndex = cart.findIndex(
-        (item) => item._id === product._id
-      );
-
-      const stock = Number(product.stock ?? 0);
-
-      if (stock <= 0) {
-        alert("Sorry, this product is out of stock.");
-        return;
-      }
-
-      if (existingIndex !== -1) {
-        const currentQuantity = Number(cart[existingIndex].quantity || 1);
-
-        if (currentQuantity >= stock) {
-          alert("Sorry, no more stock is available for this product.");
-          return;
-        }
-
-        cart[existingIndex] = {
-          ...cart[existingIndex],
-          ...product,
-          price: getProductPrice(product),
-          quantity: currentQuantity + 1,
-        };
-      } else {
-        cart.push({
-          ...product,
-          price: getProductPrice(product),
-          quantity: 1,
-        });
-      }
-
-      localStorage.setItem("cart", JSON.stringify(cart));
-
-      setAddedProductId(product._id);
-
-      window.dispatchEvent(new Event("cartUpdated"));
-      window.dispatchEvent(new Event("storage"));
-    } catch (err) {
-      console.error("Add to cart error:", err);
-      alert("Unable to add this product to your cart. Please try again.");
+    if (!productId) {
+      alert("Unable to identify this product.");
+      return;
     }
+
+    if (stock <= 0) {
+      alert("Sorry, this product is out of stock.");
+      return;
+    }
+
+    const existingItem = cartItems.find(
+      (item) => String(item._id) === String(productId)
+    );
+
+    if (existingItem && existingItem.quantity >= stock) {
+      alert("Sorry, no more stock is available for this product.");
+      return;
+    }
+
+    dispatch(
+      addProductToCart({
+        ...product,
+        _id: productId,
+        price: getProductPrice(product),
+        stock,
+      })
+    );
+
+    setAddedProductId(productId);
   };
 
   const filteredProducts = useMemo(() => {
@@ -132,10 +126,14 @@ const GetAllProducts = () => {
       const price = Number(
         product.price ?? product.originalPrice ?? 0
       );
+
       const specialPrice = Number(product.specialPrice || 0);
+      const discountPrice = Number(product.discountPrice || 0);
       const isNewArrival = Boolean(product.isNewArrival);
+
       const hasSpecialPrice =
-        specialPrice > 0 && specialPrice < price;
+        (specialPrice > 0 && specialPrice < price) ||
+        (discountPrice > 0 && discountPrice < price);
 
       return !hasSpecialPrice && !isNewArrival;
     });
@@ -273,14 +271,17 @@ const GetAllProducts = () => {
     const price = Number(
       product.price ?? product.originalPrice ?? 0
     );
+
     const discount = Number(product.discount || 0);
     const finalPrice = getProductPrice(product);
     const onSale = finalPrice < price;
-    const image = product.images?.[0];
+    const image = product.images?.[0] || product.image;
     const isList = viewMode === "list";
-    const productUrl = `/product/${product._id}`;
+    const productId = product._id || product.id;
+    const productUrl = `/product/${productId}`;
     const outOfStock = Number(product.stock ?? 0) <= 0;
-    const wasAdded = addedProductId === product._id;
+    const wasAdded =
+      String(addedProductId) === String(productId);
 
     return (
       <article
@@ -472,7 +473,10 @@ const GetAllProducts = () => {
             style={gridStyle}
           >
             {sortedProducts.map((product) => (
-              <ProductCard key={product._id} product={product} />
+              <ProductCard
+                key={product._id || product.id}
+                product={product}
+              />
             ))}
           </div>
         )}
