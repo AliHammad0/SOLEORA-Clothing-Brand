@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Menu,
   X,
@@ -13,16 +13,92 @@ import {
 import { useLanguage } from "../context/LanguageContext";
 
 const countries = [
-  { code: "PK", name: "Pakistan", currency: "PKR", languages: [{ code: "en", name: "English" }, { code: "ur", name: "اردو" }] },
-  { code: "BD", name: "Bangladesh", currency: "BDT", languages: [{ code: "bn", name: "বাংলা" }, { code: "en", name: "English" }] },
-  { code: "IN", name: "India", currency: "INR", languages: [{ code: "hi", name: "हिन्दी" }, { code: "en", name: "English" }, { code: "bn", name: "বাংলা" }, { code: "ur", name: "اردو" }] },
-  { code: "US", name: "United States", currency: "USD", languages: [{ code: "en", name: "English" }] },
-  { code: "GB", name: "United Kingdom", currency: "GBP", languages: [{ code: "en", name: "English" }] },
-  { code: "SA", name: "Saudi Arabia", currency: "SAR", languages: [{ code: "ar", name: "العربية" }, { code: "en", name: "English" }] },
-  { code: "AE", name: "United Arab Emirates", currency: "AED", languages: [{ code: "ar", name: "العربية" }, { code: "en", name: "English" }] },
-  { code: "CN", name: "China", currency: "CNY", languages: [{ code: "zh", name: "简体中文" }, { code: "en", name: "English" }] },
-  { code: "JP", name: "Japan", currency: "JPY", languages: [{ code: "ja", name: "日本語" }, { code: "en", name: "English" }] },
-  { code: "FR", name: "France", currency: "EUR", languages: [{ code: "fr", name: "Français" }, { code: "en", name: "English" }] },
+  {
+    code: "PK",
+    name: "Pakistan",
+    currency: "PKR",
+    languages: [
+      { code: "en", name: "English" },
+      { code: "ur", name: "اردو" },
+    ],
+  },
+  {
+    code: "BD",
+    name: "Bangladesh",
+    currency: "BDT",
+    languages: [
+      { code: "bn", name: "বাংলা" },
+      { code: "en", name: "English" },
+    ],
+  },
+  {
+    code: "IN",
+    name: "India",
+    currency: "INR",
+    languages: [
+      { code: "hi", name: "हिन्दी" },
+      { code: "en", name: "English" },
+      { code: "bn", name: "বাংলা" },
+      { code: "ur", name: "اردو" },
+    ],
+  },
+  {
+    code: "US",
+    name: "United States",
+    currency: "USD",
+    languages: [{ code: "en", name: "English" }],
+  },
+  {
+    code: "GB",
+    name: "United Kingdom",
+    currency: "GBP",
+    languages: [{ code: "en", name: "English" }],
+  },
+  {
+    code: "SA",
+    name: "Saudi Arabia",
+    currency: "SAR",
+    languages: [
+      { code: "ar", name: "العربية" },
+      { code: "en", name: "English" },
+    ],
+  },
+  {
+    code: "AE",
+    name: "United Arab Emirates",
+    currency: "AED",
+    languages: [
+      { code: "ar", name: "العربية" },
+      { code: "en", name: "English" },
+    ],
+  },
+  {
+    code: "CN",
+    name: "China",
+    currency: "CNY",
+    languages: [
+      { code: "zh", name: "简体中文" },
+      { code: "en", name: "English" },
+    ],
+  },
+  {
+    code: "JP",
+    name: "Japan",
+    currency: "JPY",
+    languages: [
+      { code: "ja", name: "日本語" },
+      { code: "en", name: "English" },
+    ],
+  },
+  {
+    code: "FR",
+    name: "France",
+    currency: "EUR",
+    languages: [
+      { code: "fr", name: "Français" },
+      { code: "en", name: "English" },
+    ],
+  },
 ];
 
 const translations = {
@@ -48,6 +124,7 @@ const translations = {
     casualShoes: "Casual Shoes",
     account: "MY ACCOUNT",
     dashboard: "DASHBOARD",
+    profile: "PROFILE",
     searchPlaceholder: "Search products...",
     search: "SEARCH",
     country: "Country",
@@ -76,6 +153,7 @@ const translations = {
     casualShoes: "کیژول جوتے",
     account: "میرا اکاؤنٹ",
     dashboard: "ڈیش بورڈ",
+    profile: "پروفائل",
     searchPlaceholder: "پروڈکٹس تلاش کریں...",
     search: "تلاش کریں",
     country: "ملک",
@@ -104,6 +182,7 @@ const translations = {
     casualShoes: "ক্যাজুয়াল জুতা",
     account: "আমার অ্যাকাউন্ট",
     dashboard: "ড্যাশবোর্ড",
+    profile: "প্রোফাইল",
     searchPlaceholder: "পণ্য খুঁজুন...",
     search: "খুঁজুন",
     country: "দেশ",
@@ -132,6 +211,7 @@ const translations = {
     casualShoes: "कैज़ुअल जूते",
     account: "मेरा अकाउंट",
     dashboard: "डैशबोर्ड",
+    profile: "प्रोफ़ाइल",
     searchPlaceholder: "उत्पाद खोजें...",
     search: "खोजें",
     country: "देश",
@@ -160,6 +240,7 @@ const translations = {
     casualShoes: "أحذية كاجوال",
     account: "حسابي",
     dashboard: "لوحة التحكم",
+    profile: "الملف الشخصي",
     searchPlaceholder: "ابحث عن المنتجات...",
     search: "بحث",
     country: "الدولة",
@@ -188,6 +269,7 @@ const translations = {
     casualShoes: "休闲鞋",
     account: "我的账户",
     dashboard: "管理面板",
+    profile: "个人资料",
     searchPlaceholder: "搜索商品...",
     search: "搜索",
     country: "国家",
@@ -215,7 +297,8 @@ const translations = {
     formalShoes: "フォーマルシューズ",
     casualShoes: "カジュアルシューズ",
     account: "マイアカウント",
-    dashboard: "ダッシュボード",
+    dashboard: "管理パネル",
+    profile: "プロフィール",
     searchPlaceholder: "商品を検索...",
     search: "検索",
     country: "国",
@@ -244,6 +327,7 @@ const translations = {
     casualShoes: "Chaussures décontractées",
     account: "MON COMPTE",
     dashboard: "TABLEAU DE BORD",
+    profile: "PROFIL",
     searchPlaceholder: "Rechercher des produits...",
     search: "RECHERCHER",
     country: "Pays",
@@ -260,6 +344,17 @@ const getSavedValue = (key, fallback) => {
   }
 };
 
+const getAuthUser = () => {
+  try {
+    const user = JSON.parse(localStorage.getItem("user"));
+    const token = localStorage.getItem("token");
+
+    return token && user ? user : null;
+  } catch {
+    return null;
+  }
+};
+
 const Header = () => {
   const { language, setLanguage } = useLanguage();
 
@@ -271,9 +366,36 @@ const Header = () => {
     getSavedValue("countryCode", "PK")
   );
   const [regionOpen, setRegionOpen] = useState(false);
+  const [authUser, setAuthUser] = useState(getAuthUser);
+
+  useEffect(() => {
+    const updateAuthUser = () => {
+      setAuthUser(getAuthUser());
+    };
+
+    window.addEventListener("storage", updateAuthUser);
+    window.addEventListener("focus", updateAuthUser);
+    window.addEventListener("userLoggedIn", updateAuthUser);
+    window.addEventListener("userLoggedOut", updateAuthUser);
+    window.addEventListener("authChanged", updateAuthUser);
+
+    return () => {
+      window.removeEventListener("storage", updateAuthUser);
+      window.removeEventListener("focus", updateAuthUser);
+      window.removeEventListener("userLoggedIn", updateAuthUser);
+      window.removeEventListener("userLoggedOut", updateAuthUser);
+      window.removeEventListener("authChanged", updateAuthUser);
+    };
+  }, []);
+
+  const isLoggedIn = Boolean(authUser);
+  const isAdmin =
+    authUser?.isAdmin === true ||
+    authUser?.isAdmin === "true";
 
   const selectedCountry =
-    countries.find((country) => country.code === countryCode) || countries[0];
+    countries.find((country) => country.code === countryCode) ||
+    countries[0];
 
   const t = translations[language] || translations.en;
   const isRTL = language === "ur" || language === "ar";
@@ -329,19 +451,45 @@ const Header = () => {
       localStorage.setItem("countryCode", code);
       localStorage.setItem("language", nextLanguage);
     } catch {
-      // Continue if browser storage is unavailable.
+      // Browser storage may be unavailable.
     }
   };
 
   const handleLanguageChange = (code) => {
+    if (!selectedCountry.languages.some((item) => item.code === code)) {
+      return;
+    }
+
     setLanguage(code);
 
     try {
       localStorage.setItem("language", code);
     } catch {
-      // Continue if browser storage is unavailable.
+      // Browser storage may be unavailable.
     }
   };
+
+  const announcementAmount = {
+    PK: "Rs. 6,000",
+    US: "$60",
+    GB: "£50",
+    BD: "৳5,000",
+    IN: "₹5,000",
+    SA: "SAR 200",
+    AE: "AED 200",
+    CN: "¥300",
+    JP: "¥5,000",
+    FR: "€60",
+  };
+
+  const renderAccountDestination = () =>
+    isAdmin ? "/admin/dashboard" : "/profile";
+
+  const renderAccountLabel = () =>
+    isAdmin ? t.dashboard : t.profile || "PROFILE";
+
+  const renderAccountIcon = () =>
+    isAdmin ? <LayoutDashboard size={18} /> : <UserRound size={18} />;
 
   return (
     <header
@@ -350,25 +498,7 @@ const Header = () => {
     >
       <div className="bg-black px-3 py-2 text-center text-[10px] tracking-wide text-white sm:text-xs">
         {t.announcement}{" "}
-        {selectedCountry.code === "PK"
-          ? "Rs. 6,000"
-          : selectedCountry.code === "US"
-          ? "$60"
-          : selectedCountry.code === "GB"
-          ? "£50"
-          : selectedCountry.code === "BD"
-          ? "৳5,000"
-          : selectedCountry.code === "IN"
-          ? "₹5,000"
-          : selectedCountry.code === "SA"
-          ? "SAR 200"
-          : selectedCountry.code === "AE"
-          ? "AED 200"
-          : selectedCountry.code === "CN"
-          ? "¥300"
-          : selectedCountry.code === "JP"
-          ? "¥5,000"
-          : "€60"}{" "}
+        {announcementAmount[selectedCountry.code] || "€60"}{" "}
         <a href="/shipping" className="ms-2 underline underline-offset-2">
           {t.shopNow}
         </a>
@@ -379,9 +509,13 @@ const Header = () => {
           <div className="flex min-h-[76px] items-center justify-between gap-2">
             <button
               type="button"
-              onClick={() => setMobileMenu(!mobileMenu)}
-              className="p-2 md:hidden"
-              aria-label="Toggle menu"
+              onClick={() => {
+                setMobileMenu((previous) => !previous);
+                setActiveDropdown(null);
+              }}
+              className="flex h-10 w-10 shrink-0 items-center justify-center md:hidden"
+              aria-label={mobileMenu ? "Close menu" : "Open menu"}
+              aria-expanded={mobileMenu}
             >
               {mobileMenu ? <X size={23} /> : <Menu size={23} />}
             </button>
@@ -391,9 +525,9 @@ const Header = () => {
                 <div
                   key={link.id}
                   className="relative flex h-[76px] items-center"
-                  onMouseEnter={() =>
-                    link.dropdown && setActiveDropdown(link.id)
-                  }
+                  onMouseEnter={() => {
+                    if (link.dropdown) setActiveDropdown(link.id);
+                  }}
                   onMouseLeave={() => setActiveDropdown(null)}
                 >
                   <div className="flex items-center gap-1">
@@ -410,11 +544,12 @@ const Header = () => {
                       <button
                         type="button"
                         onClick={() =>
-                          setActiveDropdown(
-                            activeDropdown === link.id ? null : link.id
+                          setActiveDropdown((previous) =>
+                            previous === link.id ? null : link.id
                           )
                         }
                         aria-label={`Toggle ${link.name} dropdown`}
+                        aria-expanded={activeDropdown === link.id}
                       >
                         <ChevronDown
                           size={14}
@@ -451,20 +586,27 @@ const Header = () => {
             </a>
 
             <div className="flex flex-1 items-center justify-end gap-2 sm:gap-4">
-              <a
-                href="/admin/dashboard"
-                className="hidden shrink-0 items-center gap-2 bg-black px-3 py-3 text-xs font-semibold text-white transition hover:bg-gray-800 sm:flex"
-              >
-                <LayoutDashboard size={16} />
-                <span>{t.dashboard || "DASHBOARD"}</span>
-              </a>
+              {isLoggedIn && (
+                <a
+                  href={renderAccountDestination()}
+                  className="hidden shrink-0 items-center gap-2 bg-black px-3 py-3 text-xs font-semibold text-white transition hover:bg-gray-800 sm:flex"
+                >
+                  {isAdmin ? (
+                    <LayoutDashboard size={16} />
+                  ) : (
+                    <UserRound size={16} />
+                  )}
+                  <span>{renderAccountLabel()}</span>
+                </a>
+              )}
 
               <div className="relative">
                 <button
                   type="button"
-                  onClick={() => setRegionOpen(!regionOpen)}
+                  onClick={() => setRegionOpen((previous) => !previous)}
                   className="flex items-center gap-1.5 text-xs hover:opacity-60"
                   aria-label="Country and language settings"
+                  aria-expanded={regionOpen}
                 >
                   <Globe size={19} strokeWidth={1.5} />
                   <span className="hidden lg:inline">
@@ -474,8 +616,8 @@ const Header = () => {
                 </button>
 
                 {regionOpen && (
-                  <div className="absolute end-0 top-full z-[60] mt-4 w-72 border border-gray-200 bg-white p-5 shadow-xl">
-                    <div className="mb-4 flex items-center justify-between">
+                  <div className="absolute end-0 top-full z-[60] mt-4 w-72 max-w-[calc(100vw-24px)] border border-gray-200 bg-white p-5 shadow-xl">
+                    <div className="mb-4 flex items-center justify-between gap-3">
                       <h3 className="text-sm font-semibold">
                         {t.country} & {t.language}
                       </h3>
@@ -493,7 +635,9 @@ const Header = () => {
                     </label>
                     <select
                       value={countryCode}
-                      onChange={(e) => handleCountryChange(e.target.value)}
+                      onChange={(event) =>
+                        handleCountryChange(event.target.value)
+                      }
                       className="mb-4 w-full border border-gray-300 bg-white px-3 py-3 text-sm outline-none focus:border-black"
                     >
                       {countries.map((country) => (
@@ -508,7 +652,9 @@ const Header = () => {
                     </label>
                     <select
                       value={language}
-                      onChange={(e) => handleLanguageChange(e.target.value)}
+                      onChange={(event) =>
+                        handleLanguageChange(event.target.value)
+                      }
                       className="w-full border border-gray-300 bg-white px-3 py-3 text-sm outline-none focus:border-black"
                     >
                       {selectedCountry.languages.map((lang) => (
@@ -531,9 +677,10 @@ const Header = () => {
 
               <button
                 type="button"
-                onClick={() => setSearchOpen(!searchOpen)}
+                onClick={() => setSearchOpen((previous) => !previous)}
                 aria-label="Search"
-                className="hover:opacity-60"
+                aria-expanded={searchOpen}
+                className="flex h-10 w-8 shrink-0 items-center justify-center hover:opacity-60"
               >
                 <Search size={21} strokeWidth={1.5} />
               </button>
@@ -549,7 +696,7 @@ const Header = () => {
               <a
                 href="/cart"
                 aria-label="Shopping Bag"
-                className="hover:opacity-60"
+                className="flex h-10 w-8 shrink-0 items-center justify-center hover:opacity-60"
               >
                 <ShoppingBag size={21} strokeWidth={1.5} />
               </a>
@@ -558,8 +705,9 @@ const Header = () => {
 
           {searchOpen && (
             <form
-              onSubmit={(e) => {
-                e.preventDefault();
+              onSubmit={(event) => {
+                event.preventDefault();
+
                 if (searchText.trim()) {
                   window.location.href = `/search?q=${encodeURIComponent(
                     searchText.trim()
@@ -572,12 +720,12 @@ const Header = () => {
               <input
                 type="search"
                 value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
+                onChange={(event) => setSearchText(event.target.value)}
                 placeholder={t.searchPlaceholder}
-                className="w-full bg-transparent text-sm outline-none"
+                className="w-full min-w-0 bg-transparent text-sm outline-none"
                 autoFocus
               />
-              <button type="submit" className="text-xs font-semibold">
+              <button type="submit" className="shrink-0 text-xs font-semibold">
                 {t.search}
               </button>
               <button
@@ -593,11 +741,11 @@ const Header = () => {
       </div>
 
       {mobileMenu && (
-        <nav className="absolute start-0 top-full z-50 w-full border-b border-gray-200 bg-white shadow-lg md:hidden">
+        <nav className="absolute start-0 top-full z-50 max-h-[calc(100vh-100px)] w-full overflow-y-auto border-b border-gray-200 bg-white shadow-lg md:hidden">
           <div className="px-5 py-3">
             {navLinks.map((link) => (
               <div key={link.id} className="border-b border-gray-100">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-3">
                   <a
                     href={link.href}
                     onClick={() => setMobileMenu(false)}
@@ -612,12 +760,13 @@ const Header = () => {
                     <button
                       type="button"
                       onClick={() =>
-                        setActiveDropdown(
-                          activeDropdown === link.id ? null : link.id
+                        setActiveDropdown((previous) =>
+                          previous === link.id ? null : link.id
                         )
                       }
                       aria-label={`Toggle ${link.name} menu`}
-                      className="p-3"
+                      aria-expanded={activeDropdown === link.id}
+                      className="flex h-10 w-10 shrink-0 items-center justify-center"
                     >
                       <ChevronDown
                         size={16}
@@ -649,22 +798,24 @@ const Header = () => {
               </div>
             ))}
 
-            <a
-              href="/admin/dashboard"
-              onClick={() => setMobileMenu(false)}
-              className="flex items-center gap-3 border-y border-gray-100 py-4 text-xs font-semibold"
-            >
-              <LayoutDashboard size={18} />
-              {t.dashboard || "DASHBOARD"}
-            </a>
+            {isLoggedIn && (
+              <a
+                href={renderAccountDestination()}
+                onClick={() => setMobileMenu(false)}
+                className="flex items-center gap-3 border-y border-gray-100 py-4 text-xs font-semibold"
+              >
+                {renderAccountIcon()}
+                {renderAccountLabel()}
+              </a>
+            )}
 
             <a
-              href="/login"
+              href={isLoggedIn ? "/profile" : "/login"}
               onClick={() => setMobileMenu(false)}
               className="flex items-center gap-3 py-4 text-xs"
             >
               <UserRound size={18} />
-              {t.account}
+              {isLoggedIn ? t.profile || "PROFILE" : t.account}
             </a>
           </div>
         </nav>
