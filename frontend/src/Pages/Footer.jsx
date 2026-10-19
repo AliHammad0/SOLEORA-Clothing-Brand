@@ -232,7 +232,7 @@ const Footer = () => {
           <div>
             <h3 className="mb-5 text-sm font-bold">{t("service")}</h3>
             <ul className="space-y-3 text-sm text-gray-700">
-              <li><a href="/terms-and-conditionss" className="hover:underline">{t("terms")}</a></li>
+              <li><a href="/terms" className="hover:underline">{t("terms")}</a></li>
               <li><a href="/pages/shipping-and-delivery" className="hover:underline">{t("shipping")}</a></li>
               <li><a href="/pages/track-your-order" className="hover:underline">{t("track")}</a></li>
               <li><a href="/ReturnsExchangePolicy" className="hover:underline">{t("returns")}</a></li>

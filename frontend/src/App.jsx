@@ -172,7 +172,7 @@ const App = () => (
         <Route path="/" element={<Home />} />
 
         <Route
-          path="/terms-and-conditions"
+          path="/terms"
           element={<TermsAndConditions />}
         />
 
