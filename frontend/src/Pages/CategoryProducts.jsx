@@ -57,130 +57,254 @@ const CategoryProducts = ({ category }) => {
   }, [category]);
 
   return (
-    <main className="min-h-screen bg-white px-4 py-10 sm:px-6 lg:px-10">
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-8 border-b border-neutral-200 pb-6 sm:mb-10">
-          <p className="mb-2 text-xs font-medium uppercase tracking-[0.2em] text-neutral-500">
-            SOLEORA COLLECTION
-          </p>
-
-          <h1 className="text-3xl font-medium tracking-tight text-neutral-950 sm:text-5xl">
-            {category} Collection
-          </h1>
-
-          <p className="mt-3 text-sm text-neutral-500 sm:text-base">
-            Explore the latest styles from SOLEORA.
-          </p>
-        </div>
-
-        {loading ? (
-          <div className="py-20 text-center text-neutral-500">
-            Loading products...
-          </div>
-        ) : error ? (
-          <div className="py-20 text-center">
-            <p className="text-red-600">{error}</p>
-            <button
-              type="button"
-              onClick={() => window.location.reload()}
-              className="mt-4 rounded-full bg-black px-5 py-3 text-sm text-white"
-            >
-              Try Again
-            </button>
-          </div>
-        ) : products.length === 0 ? (
-          <div className="py-20 text-center">
-            <h2 className="text-xl font-medium text-neutral-900">
-              No products found
-            </h2>
-            <p className="mt-2 text-sm text-neutral-500">
-              Abhi {category.toLowerCase()} category mein products available nahi hain.
-            </p>
-            <Link
-              to="/"
-              className="mt-6 inline-block rounded-full bg-black px-6 py-3 text-sm text-white"
-            >
-              Back to Home
+    <main className="min-h-screen bg-[#faf9f6] text-[#191919]">
+      {/* Collection Hero */}
+      <section className="px-4 pb-10 pt-10 sm:px-8 sm:pb-14 sm:pt-16 lg:px-12">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-5 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.25em] text-neutral-500 sm:text-xs">
+            <Link to="/" className="transition hover:text-black">
+              Home
             </Link>
+            <span>/</span>
+            <span>{category} Collection</span>
           </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 sm:gap-x-6 lg:grid-cols-4">
-            {products.map((product) => {
-              const price = Number(
-                product.specialPrice ??
-                  product.discountPrice ??
-                  product.price ??
-                  0
-              );
 
-              const originalPrice = Number(
-                product.originalPrice ?? product.price ?? 0
-              );
+          <div className="relative overflow-hidden bg-[#eee9e0] px-6 py-10 sm:px-12 sm:py-16 lg:px-16 lg:py-20">
+            <div className="pointer-events-none absolute -right-10 -top-20 h-64 w-64 rounded-full border border-black/10 sm:h-80 sm:w-80" />
+            <div className="pointer-events-none absolute -right-2 -top-12 h-48 w-48 rounded-full border border-black/10 sm:h-64 sm:w-64" />
 
-              const image = Array.isArray(product.images)
-                ? product.images[0]
-                : Array.isArray(product.image)
-                ? product.image[0]
-                : product.image || product.images || "";
+            <div className="relative z-10 max-w-2xl">
+              <p className="mb-4 text-[10px] font-semibold uppercase tracking-[0.3em] text-neutral-600 sm:text-xs">
+                THE SOLEORA EDIT
+              </p>
 
-              return (
-                <Link
-                  key={product._id || product.id}
-                  to={`/product/${product._id || product.id}`}
-                  className="group min-w-0"
-                >
-                  <div className="aspect-[3/4] overflow-hidden bg-[#f5f3ef]">
-                    {image ? (
-                      <img
-                        src={image}
-                        alt={product.title || product.name || category}
-                        loading="lazy"
-                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-sm text-neutral-400">
-                        No image
-                      </div>
-                    )}
-                  </div>
+              <h1 className="text-4xl font-medium leading-[1.1] tracking-[-0.045em] sm:text-6xl lg:text-7xl">
+                {category}
+                <br />
+                <span className="font-serif italic">
+                  Collection.
+                </span>
+              </h1>
 
-                  <div className="pt-3">
-                    <h2 className="truncate text-sm font-medium text-neutral-900 sm:text-base">
-                      {product.title || product.name || "SOLEORA Product"}
-                    </h2>
+              <p className="mt-5 max-w-md text-sm leading-7 text-neutral-600 sm:text-base">
+                Discover your next favourite style with SOLEORA.
+                Thoughtfully selected footwear for every moment.
+              </p>
 
-                    {product.brand && (
-                      <p className="mt-1 text-xs text-neutral-500">
-                        {product.brand}
-                      </p>
-                    )}
+              <a
+                href="#collection-products"
+                className="mt-7 inline-flex items-center gap-4 bg-[#191919] px-6 py-3.5 text-xs font-medium uppercase tracking-[0.12em] text-white transition hover:bg-neutral-700 sm:mt-9"
+              >
+                Explore Collection
+                <span aria-hidden="true">↘</span>
+              </a>
+            </div>
 
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-semibold text-neutral-950">
-                        PKR {price.toLocaleString()}
-                      </span>
+            <div className="absolute bottom-5 right-5 hidden text-right sm:block">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-neutral-500">
+                Designed for your everyday
+              </p>
+              <p className="mt-1 text-sm font-medium tracking-wide">
+                SOLEORA®
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
 
-                      {originalPrice > price && (
-                        <span className="text-xs text-neutral-400 line-through">
-                          PKR {originalPrice.toLocaleString()}
+      {/* Products */}
+      <section
+        id="collection-products"
+        className="px-4 pb-16 sm:px-8 sm:pb-20 lg:px-12 lg:pb-24"
+      >
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-7 flex flex-wrap items-end justify-between gap-4 border-b border-neutral-200 pb-5 sm:mb-9">
+            <div>
+              <p className="mb-2 text-[10px] uppercase tracking-[0.22em] text-neutral-500">
+                MADE FOR YOUR STYLE
+              </p>
+              <h2 className="text-2xl font-medium tracking-tight sm:text-3xl">
+                Shop {category}
+              </h2>
+            </div>
+
+            {!loading && !error && (
+              <p className="text-xs text-neutral-500 sm:text-sm">
+                {products.length}{" "}
+                {products.length === 1 ? "product" : "products"}
+              </p>
+            )}
+          </div>
+
+          {loading ? (
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 lg:grid-cols-4">
+              {[1, 2, 3, 4].map((item) => (
+                <div key={item} className="animate-pulse">
+                  <div className="aspect-[3/4] bg-[#eae7e1]" />
+                  <div className="mt-4 h-4 w-3/4 bg-[#eae7e1]" />
+                  <div className="mt-3 h-3 w-1/2 bg-[#eae7e1]" />
+                </div>
+              ))}
+            </div>
+          ) : error ? (
+            <div className="border border-neutral-200 bg-white px-5 py-16 text-center">
+              <p className="text-sm text-red-600">{error}</p>
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="mt-5 border border-black px-6 py-3 text-xs uppercase tracking-wider transition hover:bg-black hover:text-white"
+              >
+                Try Again
+              </button>
+            </div>
+          ) : products.length === 0 ? (
+            <div className="bg-white px-5 py-16 text-center sm:py-24">
+              <p className="text-xs uppercase tracking-[0.2em] text-neutral-400">
+                SOLEORA COLLECTION
+              </p>
+              <h3 className="mt-4 text-2xl font-medium">
+                New styles are on their way.
+              </h3>
+              <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-neutral-500">
+                There are no products in this collection right now.
+                Explore the store to find your next favourite.
+              </p>
+              <Link
+                to="/"
+                className="mt-7 inline-flex border border-black px-6 py-3 text-xs uppercase tracking-wider transition hover:bg-black hover:text-white"
+              >
+                Explore All Products
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-x-4 gap-y-9 sm:grid-cols-3 sm:gap-x-6 sm:gap-y-11 lg:grid-cols-4">
+              {products.map((product) => {
+                const productId = product._id || product.id;
+
+                const price = Number(
+                  product.specialPrice ??
+                    product.discountPrice ??
+                    product.price ??
+                    0
+                );
+
+                const originalPrice = Number(
+                  product.originalPrice ?? product.price ?? 0
+                );
+
+                const image = Array.isArray(product.images)
+                  ? product.images[0]
+                  : Array.isArray(product.image)
+                  ? product.image[0]
+                  : product.image || product.images || "";
+
+                const title =
+                  product.title || product.name || "SOLEORA Product";
+
+                const discount =
+                  originalPrice > price && originalPrice > 0
+                    ? Math.round(
+                        ((originalPrice - price) / originalPrice) * 100
+                      )
+                    : Number(product.discount || product.discountPercentage || 0);
+
+                return (
+                  <Link
+                    key={productId}
+                    to={`/product/${productId}`}
+                    className="group min-w-0"
+                  >
+                    <div className="relative aspect-[3/4] overflow-hidden bg-[#eeece7]">
+                      {image ? (
+                        <img
+                          src={image}
+                          alt={title}
+                          loading="lazy"
+                          className="h-full w-full object-cover transition duration-700 ease-out group-hover:scale-[1.045]"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-xs uppercase tracking-widest text-neutral-400">
+                          SOLEORA
+                        </div>
+                      )}
+
+                      {discount > 0 && (
+                        <span className="absolute left-2 top-2 bg-white px-2 py-1 text-[9px] font-semibold uppercase tracking-wider text-black sm:left-3 sm:top-3 sm:px-3 sm:text-[10px]">
+                          -{discount}%
                         </span>
                       )}
+
+                      {product.isNewArrival && (
+                        <span className="absolute right-2 top-2 bg-[#191919] px-2 py-1 text-[9px] uppercase tracking-wider text-white sm:right-3 sm:top-3 sm:px-3 sm:text-[10px]">
+                          New
+                        </span>
+                      )}
+
+                      <div className="absolute inset-x-0 bottom-0 translate-y-full bg-black/85 px-3 py-3 text-center text-[10px] uppercase tracking-[0.16em] text-white transition-transform duration-300 group-hover:translate-y-0 max-sm:hidden">
+                        View Product
+                      </div>
                     </div>
 
-                    {product.stock !== undefined && (
-                      <p className="mt-2 text-xs text-neutral-500">
-                        {product.stock > 0
-                          ? `${product.stock} in stock`
-                          : "Out of stock"}
-                      </p>
-                    )}
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        )}
-      </div>
+                    <div className="pt-3 sm:pt-4">
+                      {product.brand && (
+                        <p className="mb-1.5 text-[9px] uppercase tracking-[0.18em] text-neutral-500 sm:text-[10px]">
+                          {product.brand}
+                        </p>
+                      )}
+
+                      <h3 className="line-clamp-2 text-sm font-medium leading-5 text-neutral-900 transition group-hover:text-neutral-500 sm:text-base">
+                        {title}
+                      </h3>
+
+                      <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <span className="text-sm font-semibold text-neutral-950">
+                          PKR {price.toLocaleString()}
+                        </span>
+
+                        {originalPrice > price && (
+                          <span className="text-xs text-neutral-400 line-through">
+                            PKR {originalPrice.toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+
+                      {product.stock !== undefined && (
+                        <p
+                          className={`mt-2 text-[10px] ${
+                            product.stock > 0
+                              ? "text-neutral-500"
+                              : "text-red-600"
+                          }`}
+                        >
+                          {product.stock > 0
+                            ? "Available"
+                            : "Out of stock"}
+                        </p>
+                      )}
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Brand footer banner */}
+      <section className="border-t border-neutral-200 bg-white px-4 py-12 text-center sm:px-8 sm:py-16">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-neutral-500">
+          STEP INTO YOUR STYLE
+        </p>
+        <h2 className="mt-3 font-serif text-3xl italic tracking-tight sm:text-4xl">
+          Find your sole story.
+        </h2>
+        <Link
+          to="/"
+          className="mt-6 inline-flex border-b border-black pb-1 text-xs uppercase tracking-[0.15em] transition hover:text-neutral-500"
+        >
+          Discover SOLEORA
+        </Link>
+      </section>
     </main>
   );
 };
