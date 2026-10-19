@@ -6,7 +6,7 @@ import { verifyAdmin } from "../middleware/auth.js";
 const productRoutes = express.Router();
 
 // Create Product - Admin Only
-productRoutes.route("/create").post( Product.createProduct);
+productRoutes.route("/create").post(Product.createProduct);
 
 // Get All Products - Public
 productRoutes.route("/all").get(Product.getAllProducts);
@@ -17,16 +17,16 @@ productRoutes.route("/new").get(Product.getNewArrivals);
 // Special Prices - Public
 productRoutes.route("/special").get(Product.getSpecialPrices);
 
-// Get Single Product - Public
-productRoutes.route("/:id").get(Product.getSingleProduct);
-//Search Product Public
+// Search Products - Public (must be before /:id)
 productRoutes.route("/search").get(Product.searchProducts);
-
 
 // Update Product - Admin Only
 productRoutes.route("/:id").put(verifyAdmin, Product.updateProduct);
 
 // Delete Product - Admin Only
 productRoutes.route("/:id").delete(verifyAdmin, Product.deleteProduct);
+
+// Get Single Product - Public (keep after specific routes)
+productRoutes.route("/:id").get(Product.getSingleProduct);
 
 export default productRoutes;
