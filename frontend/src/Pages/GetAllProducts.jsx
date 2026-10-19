@@ -13,6 +13,7 @@ const GetAllProducts = () => {
   const [viewMode, setViewMode] = useState("grid-2");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [addedProductId, setAddedProductId] = useState("");
 
   const gender = {
     "/men": "Men",
@@ -55,7 +56,9 @@ const GetAllProducts = () => {
   }, [location.pathname]);
 
   const getProductPrice = (product) => {
-    const price = Number(product.price || 0);
+    const price = Number(
+      product.price ?? product.originalPrice ?? 0
+    );
     const specialPrice = Number(product.specialPrice || 0);
     const discount = Number(product.discount || 0);
 
@@ -70,9 +73,65 @@ const GetAllProducts = () => {
     return price;
   };
 
+  const addToCart = (product) => {
+    try {
+      const savedCart = localStorage.getItem("cart");
+      const cart = savedCart ? JSON.parse(savedCart) : [];
+
+      if (!Array.isArray(cart)) {
+        throw new Error("Invalid cart data");
+      }
+
+      const existingIndex = cart.findIndex(
+        (item) => item._id === product._id
+      );
+
+      const stock = Number(product.stock ?? 0);
+
+      if (stock <= 0) {
+        alert("Sorry, this product is out of stock.");
+        return;
+      }
+
+      if (existingIndex !== -1) {
+        const currentQuantity = Number(cart[existingIndex].quantity || 1);
+
+        if (currentQuantity >= stock) {
+          alert("Sorry, no more stock is available for this product.");
+          return;
+        }
+
+        cart[existingIndex] = {
+          ...cart[existingIndex],
+          ...product,
+          price: getProductPrice(product),
+          quantity: currentQuantity + 1,
+        };
+      } else {
+        cart.push({
+          ...product,
+          price: getProductPrice(product),
+          quantity: 1,
+        });
+      }
+
+      localStorage.setItem("cart", JSON.stringify(cart));
+
+      setAddedProductId(product._id);
+
+      window.dispatchEvent(new Event("cartUpdated"));
+      window.dispatchEvent(new Event("storage"));
+    } catch (err) {
+      console.error("Add to cart error:", err);
+      alert("Unable to add this product to your cart. Please try again.");
+    }
+  };
+
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
-      const price = Number(product.price || 0);
+      const price = Number(
+        product.price ?? product.originalPrice ?? 0
+      );
       const specialPrice = Number(product.specialPrice || 0);
       const isNewArrival = Boolean(product.isNewArrival);
       const hasSpecialPrice =
@@ -211,15 +270,17 @@ const GetAllProducts = () => {
   );
 
   const ProductCard = ({ product }) => {
-    const price = Number(product.price || 0);
+    const price = Number(
+      product.price ?? product.originalPrice ?? 0
+    );
     const discount = Number(product.discount || 0);
-    const specialPrice = Number(product.specialPrice || 0);
     const finalPrice = getProductPrice(product);
     const onSale = finalPrice < price;
-
     const image = product.images?.[0];
     const isList = viewMode === "list";
     const productUrl = `/product/${product._id}`;
+    const outOfStock = Number(product.stock ?? 0) <= 0;
+    const wasAdded = addedProductId === product._id;
 
     return (
       <article
@@ -303,6 +364,25 @@ const GetAllProducts = () => {
               </Link>
             </div>
           )}
+
+          <button
+            type="button"
+            onClick={() => addToCart(product)}
+            disabled={outOfStock}
+            className={`mt-3 w-full px-3 py-2.5 text-xs font-semibold transition sm:text-sm ${
+              outOfStock
+                ? "cursor-not-allowed bg-gray-200 text-gray-500"
+                : wasAdded
+                ? "bg-green-700 text-white"
+                : "bg-black text-white hover:bg-gray-800"
+            }`}
+          >
+            {outOfStock
+              ? "Out of Stock"
+              : wasAdded
+              ? "Added to Cart ✓"
+              : "Add to Cart"}
+          </button>
         </div>
       </article>
     );
@@ -328,7 +408,10 @@ const GetAllProducts = () => {
             <ViewIcons />
 
             <div className="flex items-center gap-2">
-              <label htmlFor="sort-products" className="text-sm text-gray-600">
+              <label
+                htmlFor="sort-products"
+                className="text-sm text-gray-600"
+              >
                 Sort by:
               </label>
 
