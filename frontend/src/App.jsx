@@ -1,4 +1,3 @@
-
 import React from "react";
 import {
   Routes,
@@ -45,7 +44,7 @@ const Layout = () => (
   </>
 );
 
-// Animated Admin Access Protection
+// Funny Admin Access Protection
 const AdminRoute = () => {
   let user = null;
 
@@ -61,65 +60,73 @@ const AdminRoute = () => {
     return <Navigate to="/login" replace />;
   }
 
-  if (user.isAdmin !== true) {
+  const isAdmin = user.isAdmin === true || user.isAdmin === "true";
+
+  if (!isAdmin) {
     return (
-      <div className="relative flex min-h-[60vh] flex-col items-center justify-center overflow-hidden bg-white px-5 py-16 text-center">
-        {/* Animated background */}
-        <div className="pointer-events-none absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 animate-pulse rounded-full bg-gray-100" />
+      <div className="relative flex min-h-[70vh] flex-col items-center justify-center overflow-hidden bg-[#faf9f6] px-5 py-16 text-center">
+        {/* Funny animated background */}
+        <div className="pointer-events-none absolute left-1/2 top-1/2 h-72 w-72 -translate-x-1/2 -translate-y-1/2 animate-pulse rounded-full bg-amber-100/60" />
 
-        <div className="pointer-events-none absolute left-1/2 top-1/2 h-48 w-48 -translate-x-1/2 -translate-y-1/2 animate-[spin_12s_linear_infinite] rounded-full border border-gray-300" />
+        <div className="pointer-events-none absolute left-1/2 top-1/2 h-60 w-60 -translate-x-1/2 -translate-y-1/2 animate-[spin_18s_linear_infinite] rounded-full border border-dashed border-amber-300" />
 
-        {/* Animated lock */}
-        <div className="relative z-10 flex h-24 w-24 animate-[fadeIn_0.8s_ease-out] items-center justify-center rounded-full border border-gray-200 bg-white shadow-xl">
-          <svg
-            className="h-12 w-12 animate-[bounce_2s_ease-in-out_infinite] text-black"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <rect x="4" y="10" width="16" height="11" rx="2" />
-            <path d="M8 10V7a4 4 0 0 1 8 0v3" />
-            <path d="M12 14v3" />
-          </svg>
+        {/* Funny security emoji */}
+        <div className="relative z-10 flex h-32 w-32 animate-bounce items-center justify-center rounded-full border border-amber-200 bg-white text-7xl shadow-xl">
+          🕵️‍♂️
         </div>
 
-        <p className="relative z-10 mt-8 text-xs font-semibold uppercase tracking-[0.35em] text-gray-500">
-          SOLEORA SECURITY
+        <p className="relative z-10 mt-8 text-xs font-bold uppercase tracking-[0.4em] text-amber-700">
+          SOLEORA SECRET HEADQUARTERS
         </p>
 
-        <h1 className="relative z-10 mt-3 animate-[fadeIn_1s_ease-out] text-3xl font-bold tracking-tight text-black sm:text-4xl">
-          Admin Access Required
+        <h1 className="relative z-10 mt-4 text-3xl font-black tracking-tight text-black sm:text-5xl">
+          WHO LET YOU IN?! 😂
         </h1>
 
-        <p className="relative z-10 mt-4 max-w-md animate-[fadeIn_1.2s_ease-out] text-sm leading-7 text-gray-500 sm:text-base">
-          This area is reserved for authorized administrators.
-          Please return to the store to continue shopping.
+        <h2 className="relative z-10 mt-4 text-xl font-bold text-gray-800 sm:text-2xl">
+          Nice Try, Fashion Criminal! 🚨
+        </h2>
+
+        <div className="relative z-10 mt-6 max-w-lg rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+          <p className="text-base leading-8 text-gray-600 sm:text-lg">
+            Hold up, superstar! 😎
+            <br />
+            <br />
+            You tried to sneak into the Admin Dashboard like you own the place!
+            <br />
+            <br />
+            <span className="font-bold text-black">
+              Your confidence: 100% 💪
+            </span>
+            <br />
+            <span className="font-bold text-red-600">
+              Your admin privileges: Absolutely ZERO! 💀
+            </span>
+            <br />
+            <br />
+            Nice attempt, detective! 🕵️
+            <br />
+            Go shop some fresh fits instead of hacking the fashion empire! 👕
+          </p>
+        </div>
+
+        <p className="relative z-10 mt-6 text-sm font-medium text-gray-500">
+          🔒 Admin access only. Your shopping privileges remain intact. 😂
         </p>
 
         <Link
           to="/"
-          className="relative z-10 mt-8 inline-flex items-center gap-2 bg-black px-8 py-3.5 text-sm font-semibold text-white transition duration-300 hover:-translate-y-1 hover:bg-gray-800 hover:shadow-xl"
+          className="relative z-10 mt-8 inline-flex items-center gap-3 rounded-full bg-black px-8 py-4 text-sm font-bold text-white transition duration-300 hover:-translate-y-1 hover:bg-amber-600 hover:shadow-xl"
         >
-          <span>Back to Store</span>
+          <span>逃🏃 BACK TO SHOPPING</span>
           <span aria-hidden="true">→</span>
         </Link>
 
-        <style>{`
-          @keyframes fadeIn {
-            from {
-              opacity: 0;
-              transform: translateY(15px);
-            }
-            to {
-              opacity: 1;
-              transform: translateY(0);
-            }
-          }
+        <p className="relative z-10 mt-5 text-xs text-gray-400">
+          SOLEORA Security Department · Protecting Fashion Since Forever 😂
+        </p>
 
+        <style>{`
           @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after {
               animation-duration: 0.01ms !important;
@@ -171,19 +178,14 @@ const App = () => (
       <Route element={<Layout />}>
         {/* Public Pages */}
         <Route path="/" element={<Home />} />
-
-        <Route
-          path="/terms"
-          element={<TermsAndConditions />}
-        />
-
+        <Route path="/terms" element={<TermsAndConditions />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/new" element={<GetNewArrivals />} />
         <Route path="/login" element={<Login />} />
         <Route path="/product/:id" element={<ProductDetails />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/about" element={<AboutUs />} />
-             <Route path="/profile" element={<Profile />} />
+        <Route path="/profile" element={<Profile />} />
 
         <Route
           path="/ReturnsExchangePolicy"
