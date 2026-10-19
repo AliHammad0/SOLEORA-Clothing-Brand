@@ -34,6 +34,7 @@ import AdminOrders from "./Pages/AdminOrders";
 import AdminCustomers from "./Pages/AdminCustomers";
 import AdminSettings from "./Pages/AdminSettings";
 import AboutUs from "./Pages/AboutUs";
+import Profile from "./Pages/Profile";
 
 const Layout = () => (
   <>
@@ -182,6 +183,7 @@ const App = () => (
         <Route path="/product/:id" element={<ProductDetails />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/about" element={<AboutUs />} />
+             <Route path="/profile" element={<Profile />} />
 
         <Route
           path="/ReturnsExchangePolicy"
