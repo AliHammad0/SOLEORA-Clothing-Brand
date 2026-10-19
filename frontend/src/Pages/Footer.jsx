@@ -20,12 +20,14 @@ const translations = {
     track: "Track your Order",
     returns: "Returns & Exchange Policy",
     community: "JOIN THE COMMUNITY",
-    newsletter: "Stay up-to-date with new launches and offers. Sign up now and get 10% off your first purchase!",
+    newsletter:
+      "Stay up-to-date with new launches and offers. Sign up now and get 10% off your first purchase!",
     email: "Email address",
     subscribe: "Subscribe",
     thankYou: "Thank you for joining our community!",
     copyright: "All rights reserved.",
   },
+
   ur: {
     information: "معلومات",
     about: "ہمارے بارے میں",
@@ -43,12 +45,14 @@ const translations = {
     track: "اپنا آرڈر ٹریک کریں",
     returns: "واپسی اور تبدیلی کی پالیسی",
     community: "ہماری کمیونٹی میں شامل ہوں",
-    newsletter: "نئی مصنوعات اور خصوصی آفرز سے باخبر رہیں۔ ابھی سائن اپ کریں اور پہلی خریداری پر 10% رعایت حاصل کریں!",
+    newsletter:
+      "نئی مصنوعات اور خصوصی آفرز سے باخبر رہیں۔ ابھی سائن اپ کریں اور پہلی خریداری پر 10% رعایت حاصل کریں!",
     email: "ای میل ایڈریس",
     subscribe: "سبسکرائب کریں",
     thankYou: "ہماری کمیونٹی میں شامل ہونے کا شکریہ!",
     copyright: "جملہ حقوق محفوظ ہیں۔",
   },
+
   hi: {
     information: "जानकारी",
     about: "हमारे बारे में",
@@ -66,12 +70,14 @@ const translations = {
     track: "अपना ऑर्डर ट्रैक करें",
     returns: "वापसी और एक्सचेंज नीति",
     community: "हमारे समुदाय से जुड़ें",
-    newsletter: "नए उत्पादों और ऑफ़र की जानकारी पाएँ। साइन अप करें और पहली खरीदारी पर 10% की छूट पाएँ!",
+    newsletter:
+      "नए उत्पादों और ऑफ़र की जानकारी पाएँ। साइन अप करें और पहली खरीदारी पर 10% की छूट पाएँ!",
     email: "ईमेल पता",
     subscribe: "सब्सक्राइब करें",
     thankYou: "हमारे समुदाय से जुड़ने के लिए धन्यवाद!",
     copyright: "सर्वाधिकार सुरक्षित।",
   },
+
   bn: {
     information: "তথ্য",
     about: "আমাদের সম্পর্কে",
@@ -89,12 +95,14 @@ const translations = {
     track: "আপনার অর্ডার ট্র্যাক করুন",
     returns: "ফেরত ও বিনিময় নীতি",
     community: "আমাদের কমিউনিটিতে যোগ দিন",
-    newsletter: "নতুন পণ্য ও অফারের খবর পান। সাইন আপ করে প্রথম কেনাকাটায় ১০% ছাড় নিন!",
+    newsletter:
+      "নতুন পণ্য ও অফারের খবর পান। সাইন আপ করে প্রথম কেনাকাটায় ১০% ছাড় নিন!",
     email: "ইমেইল ঠিকানা",
     subscribe: "সাবস্ক্রাইব করুন",
     thankYou: "আমাদের কমিউনিটিতে যোগ দেওয়ার জন্য ধন্যবাদ!",
     copyright: "সর্বস্বত্ব সংরক্ষিত।",
   },
+
   ar: {
     information: "معلومات",
     about: "من نحن",
@@ -112,12 +120,14 @@ const translations = {
     track: "تتبع طلبك",
     returns: "سياسة الإرجاع والاستبدال",
     community: "انضم إلى مجتمعنا",
-    newsletter: "تابع أحدث المنتجات والعروض. سجّل الآن واحصل على خصم 10% على أول عملية شراء!",
+    newsletter:
+      "تابع أحدث المنتجات والعروض. سجّل الآن واحصل على خصم 10% على أول عملية شراء!",
     email: "البريد الإلكتروني",
     subscribe: "اشترك",
     thankYou: "شكرًا لانضمامك إلى مجتمعنا!",
     copyright: "جميع الحقوق محفوظة.",
   },
+
   zh: {
     information: "信息",
     about: "关于我们",
@@ -141,6 +151,7 @@ const translations = {
     thankYou: "感谢您加入我们的社区！",
     copyright: "版权所有。",
   },
+
   ja: {
     information: "インフォメーション",
     about: "私たちについて",
@@ -158,12 +169,14 @@ const translations = {
     track: "注文を追跡",
     returns: "返品・交換ポリシー",
     community: "コミュニティに参加",
-    newsletter: "新商品やお得な情報をお届けします。登録すると初回購入が10%オフになります！",
+    newsletter:
+      "新商品やお得な情報をお届けします。登録すると初回購入が10%オフになります！",
     email: "メールアドレス",
     subscribe: "登録する",
     thankYou: "コミュニティへのご参加ありがとうございます！",
     copyright: "無断転載を禁じます。",
   },
+
   fr: {
     information: "INFORMATIONS",
     about: "À propos",
@@ -181,7 +194,8 @@ const translations = {
     track: "Suivre votre commande",
     returns: "Politique de retour et d'échange",
     community: "REJOIGNEZ NOTRE COMMUNAUTÉ",
-    newsletter: "Découvrez nos nouveautés et offres. Inscrivez-vous et profitez de 10 % de réduction sur votre premier achat !",
+    newsletter:
+      "Découvrez nos nouveautés et offres. Inscrivez-vous et profitez de 10 % de réduction sur votre premier achat !",
     email: "Adresse e-mail",
     subscribe: "S'abonner",
     thankYou: "Merci de rejoindre notre communauté !",
@@ -191,6 +205,7 @@ const translations = {
 
 const Footer = () => {
   const { language } = useLanguage();
+
   const t = (key) =>
     translations[language]?.[key] || translations.en[key] || key;
 
@@ -209,38 +224,144 @@ const Footer = () => {
     >
       <div className="mx-auto max-w-7xl px-6 py-12">
         <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
+          {/* INFORMATION */}
           <div>
-            <h3 className="mb-5 text-sm font-bold">{t("information")}</h3>
+            <h3 className="mb-5 text-sm font-bold">
+              {t("information")}
+            </h3>
+
             <ul className="space-y-3 text-sm text-gray-700">
-              <li><a href="/about" className="hover:underline">{t("about")}</a></li>
-              <li><a href="/pages/contact" className="hover:underline">{t("contact")}</a></li>
-              <li><a href="/pages/faqs" className="hover:underline">{t("faqs")}</a></li>
-              <li><a href="/pages/privacy-policy" className="hover:underline">{t("privacy")}</a></li>
-              <li><a href="/pages/careers" className="hover:underline">{t("careers")}</a></li>
+              <li>
+                <a
+                  href="/about"
+                  className="hover:underline"
+                >
+                  {t("about")}
+                </a>
+              </li>
+
+              <li>
+                <a
+                  href="/pages/contact"
+                  className="hover:underline"
+                >
+                  {t("contact")}
+                </a>
+              </li>
+
+              <li>
+                <a
+                  href="/pages/faqs"
+                  className="hover:underline"
+                >
+                  {t("faqs")}
+                </a>
+              </li>
+
+              <li>
+                <a
+                  href="/pages/privacy-policy"
+                  className="hover:underline"
+                >
+                  {t("privacy")}
+                </a>
+              </li>
+
+              <li>
+                <a
+                  href="/pages/careers"
+                  className="hover:underline"
+                >
+                  {t("careers")}
+                </a>
+              </li>
             </ul>
           </div>
 
+          {/* SHOP */}
           <div>
-            <h3 className="mb-5 text-sm font-bold">{t("shop")}</h3>
+            <h3 className="mb-5 text-sm font-bold">
+              {t("shop")}
+            </h3>
+
             <ul className="space-y-3 text-sm text-gray-700">
-              <li><a href="/collections" className="hover:underline">{t("newArrivals")}</a></li>
-              <li><a href="/collections/womens-clothing" className="hover:underline">{t("women")}</a></li>
-              <li><a href="/collections/mens-clothing" className="hover:underline">{t("men")}</a></li>
+              <li>
+                <a href="/collections" className="hover:underline">
+                  {t("newArrivals")}
+                </a>
+              </li>
+
+              <li>
+                <a
+                  href="/collections/womens-clothing"
+                  className="hover:underline"
+                >
+                  {t("women")}
+                </a>
+              </li>
+
+              <li>
+                <a
+                  href="/collections/mens-clothing"
+                  className="hover:underline"
+                >
+                  {t("men")}
+                </a>
+              </li>
             </ul>
           </div>
 
+          {/* CUSTOMER SERVICE */}
           <div>
-            <h3 className="mb-5 text-sm font-bold">{t("service")}</h3>
+            <h3 className="mb-5 text-sm font-bold">
+              {t("service")}
+            </h3>
+
             <ul className="space-y-3 text-sm text-gray-700">
-              <li><a href="/terms" className="hover:underline">{t("terms")}</a></li>
-              <li><a href="/pages/shipping-and-delivery" className="hover:underline">{t("shipping")}</a></li>
-              <li><a href="/pages/track-your-order" className="hover:underline">{t("track")}</a></li>
-              <li><a href="/ReturnsExchangePolicy" className="hover:underline">{t("returns")}</a></li>
+              <li>
+                <a
+                  href="/term"
+                  className="hover:underline"
+                >
+                  {t("terms")}
+                </a>
+              </li>
+
+              <li>
+                <a
+                  href="/pages/shipping-and-delivery"
+                  className="hover:underline"
+                >
+                  {t("shipping")}
+                </a>
+              </li>
+
+              <li>
+                <a
+                  href="/pages/track-your-order"
+                  className="hover:underline"
+                >
+                  {t("track")}
+                </a>
+              </li>
+
+              <li>
+                <a
+                  href="/ReturnsExchangePolicy"
+                  className="hover:underline"
+                >
+                  {t("returns")}
+                </a>
+              </li>
             </ul>
           </div>
 
+          {/* NEWSLETTER */}
           <div>
-            <h3 className="mb-5 text-sm font-bold">{t("community")}</h3>
+            <h3 className="mb-5 text-sm font-bold">
+              {t("community")}
+            </h3>
+
             <p className="mb-5 text-sm leading-6 text-gray-700">
               {t("newsletter")}
             </p>
@@ -257,6 +378,7 @@ const Footer = () => {
                 required
                 className="w-full bg-transparent text-sm outline-none"
               />
+
               <button
                 type="submit"
                 aria-label={t("subscribe")}
@@ -268,8 +390,11 @@ const Footer = () => {
           </div>
         </div>
 
+        {/* COPYRIGHT */}
         <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-gray-200 pt-6 text-center text-xs text-gray-600 sm:flex-row">
-          <p>© 2026, Ali Hammad. {t("copyright")}</p>
+          <p>
+            © 2026, Ali Hammad. {t("copyright")}
+          </p>
         </div>
       </div>
     </footer>
