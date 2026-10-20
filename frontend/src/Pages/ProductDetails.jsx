@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -51,10 +50,11 @@ export default function ProductDetails() {
         const response = await fetch(`${API_URL}/${id}`, {
           signal: controller.signal,
         });
+
         const data = await response.json();
 
-        if (!response.ok || !data.ok || !data.product) {
-          throw new Error(data.message || "Product not found");
+        if (!response.ok || !data?.ok || !data?.product) {
+          throw new Error(data?.message || "Product not found");
         }
 
         setProduct(data.product);
@@ -138,9 +138,7 @@ export default function ProductDetails() {
         ? originalPrice - (originalPrice * discount) / 100
         : originalPrice;
 
-  const onSale =
-    originalPrice > 0 && discountedPrice < originalPrice;
-
+  const onSale = originalPrice > 0 && discountedPrice < originalPrice;
   const stock = Math.max(0, Number(product.stock) || 0);
 
   const images = Array.isArray(product.images)
@@ -180,8 +178,6 @@ export default function ProductDetails() {
     (item) => String(item._id || item.id) === productId
   );
 
-  const cartQuantity = Number(cartItem?.quantity || 0);
-
   const handleAddToCart = async () => {
     if (addingToCart) return;
 
@@ -197,7 +193,7 @@ export default function ProductDetails() {
       return;
     }
 
-    if (quantity > stock) {
+    if (quantity > stock || stock <= 0) {
       setMessage("Requested quantity is not available. Refresh the page.");
       return;
     }
@@ -205,7 +201,6 @@ export default function ProductDetails() {
     setAddingToCart(true);
 
     let reservationId = null;
-    let reservationCreated = false;
 
     try {
       const response = await fetch(`${API_URL}/${productId}/reserve`, {
@@ -216,38 +211,49 @@ export default function ProductDetails() {
         body: JSON.stringify({ quantity }),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => null);
 
-      if (!response.ok || !data.ok || !data.product) {
-        throw new Error(data.message || "Unable to reserve stock.");
+      if (!response.ok || data?.ok !== true) {
+        throw new Error(
+          data?.message || `Stock reservation failed (${response.status}).`
+        );
       }
 
-      reservationId = data.reservationId;
+      reservationId = data.reservationId
+        ? String(data.reservationId)
+        : null;
 
-      const reservedQuantity = Number(data.reservedQuantity ?? quantity);
+      const reservedQuantity = Number(data.reservedQuantity);
 
       if (
+        !data.product ||
         !reservationId ||
         !Number.isSafeInteger(reservedQuantity) ||
         reservedQuantity !== quantity
       ) {
+        if (reservationId) {
+          try {
+            await fetch(
+              `${API_URL}/reservations/${reservationId}/release`,
+              { method: "POST" }
+            );
+          } catch (releaseError) {
+            console.error("Reservation release failed:", releaseError);
+          }
+        }
+
         throw new Error(
-          "The server returned an invalid reservation. Please refresh and check your stock."
+          "Invalid reservation response. Please check the backend deployment and try again."
         );
       }
 
-      reservationCreated = true;
-
       const updatedProduct = data.product;
-      setProduct(updatedProduct);
 
-      // Stock returned by the server is already reduced.
-      // Add the reserved quantity once and preserve its reservation ID.
       dispatch(
         addToCart({
           product: {
             ...updatedProduct,
-            _id: productId,
+            _id: String(updatedProduct._id || productId),
             price: discountedPrice,
             image: images[0] || product.image || "",
           },
@@ -256,26 +262,11 @@ export default function ProductDetails() {
         })
       );
 
+      setProduct(updatedProduct);
       setQuantity(1);
       setMessage("Product added to cart successfully!");
     } catch (err) {
-      // If reservation was created but frontend processing failed,
-      // try to release it so stock is not left reserved.
-      if (reservationCreated && reservationId) {
-        try {
-          await fetch(
-            `${API_URL}/reservations/${reservationId}/release`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-            }
-          );
-        } catch {
-          // Keep the original error for the user.
-        }
-      }
+      console.error("Add to cart error:", err);
 
       setMessage(
         err.message === "Failed to fetch"
@@ -297,9 +288,7 @@ export default function ProductDetails() {
           <ChevronRight size={15} />
           <span>{product.gender || "Collection"}</span>
           <ChevronRight size={15} />
-          <span className="line-clamp-1 text-gray-900">
-            {product.title}
-          </span>
+          <span className="line-clamp-1 text-gray-900">{product.title}</span>
         </nav>
 
         <section className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-12">
@@ -437,9 +426,7 @@ export default function ProductDetails() {
             {colors.length > 0 && (
               <div className="mt-5">
                 <p className="mb-2 text-sm font-medium">Available Colors:</p>
-                <p className="text-sm text-gray-600">
-                  {colors.join(", ")}
-                </p>
+                <p className="text-sm text-gray-600">{colors.join(", ")}</p>
               </div>
             )}
 
