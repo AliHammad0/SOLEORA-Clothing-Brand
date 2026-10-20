@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { addToCart } from "../redux/slices/cartSlice";
 
 const API_URL =
   "https://soleora-clothing-brand-backend.vercel.app/api/v1/products/new?limit=8";
 
 const GetNewArrivals = () => {
+  const dispatch = useDispatch();
+
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -85,12 +89,15 @@ const GetNewArrivals = () => {
       maximumFractionDigits: 2,
     });
 
-  const addToCart = (product) => {
+  const addProductToCart = (product) => {
     try {
-      const storedCart = JSON.parse(localStorage.getItem("cart") || "[]");
-      const cart = Array.isArray(storedCart) ? storedCart : [];
+      const stock = Number(product.stock ?? 0);
 
-      const productId = String(product._id);
+      if (stock <= 0) {
+        alert("Sorry! Ye product abhi out of stock hai.");
+        return;
+      }
+
       const finalPrice = getFinalPrice(product);
 
       const productImage =
@@ -99,32 +106,15 @@ const GetNewArrivals = () => {
         product.image ||
         "";
 
-      const existingIndex = cart.findIndex(
-        (item) => String(item._id || item.productId) === productId
-      );
-
-      if (existingIndex !== -1) {
-        const existingProduct = cart[existingIndex];
-
-        cart[existingIndex] = {
-          ...existingProduct,
+      dispatch(
+        addToCart({
           ...product,
-          _id: product._id,
-          productId: product._id,
-          title: product.title,
-          price: finalPrice,
-          image: productImage,
-          quantity: Number(existingProduct.quantity || 1) + 1,
-        };
-      } else {
-        cart.push({
-          ...product,
-          _id: product._id,
-          productId: product._id,
+          _id: String(product._id),
           title: product.title,
           price: finalPrice,
           originalPrice: getOriginalPrice(product),
-          specialPrice: getSpecialPrice(product),
+          specialPrice:
+            finalPrice < getOriginalPrice(product) ? finalPrice : 0,
           image: productImage,
           images: product.images?.length
             ? product.images
@@ -133,17 +123,13 @@ const GetNewArrivals = () => {
               : productImage
                 ? [productImage]
                 : [],
+          stock,
           quantity: 1,
-        });
-      }
+        })
+      );
 
-      localStorage.setItem("cart", JSON.stringify(cart));
-
-      // Notify cart components in the current tab.
+      setAddedProduct(String(product._id));
       window.dispatchEvent(new Event("cartUpdated"));
-      window.dispatchEvent(new Event("storage"));
-
-      setAddedProduct(productId);
     } catch (err) {
       console.error("Add to cart error:", err);
       alert("Product cart mein add nahi ho saka. Dobara try karein.");
@@ -273,12 +259,15 @@ const GetNewArrivals = () => {
 
                   <button
                     type="button"
-                    onClick={() => addToCart(product)}
-                    className="mt-3 w-full bg-black px-3 py-3 text-xs font-semibold uppercase tracking-wider text-white transition hover:bg-gray-800 sm:text-sm"
+                    onClick={() => addProductToCart(product)}
+                    disabled={Number(product.stock ?? 0) <= 0}
+                    className="mt-3 w-full bg-black px-3 py-3 text-xs font-semibold uppercase tracking-wider text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-400 sm:text-sm"
                   >
-                    {addedProduct === String(product._id)
-                      ? "Added to Cart ✓"
-                      : "Add to Cart"}
+                    {Number(product.stock ?? 0) <= 0
+                      ? "Out of Stock"
+                      : addedProduct === String(product._id)
+                        ? "Added to Cart ✓"
+                        : "Add to Cart"}
                   </button>
                 </article>
               );
