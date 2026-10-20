@@ -554,7 +554,7 @@ export default function ProductDetails() {
               {addingToCart
                 ? "Adding to Cart..."
                 : stock <= 0
-                  ? "Out of Stock"
+                  ? "Bhai, stock khatam — late ho gaye!"
                   : "Add to Cart"}
             </button>
 
