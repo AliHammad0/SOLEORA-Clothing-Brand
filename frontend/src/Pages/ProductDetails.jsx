@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -53,11 +54,20 @@ export default function ProductDetails() {
 
         const data = await response.json();
 
-        if (!response.ok || !data?.ok || !data?.product) {
+        if (!response.ok || data?.ok === false) {
           throw new Error(data?.message || "Product not found");
         }
 
-        setProduct(data.product);
+        const fetchedProduct =
+          data?.product ||
+          data?.data?.product ||
+          data?.data;
+
+        if (!fetchedProduct || typeof fetchedProduct !== "object") {
+          throw new Error(data?.message || "Product not found");
+        }
+
+        setProduct(fetchedProduct);
         setActiveImage(0);
         setQuantity(1);
       } catch (err) {
@@ -213,50 +223,110 @@ export default function ProductDetails() {
 
       const data = await response.json().catch(() => null);
 
-      if (!response.ok || data?.ok !== true) {
+      if (!data || typeof data !== "object") {
         throw new Error(
-          data?.message || `Stock reservation failed (${response.status}).`
+          `Backend returned an invalid response (${response.status}). Check the deployed API.`
         );
       }
-
-      reservationId = data.reservationId
-        ? String(data.reservationId)
-        : null;
-
-      const reservedQuantity = Number(data.reservedQuantity);
 
       if (
-        !data.product ||
-        !reservationId ||
-        !Number.isSafeInteger(reservedQuantity) ||
-        reservedQuantity !== quantity
+        !response.ok ||
+        data.ok === false ||
+        data.success === false
       ) {
-        if (reservationId) {
-          try {
-            await fetch(
-              `${API_URL}/reservations/${reservationId}/release`,
-              { method: "POST" }
-            );
-          } catch (releaseError) {
-            console.error("Reservation release failed:", releaseError);
-          }
-        }
-
         throw new Error(
-          "Invalid reservation response. Please check the backend deployment and try again."
+          data.message ||
+            `Stock reservation failed (${response.status}).`
         );
       }
 
-      const updatedProduct = data.product;
+      const responseData =
+        data.data && typeof data.data === "object"
+          ? data.data
+          : data;
+
+      const reservation =
+        responseData.reservation ||
+        data.reservation ||
+        null;
+
+      const updatedProduct =
+        responseData.product ||
+        data.product ||
+        null;
+
+      reservationId =
+        responseData.reservationId ||
+        data.reservationId ||
+        reservation?._id ||
+        reservation?.id ||
+        null;
+
+      reservationId = reservationId
+        ? String(reservationId)
+        : null;
+
+      const rawReservedQuantity =
+        responseData.reservedQuantity ??
+        data.reservedQuantity ??
+        reservation?.quantity ??
+        responseData.quantity ??
+        data.quantity;
+
+      const reservedQuantity =
+        rawReservedQuantity == null
+          ? quantity
+          : Number(rawReservedQuantity);
+
+      if (!updatedProduct || typeof updatedProduct !== "object") {
+        throw new Error(
+          `Reservation response is missing the product. Received fields: ${Object.keys(
+            responseData
+          ).join(", ") || "none"}.`
+        );
+      }
+
+      if (!reservationId) {
+        throw new Error(
+          `Reservation ID is missing from the backend response. Received fields: ${Object.keys(
+            responseData
+          ).join(", ") || "none"}.`
+        );
+      }
+
+      if (
+        !Number.isSafeInteger(reservedQuantity) ||
+        reservedQuantity < 1 ||
+        reservedQuantity !== quantity
+      ) {
+        throw new Error(
+          `Reserved quantity mismatch. Requested: ${quantity}, received: ${String(
+            rawReservedQuantity ?? "missing"
+          )}.`
+        );
+      }
+
+      const cartProduct = {
+        ...product,
+        ...updatedProduct,
+        _id: String(updatedProduct._id || updatedProduct.id || productId),
+        price: discountedPrice,
+        image:
+          images[0] ||
+          updatedProduct.image ||
+          product.image ||
+          "",
+        // Keep the purchased item valid even when the reservation
+        // consumes the last available unit.
+        stock: Math.max(
+          reservedQuantity,
+          Number(updatedProduct.stock) || 0
+        ),
+      };
 
       dispatch(
         addToCart({
-          product: {
-            ...updatedProduct,
-            _id: String(updatedProduct._id || productId),
-            price: discountedPrice,
-            image: images[0] || product.image || "",
-          },
+          product: cartProduct,
           quantity: reservedQuantity,
           reservationId,
         })
@@ -270,7 +340,7 @@ export default function ProductDetails() {
 
       setMessage(
         err.message === "Failed to fetch"
-          ? "Unable to connect to the server. Please try again."
+          ? "Unable to connect to the server. Please check the backend deployment."
           : err.message || "Unable to add product to cart."
       );
     } finally {
