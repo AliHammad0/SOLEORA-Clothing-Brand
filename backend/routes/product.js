@@ -1,4 +1,3 @@
-
 import express from "express";
 import * as Product from "../controller/product.js";
 import { verifyAdmin } from "../middleware/auth.js";
@@ -6,7 +5,7 @@ import { verifyAdmin } from "../middleware/auth.js";
 const productRoutes = express.Router();
 
 // Create Product - Admin Only
-productRoutes.route("/create").post(Product.createProduct);
+productRoutes.route("/create").post(verifyAdmin, Product.createProduct);
 
 // Get All Products - Public
 productRoutes.route("/all").get(Product.getAllProducts);
@@ -17,8 +16,18 @@ productRoutes.route("/new").get(Product.getNewArrivals);
 // Special Prices - Public
 productRoutes.route("/special").get(Product.getSpecialPrices);
 
-// Search Products - Public (must be before /:id)
+// Search Products - Public
 productRoutes.route("/search").get(Product.searchProducts);
+
+// Release reservation - must be before generic /:id routes
+productRoutes
+  .route("/reservations/:reservationId/release")
+  .post(Product.releaseProductStock);
+
+// Reserve stock when adding to cart
+productRoutes
+  .route("/:id/reserve")
+  .post(Product.reserveProductStock);
 
 // Update Product - Admin Only
 productRoutes.route("/:id").put(verifyAdmin, Product.updateProduct);
@@ -26,15 +35,7 @@ productRoutes.route("/:id").put(verifyAdmin, Product.updateProduct);
 // Delete Product - Admin Only
 productRoutes.route("/:id").delete(verifyAdmin, Product.deleteProduct);
 
-// Reserve stock when adding to cart
-productRoutes.route("/:id/reserve").post(Product.reserveProductStock);
-  
-  
-
-// Get Single Product - Public (keep after specific routes)
+// Get Single Product - Public (keep last)
 productRoutes.route("/:id").get(Product.getSingleProduct);
-productRoutes.route("/reservations/:reservationId/release") .post(Product.releaseProductStock);
-
- 
 
 export default productRoutes;

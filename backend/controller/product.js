@@ -1,8 +1,7 @@
 import StockReservation from "../model/stockReservation.js";
 import Product from "../model/product.js";
 
-// Create Product Controller
-
+// Create Product
 export const createProduct = async (req, res) => {
   try {
     const {
@@ -83,8 +82,7 @@ export const createProduct = async (req, res) => {
   }
 };
 
-
-// New Arrivals Controller
+// Get New Arrivals
 export const getNewArrivals = async (req, res) => {
   try {
     const limit = Math.min(
@@ -112,7 +110,7 @@ export const getNewArrivals = async (req, res) => {
   }
 };
 
-// Limited Time Offers - Special Prices Controller
+// Get Special Prices
 export const getSpecialPrices = async (req, res) => {
   try {
     const limit = Math.min(
@@ -163,7 +161,7 @@ export const getAllProducts = async (req, res) => {
   }
 };
 
-// Get Single Product Controller
+// Get Single Product
 export const getSingleProduct = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
@@ -180,9 +178,9 @@ export const getSingleProduct = async (req, res) => {
       product,
     });
   } catch (error) {
-    return res.status(500).json({
+    return res.status(400).json({
       ok: false,
-      message: error.message,
+      message: "Invalid product ID",
     });
   }
 };
@@ -212,14 +210,14 @@ export const updateProduct = async (req, res) => {
       product,
     });
   } catch (error) {
-    return res.status(500).json({
+    return res.status(400).json({
       ok: false,
       message: error.message,
     });
   }
 };
 
-// Delete Product Controller
+// Delete Product
 export const deleteProduct = async (req, res) => {
   try {
     const product = await Product.findByIdAndDelete(req.params.id);
@@ -236,16 +234,14 @@ export const deleteProduct = async (req, res) => {
       message: "Product deleted successfully",
     });
   } catch (error) {
-    return res.status(500).json({
+    return res.status(400).json({
       ok: false,
       message: error.message,
     });
   }
 };
 
-
-
-///Search Product Controller
+// Search Products
 export const searchProducts = async (req, res) => {
   try {
     const { q } = req.query;
@@ -281,14 +277,14 @@ export const searchProducts = async (req, res) => {
   }
 };
 
-// Atomically reserve one item when adding to cart
+// Reserve Product Stock
 export const reserveProductStock = async (req, res) => {
-  let reservedProductId;
+  let reservedProductId = null;
   let reservedQuantity = 0;
 
   try {
     const { id } = req.params;
-    const quantity = Number(req.body.quantity ?? 1);
+    const quantity = Number(req.body?.quantity ?? 1);
 
     if (!/^[0-9a-fA-F]{24}$/.test(id)) {
       return res.status(400).json({
@@ -300,18 +296,24 @@ export const reserveProductStock = async (req, res) => {
     if (!Number.isSafeInteger(quantity) || quantity < 1) {
       return res.status(400).json({
         ok: false,
-        message: "Invalid quantity",
+        message: "Quantity must be a positive whole number",
       });
     }
 
+    // Atomically decrement only if enough stock is available.
     const product = await Product.findOneAndUpdate(
       {
         _id: id,
         isActive: true,
         stock: { $gte: quantity },
       },
-      { $inc: { stock: -quantity } },
-      { new: true, runValidators: true }
+      {
+        $inc: { stock: -quantity },
+      },
+      {
+        new: true,
+        runValidators: true,
+      }
     );
 
     if (!product) {
@@ -330,17 +332,20 @@ export const reserveProductStock = async (req, res) => {
       status: "active",
     });
 
+    if (!reservation?._id) {
+      throw new Error("Reservation record was not created");
+    }
+
     return res.status(200).json({
       ok: true,
       message: "Stock reserved successfully",
       product,
-      reservationId: reservation._id,
-      reservedQuantity: quantity,
+      reservationId: String(reservation._id),
+      reservedQuantity: reservation.quantity,
       availableStock: product.stock,
     });
   } catch (error) {
-    // If reservation creation fails after stock was deducted,
-    // compensate by restoring the deducted quantity.
+    // Restore stock if reservation creation failed after deduction.
     if (reservedProductId && reservedQuantity > 0) {
       try {
         await Product.updateOne(
@@ -361,6 +366,7 @@ export const reserveProductStock = async (req, res) => {
   }
 };
 
+// Release Product Stock
 export const releaseProductStock = async (req, res) => {
   try {
     const { reservationId } = req.params;
@@ -372,31 +378,48 @@ export const releaseProductStock = async (req, res) => {
       });
     }
 
-    // Only one request can change an active reservation to released.
+    // Only one request can release an active reservation.
     const reservation = await StockReservation.findOneAndUpdate(
-      { _id: reservationId, status: "active" },
-      { $set: { status: "released" } },
-      { new: true }
+      {
+        _id: reservationId,
+        status: "active",
+      },
+      {
+        $set: { status: "released" },
+      },
+      {
+        new: true,
+      }
     );
 
     if (!reservation) {
       return res.status(200).json({
         ok: true,
         message: "Reservation already released or not found",
+        restoredQuantity: 0,
       });
     }
 
     const product = await Product.findByIdAndUpdate(
       reservation.product,
-      { $inc: { stock: reservation.quantity } },
-      { new: true }
+      {
+        $inc: { stock: reservation.quantity },
+      },
+      {
+        new: true,
+      }
     );
 
     if (!product) {
-      // Restore reservation status so a later retry can recover it.
+      // Allow retry if the product could not be found.
       await StockReservation.updateOne(
-        { _id: reservation._id, status: "released" },
-        { $set: { status: "active" } }
+        {
+          _id: reservation._id,
+          status: "released",
+        },
+        {
+          $set: { status: "active" },
+        }
       );
 
       return res.status(404).json({
@@ -409,7 +432,9 @@ export const releaseProductStock = async (req, res) => {
       ok: true,
       message: "Stock restored successfully",
       product,
+      reservationId: String(reservation._id),
       restoredQuantity: reservation.quantity,
+      availableStock: product.stock,
     });
   } catch (error) {
     console.error("Stock release error:", error);
@@ -420,4 +445,3 @@ export const releaseProductStock = async (req, res) => {
     });
   }
 };
-
