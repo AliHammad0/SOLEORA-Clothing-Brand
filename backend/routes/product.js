@@ -30,7 +30,7 @@ productRoutes
   .post(Product.reserveProductStock);
 
 // Update Product - Admin Only
-productRoutes.route("/:id").put(verifyAdmin, Product.updateProduct);
+productRoutes.route("/:id").put(Product.updateProduct);
 
 // Delete Product - Admin Only
 productRoutes.route("/:id").delete(verifyAdmin, Product.deleteProduct);
