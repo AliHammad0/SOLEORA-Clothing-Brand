@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 const API_URL =
   "https://soleora-clothing-brand-backend.vercel.app/api/v1/products/new?limit=8";
@@ -9,7 +9,6 @@ const GetNewArrivals = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [addedProduct, setAddedProduct] = useState("");
-  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchNewArrivals = async () => {
@@ -88,11 +87,17 @@ const GetNewArrivals = () => {
 
   const addToCart = (product) => {
     try {
-      const savedCart = JSON.parse(localStorage.getItem("cart") || "[]");
-      const cart = Array.isArray(savedCart) ? savedCart : [];
+      const storedCart = JSON.parse(localStorage.getItem("cart") || "[]");
+      const cart = Array.isArray(storedCart) ? storedCart : [];
 
       const productId = String(product._id);
       const finalPrice = getFinalPrice(product);
+
+      const productImage =
+        product.images?.[0] ||
+        product.imageUrls?.[0] ||
+        product.image ||
+        "";
 
       const existingIndex = cart.findIndex(
         (item) => String(item._id || item.productId) === productId
@@ -104,7 +109,11 @@ const GetNewArrivals = () => {
         cart[existingIndex] = {
           ...existingProduct,
           ...product,
+          _id: product._id,
+          productId: product._id,
+          title: product.title,
           price: finalPrice,
+          image: productImage,
           quantity: Number(existingProduct.quantity || 1) + 1,
         };
       } else {
@@ -116,33 +125,25 @@ const GetNewArrivals = () => {
           price: finalPrice,
           originalPrice: getOriginalPrice(product),
           specialPrice: getSpecialPrice(product),
-          image:
-            product.images?.[0] ||
-            product.imageUrls?.[0] ||
-            product.image ||
-            "",
-          images:
-            product.images?.length
-              ? product.images
-              : product.imageUrls?.length
-                ? product.imageUrls
-                : product.image
-                  ? [product.image]
-                  : [],
+          image: productImage,
+          images: product.images?.length
+            ? product.images
+            : product.imageUrls?.length
+              ? product.imageUrls
+              : productImage
+                ? [productImage]
+                : [],
           quantity: 1,
         });
       }
 
       localStorage.setItem("cart", JSON.stringify(cart));
 
-      // Update cart UI in the same tab.
-      window.dispatchEvent(new Event("storage"));
+      // Notify cart components in the current tab.
       window.dispatchEvent(new Event("cartUpdated"));
+      window.dispatchEvent(new Event("storage"));
 
       setAddedProduct(productId);
-
-      // Open the Cart page after adding the product.
-      navigate("/cart");
     } catch (err) {
       console.error("Add to cart error:", err);
       alert("Product cart mein add nahi ho saka. Dobara try karein.");
@@ -225,9 +226,9 @@ const GetNewArrivals = () => {
                         src={image}
                         alt={product.title || "SOLEORA Product"}
                         loading="lazy"
-                        onError={(e) => {
-                          e.currentTarget.onerror = null;
-                          e.currentTarget.src =
+                        onError={(event) => {
+                          event.currentTarget.onerror = null;
+                          event.currentTarget.src =
                             "https://placehold.co/600x750?text=SOLEORA";
                         }}
                         className="aspect-[4/5] w-full object-cover transition-transform duration-500 group-hover:scale-105"
