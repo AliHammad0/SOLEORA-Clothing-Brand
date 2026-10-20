@@ -27,70 +27,66 @@ const cartSlice = createSlice({
   },
 
   reducers: {
-    addToCart: (state, action) => {
-      // Supports both old payload and reservation-aware payload.
-      const payload = action.payload;
-      const product = payload.product || payload;
-      const productId = getProductId(product);
+  addToCart: (state, action) => {
+  const payload = action.payload;
+  const product = payload.product || payload;
+  const productId = getProductId(product);
 
-      if (!productId) return;
+  if (!productId) return;
 
-      const quantityToAdd = Math.max(
-        1,
-        Number(payload.quantity || 1)
-      );
+  const quantityToAdd = Math.max(
+    1,
+    Number(payload.quantity || 1)
+  );
 
-      const stock = Number(product.stock ?? 0);
+  const isReserved = Boolean(payload.reservationId);
+  const stock = Math.max(0, Number(product.stock ?? 0));
 
-      if (stock <= 0) return;
+  const existingItem = state.items.find(
+    (item) => getProductId(item) === productId
+  );
 
-      const existingItem = state.items.find(
-        (item) => getProductId(item) === productId
-      );
+  if (!isReserved && stock <= 0) return;
 
-      const newReservation = payload.reservationId
+  if (existingItem) {
+    existingItem.quantity =
+      Number(existingItem.quantity || 0) + quantityToAdd;
+
+    existingItem.stock = stock;
+
+    if (isReserved) {
+      existingItem.reservations = [
+        ...(existingItem.reservations || []),
+        {
+          reservationId: payload.reservationId,
+          quantity: quantityToAdd,
+        },
+      ];
+    }
+
+    if (!existingItem.reservationId && payload.reservationId) {
+      existingItem.reservationId = payload.reservationId;
+    }
+  } else {
+    state.items.push({
+      ...product,
+      _id: productId,
+      quantity: quantityToAdd,
+      stock,
+      reservations: isReserved
         ? [
             {
               reservationId: payload.reservationId,
               quantity: quantityToAdd,
             },
           ]
-        : [];
+        : [],
+      reservationId: payload.reservationId || null,
+    });
+  }
 
-      if (existingItem) {
-        const currentQuantity = Number(existingItem.quantity || 0);
-
-        existingItem.quantity = Math.min(
-          currentQuantity + quantityToAdd,
-          stock
-        );
-
-        existingItem.stock = stock;
-
-        if (newReservation.length) {
-          existingItem.reservations = [
-            ...(existingItem.reservations || []),
-            ...newReservation,
-          ];
-        }
-
-        // Support older code that reads reservationId directly.
-        if (!existingItem.reservationId && payload.reservationId) {
-          existingItem.reservationId = payload.reservationId;
-        }
-      } else {
-        state.items.push({
-          ...product,
-          _id: productId,
-          quantity: Math.min(quantityToAdd, stock),
-          stock,
-          reservations: newReservation,
-          reservationId: payload.reservationId || null,
-        });
-      }
-
-      saveCartToStorage(state.items);
-    },
+  saveCartToStorage(state.items);
+},
 
     increaseQuantity: (state, action) => {
       const item = state.items.find(

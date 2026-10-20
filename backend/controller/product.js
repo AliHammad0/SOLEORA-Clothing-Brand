@@ -278,6 +278,7 @@ export const searchProducts = async (req, res) => {
 };
 
 // Reserve Product Stock
+
 export const reserveProductStock = async (req, res) => {
   let reservedProductId = null;
   let reservedQuantity = 0;
@@ -300,7 +301,7 @@ export const reserveProductStock = async (req, res) => {
       });
     }
 
-    // Atomically decrement only if enough stock is available.
+    // Atomically deduct stock only when sufficient stock exists.
     const product = await Product.findOneAndUpdate(
       {
         _id: id,
@@ -332,32 +333,42 @@ export const reserveProductStock = async (req, res) => {
       status: "active",
     });
 
-    if (!reservation?._id) {
-      throw new Error("Reservation record was not created");
+    const reservationId = String(reservation?._id ?? "");
+    const savedQuantity = Number(reservation?.quantity);
+
+    if (
+      !/^[0-9a-fA-F]{24}$/.test(reservationId) ||
+      savedQuantity !== quantity
+    ) {
+      throw new Error("Invalid reservation record");
     }
 
     return res.status(200).json({
       ok: true,
       message: "Stock reserved successfully",
       product,
-      reservationId: String(reservation._id),
-      reservedQuantity: reservation.quantity,
-      availableStock: product.stock,
+      reservationId,
+      reservedQuantity: savedQuantity,
+      availableStock: Number(product.stock),
     });
   } catch (error) {
-    // Restore stock if reservation creation failed after deduction.
+    console.error("Stock reservation error:", error);
+
+    // Compensate if stock was deducted before reservation failed.
     if (reservedProductId && reservedQuantity > 0) {
       try {
-        await Product.updateOne(
+        const restored = await Product.updateOne(
           { _id: reservedProductId },
           { $inc: { stock: reservedQuantity } }
         );
+
+        if (restored.modifiedCount !== 1) {
+          console.error("Stock compensation did not restore the product.");
+        }
       } catch (restoreError) {
         console.error("Stock compensation failed:", restoreError);
       }
     }
-
-    console.error("Stock reservation error:", error);
 
     return res.status(500).json({
       ok: false,
@@ -365,6 +376,7 @@ export const reserveProductStock = async (req, res) => {
     });
   }
 };
+
 
 // Release Product Stock
 export const releaseProductStock = async (req, res) => {
