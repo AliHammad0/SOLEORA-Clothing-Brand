@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
@@ -11,6 +12,9 @@ import {
 
 const API_URL =
   "https://soleora-clothing-brand-backend.vercel.app/api/v1/products";
+
+const FREE_SHIPPING_LIMIT = 5000;
+const SHIPPING_CHARGE = 250;
 
 const translations = {
   en: {
@@ -36,12 +40,12 @@ const translations = {
     spend: "more to get free shipping.",
     checkout: "Proceed to Checkout",
     secure: "Secure checkout",
-    shippingNote: "Shipping charges are estimated. Final charges may vary at checkout.",
+    shippingNote:
+      "Shipping charges are estimated. Final charges may vary at checkout.",
     rights: "All rights reserved.",
     decrease: "Decrease quantity of",
     increase: "Increase quantity of",
     outOfStock: "Out of stock",
-    sku: "Product",
     error: "Could not update your cart. Please try again.",
     removing: "Removing...",
   },
@@ -73,7 +77,6 @@ const translations = {
     decrease: "کی تعداد کم کریں",
     increase: "کی تعداد بڑھائیں",
     outOfStock: "اسٹاک ختم",
-    sku: "پروڈکٹ",
     error: "کارٹ اپ ڈیٹ نہیں ہو سکا۔ دوبارہ کوشش کریں۔",
     removing: "ہٹایا جا رہا ہے...",
   },
@@ -105,7 +108,6 @@ const translations = {
     decrease: "की मात्रा घटाएँ",
     increase: "की मात्रा बढ़ाएँ",
     outOfStock: "स्टॉक खत्म",
-    sku: "प्रोडक्ट",
     error: "कार्ट अपडेट नहीं हो सका। दोबारा कोशिश करें।",
     removing: "हटाया जा रहा है...",
   },
@@ -137,7 +139,6 @@ const translations = {
     decrease: "এর পরিমাণ কমান",
     increase: "এর পরিমাণ বাড়ান",
     outOfStock: "স্টক শেষ",
-    sku: "পণ্য",
     error: "কার্ট আপডেট করা যায়নি। আবার চেষ্টা করুন।",
     removing: "সরানো হচ্ছে...",
   },
@@ -169,7 +170,6 @@ const translations = {
     decrease: "تقليل كمية",
     increase: "زيادة كمية",
     outOfStock: "نفد المخزون",
-    sku: "المنتج",
     error: "تعذر تحديث السلة. حاول مرة أخرى.",
     removing: "جارٍ الإزالة...",
   },
@@ -201,7 +201,6 @@ const translations = {
     decrease: "减少数量",
     increase: "增加数量",
     outOfStock: "缺货",
-    sku: "商品",
     error: "无法更新购物车，请重试。",
     removing: "正在删除...",
   },
@@ -233,7 +232,6 @@ const translations = {
     decrease: "数量を減らす",
     increase: "数量を増やす",
     outOfStock: "在庫切れ",
-    sku: "商品",
     error: "カートを更新できませんでした。再試行してください。",
     removing: "削除中...",
   },
@@ -265,25 +263,56 @@ const translations = {
     decrease: "Diminuer la quantité de",
     increase: "Augmenter la quantité de",
     outOfStock: "Rupture de stock",
-    sku: "Produit",
     error: "Impossible de mettre à jour le panier. Réessayez.",
     removing: "Suppression...",
   },
 };
 
-const FREE_SHIPPING_LIMIT = 5000;
-const SHIPPING_CHARGE = 250;
-
+// Product ID helper
 const getItemId = (item) => String(item._id ?? item.id ?? "");
 
-const getItemPrice = (item) =>
-  Number(
-    item.specialPrice ??
-      item.discountPrice ??
-      item.price ??
-      item.originalPrice ??
-      0
+// Parse a valid price from the possible product price fields.
+// Zero/empty special prices are ignored so original price can be used.
+const getItemPrice = (item) => {
+  const specialPrice = Number(item.specialPrice);
+  const discountPrice = Number(item.discountPrice);
+  const regularPrice = Number(
+    item.price ?? item.originalPrice ?? item.original_price ?? 0
   );
+
+  if (
+    Number.isFinite(specialPrice) &&
+    specialPrice > 0 &&
+    regularPrice > 0 &&
+    specialPrice < regularPrice
+  ) {
+    return specialPrice;
+  }
+
+  if (
+    Number.isFinite(discountPrice) &&
+    discountPrice > 0 &&
+    regularPrice > 0 &&
+    discountPrice < regularPrice
+  ) {
+    return discountPrice;
+  }
+
+  if (Number.isFinite(regularPrice) && regularPrice > 0) {
+    return regularPrice;
+  }
+
+  // Last fallback for products whose cart item only stores an offer price.
+  if (Number.isFinite(specialPrice) && specialPrice > 0) {
+    return specialPrice;
+  }
+
+  if (Number.isFinite(discountPrice) && discountPrice > 0) {
+    return discountPrice;
+  }
+
+  return 0;
+};
 
 const getItemImage = (item) =>
   item.images?.[0] ||
@@ -305,10 +334,12 @@ const Cart = () => {
   const text = translations[language] || translations.en;
   const isRTL = language === "ur" || language === "ar";
 
-  const subtotal = cartItems.reduce(
-    (sum, item) => sum + getItemPrice(item) * Number(item.quantity || 0),
-    0
-  );
+  const subtotal = cartItems.reduce((sum, item) => {
+    const price = getItemPrice(item);
+    const quantity = Math.max(1, Number(item.quantity || 1));
+
+    return sum + price * quantity;
+  }, 0);
 
   const shipping =
     subtotal === 0 || subtotal >= FREE_SHIPPING_LIMIT
@@ -318,7 +349,7 @@ const Cart = () => {
   const total = subtotal + shipping;
 
   const totalItems = cartItems.reduce(
-    (sum, item) => sum + Number(item.quantity || 0),
+    (sum, item) => sum + Math.max(1, Number(item.quantity || 1)),
     0
   );
 
@@ -337,7 +368,6 @@ const Cart = () => {
     try {
       setProcessingId(id);
 
-      // Reservation ID ProductDetails se cart mein save hona chahiye.
       const reservationId = item.reservationId;
 
       if (reservationId) {
@@ -456,7 +486,7 @@ const Cart = () => {
               {cartItems.map((item, index) => {
                 const id = getItemId(item);
                 const price = getItemPrice(item);
-                const quantity = Number(item.quantity || 1);
+                const quantity = Math.max(1, Number(item.quantity || 1));
                 const stock = Number(item.stock ?? 0);
                 const name = getItemName(item);
                 const image = getItemImage(item);
@@ -553,8 +583,7 @@ const Cart = () => {
                           type="button"
                           onClick={() => dispatch(increaseQuantity(id))}
                           disabled={
-                            stock <= 0 ||
-                            quantity >= stock ||
+                            (stock > 0 && quantity >= stock) ||
                             Boolean(processingId)
                           }
                           aria-label={`${text.increase} ${name}`}
@@ -652,7 +681,7 @@ const Cart = () => {
       </main>
 
       <footer className="mt-10 border-t border-gray-200 px-5 py-7 text-center text-xs text-gray-500">
-        © {new Date().getFullYear()} Ali Hammad. {text.rights}
+        © {new Date().getFullYear()} SOLEORA. {text.rights}
       </footer>
     </div>
   );
