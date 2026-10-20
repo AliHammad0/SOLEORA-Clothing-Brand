@@ -1,5 +1,4 @@
-
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
 import { useDispatch, useSelector } from "react-redux";
@@ -9,6 +8,9 @@ import {
   decreaseQuantity,
   removeFromCart,
 } from "../redux/slices/cartSlice";
+
+const API_URL =
+  "https://soleora-clothing-brand-backend.vercel.app/api/v1/products";
 
 const translations = {
   en: {
@@ -40,6 +42,8 @@ const translations = {
     increase: "Increase quantity of",
     outOfStock: "Out of stock",
     sku: "Product",
+    error: "Could not update your cart. Please try again.",
+    removing: "Removing...",
   },
   ur: {
     selection: "آپ کا انتخاب",
@@ -70,6 +74,8 @@ const translations = {
     increase: "کی تعداد بڑھائیں",
     outOfStock: "اسٹاک ختم",
     sku: "پروڈکٹ",
+    error: "کارٹ اپ ڈیٹ نہیں ہو سکا۔ دوبارہ کوشش کریں۔",
+    removing: "ہٹایا جا رہا ہے...",
   },
   hi: {
     selection: "आपका चयन",
@@ -100,6 +106,8 @@ const translations = {
     increase: "की मात्रा बढ़ाएँ",
     outOfStock: "स्टॉक खत्म",
     sku: "प्रोडक्ट",
+    error: "कार्ट अपडेट नहीं हो सका। दोबारा कोशिश करें।",
+    removing: "हटाया जा रहा है...",
   },
   bn: {
     selection: "আপনার নির্বাচন",
@@ -130,6 +138,8 @@ const translations = {
     increase: "এর পরিমাণ বাড়ান",
     outOfStock: "স্টক শেষ",
     sku: "পণ্য",
+    error: "কার্ট আপডেট করা যায়নি। আবার চেষ্টা করুন।",
+    removing: "সরানো হচ্ছে...",
   },
   ar: {
     selection: "اختياراتك",
@@ -160,6 +170,8 @@ const translations = {
     increase: "زيادة كمية",
     outOfStock: "نفد المخزون",
     sku: "المنتج",
+    error: "تعذر تحديث السلة. حاول مرة أخرى.",
+    removing: "جارٍ الإزالة...",
   },
   zh: {
     selection: "您的选择",
@@ -190,6 +202,8 @@ const translations = {
     increase: "增加数量",
     outOfStock: "缺货",
     sku: "商品",
+    error: "无法更新购物车，请重试。",
+    removing: "正在删除...",
   },
   ja: {
     selection: "お選びいただいた商品",
@@ -220,6 +234,8 @@ const translations = {
     increase: "数量を増やす",
     outOfStock: "在庫切れ",
     sku: "商品",
+    error: "カートを更新できませんでした。再試行してください。",
+    removing: "削除中...",
   },
   fr: {
     selection: "Votre sélection",
@@ -250,6 +266,8 @@ const translations = {
     increase: "Augmenter la quantité de",
     outOfStock: "Rupture de stock",
     sku: "Produit",
+    error: "Impossible de mettre à jour le panier. Réessayez.",
+    removing: "Suppression...",
   },
 };
 
@@ -260,9 +278,9 @@ const getItemId = (item) => String(item._id ?? item.id ?? "");
 
 const getItemPrice = (item) =>
   Number(
-    item.price ??
-      item.specialPrice ??
+    item.specialPrice ??
       item.discountPrice ??
+      item.price ??
       item.originalPrice ??
       0
   );
@@ -273,15 +291,16 @@ const getItemImage = (item) =>
   item.thumbnail ||
   "https://placehold.co/400x500?text=SOLEORA";
 
-const getItemName = (item) =>
-  item.title || item.name || "SOLEORA Product";
+const getItemName = (item) => item.title || item.name || "SOLEORA Product";
 
-const formatPrice = (price) => `Rs. ${Number(price || 0).toLocaleString("en-PK")}`;
+const formatPrice = (price) =>
+  `Rs. ${Number(price || 0).toLocaleString("en-PK")}`;
 
 const Cart = () => {
   const { language } = useLanguage();
   const dispatch = useDispatch();
   const cartItems = useSelector(selectCartItems);
+  const [processingId, setProcessingId] = useState(null);
 
   const text = translations[language] || translations.en;
   const isRTL = language === "ur" || language === "ar";
@@ -309,6 +328,41 @@ const Cart = () => {
         ? text.item
         : text.items
       : text.items;
+
+  const handleRemove = async (item) => {
+    const id = getItemId(item);
+
+    if (processingId) return;
+
+    try {
+      setProcessingId(id);
+
+      // Reservation ID ProductDetails se cart mein save hona chahiye.
+      const reservationId = item.reservationId;
+
+      if (reservationId) {
+        const response = await fetch(
+          `${API_URL}/reservations/${reservationId}/release`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok || data.ok !== true) {
+          throw new Error(data.message || text.error);
+        }
+      }
+
+      dispatch(removeFromCart(id));
+    } catch (error) {
+      alert(error.message || text.error);
+    } finally {
+      setProcessingId(null);
+    }
+  };
 
   return (
     <div
@@ -381,7 +435,6 @@ const Cart = () => {
             </div>
 
             <h2 className="text-2xl font-semibold">{text.empty}</h2>
-
             <p className="mt-3 text-sm text-gray-500">{text.emptyDesc}</p>
 
             <Link
@@ -407,6 +460,7 @@ const Cart = () => {
                 const stock = Number(item.stock ?? 0);
                 const name = getItemName(item);
                 const image = getItemImage(item);
+                const isProcessing = processingId === id;
 
                 return (
                   <div
@@ -463,10 +517,11 @@ const Cart = () => {
 
                         <button
                           type="button"
-                          onClick={() => dispatch(removeFromCart(id))}
-                          className="cart-button mt-3 text-xs text-gray-500 underline underline-offset-4 hover:text-red-600"
+                          onClick={() => handleRemove(item)}
+                          disabled={Boolean(processingId)}
+                          className="cart-button mt-3 text-xs text-gray-500 underline underline-offset-4 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                          {text.remove}
+                          {isProcessing ? text.removing : text.remove}
                         </button>
                       </div>
                     </div>
@@ -480,7 +535,7 @@ const Cart = () => {
                         <button
                           type="button"
                           onClick={() => dispatch(decreaseQuantity(id))}
-                          disabled={quantity <= 1}
+                          disabled={quantity <= 1 || Boolean(processingId)}
                           aria-label={`${text.decrease} ${name}`}
                           className="cart-button px-3 py-2 text-lg hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
                         >
@@ -497,7 +552,11 @@ const Cart = () => {
                         <button
                           type="button"
                           onClick={() => dispatch(increaseQuantity(id))}
-                          disabled={stock <= 0 || quantity >= stock}
+                          disabled={
+                            stock <= 0 ||
+                            quantity >= stock ||
+                            Boolean(processingId)
+                          }
                           aria-label={`${text.increase} ${name}`}
                           className="cart-button px-3 py-2 text-lg hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
                         >
@@ -547,7 +606,9 @@ const Cart = () => {
                 <p className="text-xs leading-5 text-gray-500">
                   {subtotal >= FREE_SHIPPING_LIMIT
                     ? text.unlocked
-                    : `${formatPrice(FREE_SHIPPING_LIMIT - subtotal)} ${text.spend}`}
+                    : `${formatPrice(
+                        FREE_SHIPPING_LIMIT - subtotal
+                      )} ${text.spend}`}
                 </p>
               </div>
 
@@ -591,7 +652,7 @@ const Cart = () => {
       </main>
 
       <footer className="mt-10 border-t border-gray-200 px-5 py-7 text-center text-xs text-gray-500">
-        © {new Date().getFullYear()} SOLEORA. {text.rights}
+        © {new Date().getFullYear()} Ali Hammad. {text.rights}
       </footer>
     </div>
   );

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -40,12 +41,16 @@ export default function ProductDetails() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
+    const controller = new AbortController();
+
     const fetchProduct = async () => {
       try {
         setLoading(true);
         setError("");
 
-        const response = await fetch(`${API_URL}/${id}`);
+        const response = await fetch(`${API_URL}/${id}`, {
+          signal: controller.signal,
+        });
         const data = await response.json();
 
         if (!response.ok || !data.ok || !data.product) {
@@ -56,13 +61,17 @@ export default function ProductDetails() {
         setActiveImage(0);
         setQuantity(1);
       } catch (err) {
+        if (err.name === "AbortError") return;
+
         setError(
           err.message === "Failed to fetch"
             ? "Unable to connect to the server. Check your backend and API URL."
             : err.message || "Unable to load product."
         );
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       }
     };
 
@@ -72,6 +81,8 @@ export default function ProductDetails() {
       setError("Product ID is missing from URL.");
       setLoading(false);
     }
+
+    return () => controller.abort();
   }, [id]);
 
   if (loading) {
@@ -109,9 +120,7 @@ export default function ProductDetails() {
     );
   }
 
-  const originalPrice = Number(
-    product.originalPrice ?? product.price ?? 0
-  );
+  const originalPrice = Number(product.originalPrice ?? product.price ?? 0);
 
   const specialPrice = Number(
     product.specialPrice ?? product.discountPrice ?? 0
@@ -132,7 +141,6 @@ export default function ProductDetails() {
   const onSale =
     originalPrice > 0 && discountedPrice < originalPrice;
 
-  // This is the current global stock reported by MongoDB.
   const stock = Math.max(0, Number(product.stock) || 0);
 
   const images = Array.isArray(product.images)
@@ -174,10 +182,6 @@ export default function ProductDetails() {
 
   const cartQuantity = Number(cartItem?.quantity || 0);
 
-  // Since stock is reserved in MongoDB before dispatching addToCart,
-  // do not subtract cartQuantity from the returned global stock again.
-  const remainingStock = stock;
-
   const handleAddToCart = async () => {
     if (addingToCart) return;
 
@@ -200,6 +204,9 @@ export default function ProductDetails() {
 
     setAddingToCart(true);
 
+    let reservationId = null;
+    let reservationCreated = false;
+
     try {
       const response = await fetch(`${API_URL}/${productId}/reserve`, {
         method: "POST",
@@ -215,42 +222,61 @@ export default function ProductDetails() {
         throw new Error(data.message || "Unable to reserve stock.");
       }
 
-      const updatedProduct = data.product;
+      reservationId = data.reservationId;
+
       const reservedQuantity = Number(data.reservedQuantity ?? quantity);
 
       if (
+        !reservationId ||
         !Number.isSafeInteger(reservedQuantity) ||
         reservedQuantity !== quantity
       ) {
         throw new Error(
-          "The reservation response was invalid. Please check your cart and stock."
+          "The server returned an invalid reservation. Please refresh and check your stock."
         );
       }
 
-      // Update the displayed product with MongoDB's latest stock.
+      reservationCreated = true;
+
+      const updatedProduct = data.product;
       setProduct(updatedProduct);
 
-      // Cart slice increments quantity one unit per dispatch.
-      // Its stock limit must represent the quantity available
-      // before this reservation, not the post-reservation stock.
-      const cartStock =
-        Number(updatedProduct.stock) + reservedQuantity;
-
-      const updatedCartProduct = {
-        ...updatedProduct,
-        _id: productId,
-        price: discountedPrice,
-        stock: cartStock,
-        image: images[0] || product.image || "",
-      };
-
-      for (let i = 0; i < reservedQuantity; i += 1) {
-        dispatch(addToCart(updatedCartProduct));
-      }
+      // Stock returned by the server is already reduced.
+      // Add the reserved quantity once and preserve its reservation ID.
+      dispatch(
+        addToCart({
+          product: {
+            ...updatedProduct,
+            _id: productId,
+            price: discountedPrice,
+            image: images[0] || product.image || "",
+          },
+          quantity: reservedQuantity,
+          reservationId,
+        })
+      );
 
       setQuantity(1);
       setMessage("Product added to cart successfully!");
     } catch (err) {
+      // If reservation was created but frontend processing failed,
+      // try to release it so stock is not left reserved.
+      if (reservationCreated && reservationId) {
+        try {
+          await fetch(
+            `${API_URL}/reservations/${reservationId}/release`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+            }
+          );
+        } catch {
+          // Keep the original error for the user.
+        }
+      }
+
       setMessage(
         err.message === "Failed to fetch"
           ? "Unable to connect to the server. Please try again."
@@ -377,12 +403,12 @@ export default function ProductDetails() {
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500 opacity-60" />
                     <span className="relative h-2.5 w-2.5 rounded-full bg-green-600" />
                   </span>
-                  In Stock — {remainingStock} items available
+                  In Stock — {stock} items available
                 </div>
               ) : stock > 0 ? (
                 <div className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-4 py-2 text-sm font-medium text-orange-700">
                   <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-orange-500" />
-                  Only {remainingStock} left in stock!
+                  Only {stock} left in stock!
                 </div>
               ) : (
                 <div className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700">
@@ -441,14 +467,12 @@ export default function ProductDetails() {
                   type="button"
                   onClick={() => {
                     setQuantity((previous) =>
-                      Math.min(remainingStock, previous + 1)
+                      Math.min(stock, previous + 1)
                     );
                     setMessage("");
                   }}
                   disabled={
-                    addingToCart ||
-                    quantity >= remainingStock ||
-                    remainingStock <= 0
+                    addingToCart || quantity >= stock || stock <= 0
                   }
                   aria-label="Increase quantity"
                   className="h-full px-4 transition-colors hover:bg-gray-100 active:scale-90 disabled:opacity-30"

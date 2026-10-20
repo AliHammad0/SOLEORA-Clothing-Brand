@@ -1,3 +1,4 @@
+import StockReservation from "../model/stockReservation.js";
 import Product from "../model/product.js";
 
 // Create Product Controller
@@ -282,8 +283,12 @@ export const searchProducts = async (req, res) => {
 
 // Atomically reserve one item when adding to cart
 export const reserveProductStock = async (req, res) => {
+  let reservedProductId;
+  let reservedQuantity = 0;
+
   try {
     const { id } = req.params;
+    const quantity = Number(req.body.quantity ?? 1);
 
     if (!/^[0-9a-fA-F]{24}$/.test(id)) {
       return res.status(400).json({
@@ -292,47 +297,126 @@ export const reserveProductStock = async (req, res) => {
       });
     }
 
+    if (!Number.isSafeInteger(quantity) || quantity < 1) {
+      return res.status(400).json({
+        ok: false,
+        message: "Invalid quantity",
+      });
+    }
+
     const product = await Product.findOneAndUpdate(
       {
         _id: id,
         isActive: true,
-        stock: { $gte: 1 },
+        stock: { $gte: quantity },
       },
-      {
-        $inc: { stock: -1 },
-      },
-      {
-        new: true,
-        runValidators: true,
-      }
+      { $inc: { stock: -quantity } },
+      { new: true, runValidators: true }
     );
 
     if (!product) {
-      const existingProduct = await Product.findById(id);
-
-      if (!existingProduct) {
-        return res.status(404).json({
-          ok: false,
-          message: "Product not found",
-        });
-      }
-
       return res.status(409).json({
         ok: false,
-        message: "Product is out of stock",
+        message: "Product unavailable or insufficient stock",
       });
     }
+
+    reservedProductId = product._id;
+    reservedQuantity = quantity;
+
+    const reservation = await StockReservation.create({
+      product: product._id,
+      quantity,
+      status: "active",
+    });
 
     return res.status(200).json({
       ok: true,
       message: "Stock reserved successfully",
       product,
+      reservationId: reservation._id,
+      reservedQuantity: quantity,
       availableStock: product.stock,
     });
   } catch (error) {
+    // If reservation creation fails after stock was deducted,
+    // compensate by restoring the deducted quantity.
+    if (reservedProductId && reservedQuantity > 0) {
+      try {
+        await Product.updateOne(
+          { _id: reservedProductId },
+          { $inc: { stock: reservedQuantity } }
+        );
+      } catch (restoreError) {
+        console.error("Stock compensation failed:", restoreError);
+      }
+    }
+
+    console.error("Stock reservation error:", error);
+
     return res.status(500).json({
       ok: false,
       message: "Failed to reserve stock",
+    });
+  }
+};
+
+export const releaseProductStock = async (req, res) => {
+  try {
+    const { reservationId } = req.params;
+
+    if (!/^[0-9a-fA-F]{24}$/.test(reservationId)) {
+      return res.status(400).json({
+        ok: false,
+        message: "Invalid reservation ID",
+      });
+    }
+
+    // Only one request can change an active reservation to released.
+    const reservation = await StockReservation.findOneAndUpdate(
+      { _id: reservationId, status: "active" },
+      { $set: { status: "released" } },
+      { new: true }
+    );
+
+    if (!reservation) {
+      return res.status(200).json({
+        ok: true,
+        message: "Reservation already released or not found",
+      });
+    }
+
+    const product = await Product.findByIdAndUpdate(
+      reservation.product,
+      { $inc: { stock: reservation.quantity } },
+      { new: true }
+    );
+
+    if (!product) {
+      // Restore reservation status so a later retry can recover it.
+      await StockReservation.updateOne(
+        { _id: reservation._id, status: "released" },
+        { $set: { status: "active" } }
+      );
+
+      return res.status(404).json({
+        ok: false,
+        message: "Product not found",
+      });
+    }
+
+    return res.status(200).json({
+      ok: true,
+      message: "Stock restored successfully",
+      product,
+      restoredQuantity: reservation.quantity,
+    });
+  } catch (error) {
+    console.error("Stock release error:", error);
+
+    return res.status(500).json({
+      ok: false,
+      message: "Failed to restore stock",
     });
   }
 };

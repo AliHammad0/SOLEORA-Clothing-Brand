@@ -1,4 +1,3 @@
-
 import { createSlice } from "@reduxjs/toolkit";
 
 const getCartFromStorage = () => {
@@ -18,37 +17,75 @@ const saveCartToStorage = (cart) => {
   }
 };
 
+const getProductId = (item) => String(item?._id ?? item?.id ?? "");
+
 const cartSlice = createSlice({
   name: "cart",
+
   initialState: {
     items: getCartFromStorage(),
   },
 
   reducers: {
     addToCart: (state, action) => {
-      const product = action.payload;
-      const productId = product._id || product.id;
+      // Supports both old payload and reservation-aware payload.
+      const payload = action.payload;
+      const product = payload.product || payload;
+      const productId = getProductId(product);
 
       if (!productId) return;
 
-      const existingItem = state.items.find(
-        (item) => item._id === productId
+      const quantityToAdd = Math.max(
+        1,
+        Number(payload.quantity || 1)
       );
 
       const stock = Number(product.stock ?? 0);
 
       if (stock <= 0) return;
 
+      const existingItem = state.items.find(
+        (item) => getProductId(item) === productId
+      );
+
+      const newReservation = payload.reservationId
+        ? [
+            {
+              reservationId: payload.reservationId,
+              quantity: quantityToAdd,
+            },
+          ]
+        : [];
+
       if (existingItem) {
-        if (existingItem.quantity < existingItem.stock) {
-          existingItem.quantity += 1;
+        const currentQuantity = Number(existingItem.quantity || 0);
+
+        existingItem.quantity = Math.min(
+          currentQuantity + quantityToAdd,
+          stock
+        );
+
+        existingItem.stock = stock;
+
+        if (newReservation.length) {
+          existingItem.reservations = [
+            ...(existingItem.reservations || []),
+            ...newReservation,
+          ];
+        }
+
+        // Support older code that reads reservationId directly.
+        if (!existingItem.reservationId && payload.reservationId) {
+          existingItem.reservationId = payload.reservationId;
         }
       } else {
         state.items.push({
           ...product,
           _id: productId,
-          quantity: 1,
+          quantity: Math.min(quantityToAdd, stock),
           stock,
+          reservations: newReservation,
+          reservationId: payload.reservationId || null,
         });
       }
 
@@ -57,10 +94,10 @@ const cartSlice = createSlice({
 
     increaseQuantity: (state, action) => {
       const item = state.items.find(
-        (item) => item._id === action.payload
+        (item) => getProductId(item) === String(action.payload)
       );
 
-      if (item && item.quantity < item.stock) {
+      if (item && Number(item.quantity) < Number(item.stock)) {
         item.quantity += 1;
       }
 
@@ -69,10 +106,10 @@ const cartSlice = createSlice({
 
     decreaseQuantity: (state, action) => {
       const item = state.items.find(
-        (item) => item._id === action.payload
+        (item) => getProductId(item) === String(action.payload)
       );
 
-      if (item && item.quantity > 1) {
+      if (item && Number(item.quantity) > 1) {
         item.quantity -= 1;
       }
 
@@ -81,7 +118,7 @@ const cartSlice = createSlice({
 
     removeFromCart: (state, action) => {
       state.items = state.items.filter(
-        (item) => item._id !== action.payload
+        (item) => getProductId(item) !== String(action.payload)
       );
 
       saveCartToStorage(state.items);
@@ -89,6 +126,34 @@ const cartSlice = createSlice({
 
     clearCart: (state) => {
       state.items = [];
+      saveCartToStorage(state.items);
+    },
+
+    // Use after a backend reservation has been successfully released.
+    removeReservation: (state, action) => {
+      const { productId, reservationId, quantity } = action.payload;
+
+      const item = state.items.find(
+        (item) => getProductId(item) === String(productId)
+      );
+
+      if (!item) return;
+
+      const reservations = item.reservations || [];
+      const reservation = reservations.find(
+        (entry) => entry.reservationId === reservationId
+      );
+
+      if (reservation) {
+        reservation.quantity -= Number(quantity || reservation.quantity);
+
+        if (reservation.quantity <= 0) {
+          item.reservations = reservations.filter(
+            (entry) => entry.reservationId !== reservationId
+          );
+        }
+      }
+
       saveCartToStorage(state.items);
     },
   },
@@ -100,20 +165,28 @@ export const {
   decreaseQuantity,
   removeFromCart,
   clearCart,
+  removeReservation,
 } = cartSlice.actions;
 
 export const selectCartItems = (state) => state.cart.items;
 
 export const selectCartCount = (state) =>
-  state.cart.items.reduce((total, item) => total + item.quantity, 0);
+  state.cart.items.reduce(
+    (total, item) => total + Number(item.quantity || 0),
+    0
+  );
 
 export const selectCartTotal = (state) =>
   state.cart.items.reduce((total, item) => {
     const price = Number(
-      item.specialPrice ?? item.discountPrice ?? item.originalPrice ?? item.price ?? 0
+      item.specialPrice ??
+        item.discountPrice ??
+        item.price ??
+        item.originalPrice ??
+        0
     );
 
-    return total + price * item.quantity;
+    return total + price * Number(item.quantity || 0);
   }, 0);
 
 export default cartSlice.reducer;

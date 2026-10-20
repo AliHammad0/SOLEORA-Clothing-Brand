@@ -33,5 +33,8 @@ productRoutes.route("/:id/reserve").post(Product.reserveProductStock);
 
 // Get Single Product - Public (keep after specific routes)
 productRoutes.route("/:id").get(Product.getSingleProduct);
+productRoutes.route("/reservations/:reservationId/release") .post(Product.releaseProductStock);
+
+ 
 
 export default productRoutes;
