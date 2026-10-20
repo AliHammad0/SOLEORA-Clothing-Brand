@@ -1,3 +1,4 @@
+
 import StockReservation from "../model/stockReservation.js";
 import Product from "../model/product.js";
 
@@ -46,7 +47,7 @@ export const createProduct = async (req, res) => {
       brand,
       category,
       images,
-      stock,
+      stock: stock ?? 0,
       sizes,
       colors,
       gender,
@@ -75,9 +76,11 @@ export const createProduct = async (req, res) => {
       });
     }
 
+    console.error("Create product error:", error);
+
     return res.status(500).json({
       ok: false,
-      message: error.message,
+      message: "Failed to create product",
     });
   }
 };
@@ -103,9 +106,11 @@ export const getNewArrivals = async (req, res) => {
       products,
     });
   } catch (error) {
+    console.error("Get new arrivals error:", error);
+
     return res.status(500).json({
       ok: false,
-      message: error.message,
+      message: "Failed to load new arrivals",
     });
   }
 };
@@ -136,9 +141,11 @@ export const getSpecialPrices = async (req, res) => {
       products,
     });
   } catch (error) {
+    console.error("Get special prices error:", error);
+
     return res.status(500).json({
       ok: false,
-      message: error.message,
+      message: "Failed to load special prices",
     });
   }
 };
@@ -154,9 +161,11 @@ export const getAllProducts = async (req, res) => {
       products,
     });
   } catch (error) {
+    console.error("Get all products error:", error);
+
     return res.status(500).json({
       ok: false,
-      message: error.message,
+      message: "Failed to load products",
     });
   }
 };
@@ -178,6 +187,8 @@ export const getSingleProduct = async (req, res) => {
       product,
     });
   } catch (error) {
+    console.error("Get single product error:", error);
+
     return res.status(400).json({
       ok: false,
       message: "Invalid product ID",
@@ -210,6 +221,8 @@ export const updateProduct = async (req, res) => {
       product,
     });
   } catch (error) {
+    console.error("Update product error:", error);
+
     return res.status(400).json({
       ok: false,
       message: error.message,
@@ -234,6 +247,8 @@ export const deleteProduct = async (req, res) => {
       message: "Product deleted successfully",
     });
   } catch (error) {
+    console.error("Delete product error:", error);
+
     return res.status(400).json({
       ok: false,
       message: error.message,
@@ -269,16 +284,16 @@ export const searchProducts = async (req, res) => {
       products,
     });
   } catch (error) {
+    console.error("Product search error:", error);
+
     return res.status(500).json({
       ok: false,
       message: "Product search failed",
-      error: error.message,
     });
   }
 };
 
 // Reserve Product Stock
-
 export const reserveProductStock = async (req, res) => {
   let reservedProductId = null;
   let reservedQuantity = 0;
@@ -301,7 +316,7 @@ export const reserveProductStock = async (req, res) => {
       });
     }
 
-    // Atomically deduct stock only when sufficient stock exists.
+    // Atomically reserve stock only when enough stock is available.
     const product = await Product.findOneAndUpdate(
       {
         _id: id,
@@ -354,7 +369,7 @@ export const reserveProductStock = async (req, res) => {
   } catch (error) {
     console.error("Stock reservation error:", error);
 
-    // Compensate if stock was deducted before reservation failed.
+    // Restore stock if reservation creation failed after deduction.
     if (reservedProductId && reservedQuantity > 0) {
       try {
         const restored = await Product.updateOne(
@@ -377,7 +392,6 @@ export const reserveProductStock = async (req, res) => {
   }
 };
 
-
 // Release Product Stock
 export const releaseProductStock = async (req, res) => {
   try {
@@ -390,7 +404,7 @@ export const releaseProductStock = async (req, res) => {
       });
     }
 
-    // Only one request can release an active reservation.
+    // Release only an active reservation.
     const reservation = await StockReservation.findOneAndUpdate(
       {
         _id: reservationId,
@@ -423,7 +437,7 @@ export const releaseProductStock = async (req, res) => {
     );
 
     if (!product) {
-      // Allow retry if the product could not be found.
+      // Restore reservation status so the release can be retried.
       await StockReservation.updateOne(
         {
           _id: reservation._id,
