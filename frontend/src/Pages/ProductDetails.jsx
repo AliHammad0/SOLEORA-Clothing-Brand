@@ -472,7 +472,7 @@ export default function ProductDetails() {
               ) : (
                 <div className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700">
                   <span className="h-2.5 w-2.5 rounded-full bg-red-500" />
-                  Out of Stock
+                  🏃 Bhai, stock khatam — late ho gaye!
                 </div>
               )}
             </div>
