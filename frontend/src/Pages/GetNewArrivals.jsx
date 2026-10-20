@@ -1,6 +1,5 @@
-
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const API_URL =
   "https://soleora-clothing-brand-backend.vercel.app/api/v1/products/new?limit=8";
@@ -10,6 +9,7 @@ const GetNewArrivals = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [addedProduct, setAddedProduct] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchNewArrivals = async () => {
@@ -43,10 +43,10 @@ const GetNewArrivals = () => {
   }, []);
 
   const getOriginalPrice = (product) =>
-    Number(product.originalPrice ?? product.price ?? 0);
+    Number(product.originalPrice || product.price || 0);
 
   const getSpecialPrice = (product) =>
-    Number(product.specialPrice ?? product.discountPrice ?? 0);
+    Number(product.specialPrice || product.discountPrice || 0);
 
   const getFinalPrice = (product) => {
     const originalPrice = getOriginalPrice(product);
@@ -70,52 +70,81 @@ const GetNewArrivals = () => {
 
   const getDiscountPercent = (product) => {
     const originalPrice = getOriginalPrice(product);
-    const specialPrice = getSpecialPrice(product);
-    const discount = Number(product.discount || 0);
+    const finalPrice = getFinalPrice(product);
 
-    if (
-      specialPrice > 0 &&
-      originalPrice > 0 &&
-      specialPrice < originalPrice
-    ) {
+    if (originalPrice > 0 && finalPrice < originalPrice) {
       return Math.round(
-        ((originalPrice - specialPrice) / originalPrice) * 100
+        ((originalPrice - finalPrice) / originalPrice) * 100
       );
-    }
-
-    if (discount > 0 && discount < 100) {
-      return discount;
     }
 
     return 0;
   };
 
   const formatPrice = (price) =>
-    price.toLocaleString("en-PK", {
+    Number(price || 0).toLocaleString("en-PK", {
       maximumFractionDigits: 2,
     });
 
   const addToCart = (product) => {
     try {
-      const cart = JSON.parse(localStorage.getItem("cart") || "[]");
-      const existingProduct = cart.find(
-        (item) => item._id === product._id
+      const savedCart = JSON.parse(localStorage.getItem("cart") || "[]");
+      const cart = Array.isArray(savedCart) ? savedCart : [];
+
+      const productId = String(product._id);
+      const finalPrice = getFinalPrice(product);
+
+      const existingIndex = cart.findIndex(
+        (item) => String(item._id || item.productId) === productId
       );
 
-      if (existingProduct) {
-        existingProduct.quantity = (existingProduct.quantity || 1) + 1;
+      if (existingIndex !== -1) {
+        const existingProduct = cart[existingIndex];
+
+        cart[existingIndex] = {
+          ...existingProduct,
+          ...product,
+          price: finalPrice,
+          quantity: Number(existingProduct.quantity || 1) + 1,
+        };
       } else {
         cart.push({
           ...product,
-          price: getFinalPrice(product),
+          _id: product._id,
+          productId: product._id,
+          title: product.title,
+          price: finalPrice,
+          originalPrice: getOriginalPrice(product),
+          specialPrice: getSpecialPrice(product),
+          image:
+            product.images?.[0] ||
+            product.imageUrls?.[0] ||
+            product.image ||
+            "",
+          images:
+            product.images?.length
+              ? product.images
+              : product.imageUrls?.length
+                ? product.imageUrls
+                : product.image
+                  ? [product.image]
+                  : [],
           quantity: 1,
         });
       }
 
       localStorage.setItem("cart", JSON.stringify(cart));
-      setAddedProduct(product._id);
+
+      // Update cart UI in the same tab.
       window.dispatchEvent(new Event("storage"));
-    } catch {
+      window.dispatchEvent(new Event("cartUpdated"));
+
+      setAddedProduct(productId);
+
+      // Open the Cart page after adding the product.
+      navigate("/cart");
+    } catch (err) {
+      console.error("Add to cart error:", err);
       alert("Product cart mein add nahi ho saka. Dobara try karein.");
     }
   };
@@ -128,9 +157,11 @@ const GetNewArrivals = () => {
             <p className="mb-2 text-xs font-semibold uppercase tracking-[3px] text-gray-500">
               Just Arrived
             </p>
+
             <h2 className="text-3xl font-bold uppercase tracking-wide text-black sm:text-4xl">
               New Arrivals
             </h2>
+
             <p className="mt-2 text-sm text-gray-500">
               Discover our latest collection.
             </p>
@@ -150,6 +181,7 @@ const GetNewArrivals = () => {
         {!loading && error && (
           <div className="py-12 text-center">
             <p className="text-sm text-red-600">{error}</p>
+
             <button
               type="button"
               onClick={() => window.location.reload()}
@@ -243,7 +275,7 @@ const GetNewArrivals = () => {
                     onClick={() => addToCart(product)}
                     className="mt-3 w-full bg-black px-3 py-3 text-xs font-semibold uppercase tracking-wider text-white transition hover:bg-gray-800 sm:text-sm"
                   >
-                    {addedProduct === product._id
+                    {addedProduct === String(product._id)
                       ? "Added to Cart ✓"
                       : "Add to Cart"}
                   </button>
