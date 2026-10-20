@@ -26,6 +26,11 @@ productRoutes.route("/:id").put(verifyAdmin, Product.updateProduct);
 // Delete Product - Admin Only
 productRoutes.route("/:id").delete(verifyAdmin, Product.deleteProduct);
 
+// Reserve stock when adding to cart
+productRoutes.route("/:id/reserve").post(Product.reserveProductStock);
+  
+  
+
 // Get Single Product - Public (keep after specific routes)
 productRoutes.route("/:id").get(Product.getSingleProduct);
 

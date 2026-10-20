@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -36,6 +35,7 @@ export default function ProductDetails() {
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [addingToCart, setAddingToCart] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
@@ -59,7 +59,7 @@ export default function ProductDetails() {
         setError(
           err.message === "Failed to fetch"
             ? "Unable to connect to the server. Check your backend and API URL."
-            : err.message || "Unable to load product"
+            : err.message || "Unable to load product."
         );
       } finally {
         setLoading(false);
@@ -69,7 +69,7 @@ export default function ProductDetails() {
     if (id) {
       fetchProduct();
     } else {
-      setError("Product ID is missing from URL");
+      setError("Product ID is missing from URL.");
       setLoading(false);
     }
   }, [id]);
@@ -132,6 +132,7 @@ export default function ProductDetails() {
   const onSale =
     originalPrice > 0 && discountedPrice < originalPrice;
 
+  // This is the current global stock reported by MongoDB.
   const stock = Math.max(0, Number(product.stock) || 0);
 
   const images = Array.isArray(product.images)
@@ -139,6 +140,11 @@ export default function ProductDetails() {
     : product.image
       ? [product.image]
       : [];
+
+  const safeActiveImage = Math.min(
+    activeImage,
+    Math.max(0, images.length - 1)
+  );
 
   const discountPercentage =
     onSale && originalPrice > 0
@@ -166,10 +172,15 @@ export default function ProductDetails() {
     (item) => String(item._id || item.id) === productId
   );
 
-  const alreadyInCart = cartItem?.quantity || 0;
-  const remainingStock = Math.max(0, stock - alreadyInCart);
+  const cartQuantity = Number(cartItem?.quantity || 0);
 
-  const handleAddToCart = () => {
+  // Since stock is reserved in MongoDB before dispatching addToCart,
+  // do not subtract cartQuantity from the returned global stock again.
+  const remainingStock = stock;
+
+  const handleAddToCart = async () => {
+    if (addingToCart) return;
+
     setMessage("");
 
     if (!productId) {
@@ -177,32 +188,77 @@ export default function ProductDetails() {
       return;
     }
 
-    if (stock <= 0) {
-      setMessage("This product is out of stock.");
+    if (!Number.isSafeInteger(quantity) || quantity < 1) {
+      setMessage("Please select a valid quantity.");
       return;
     }
 
-    if (quantity > remainingStock) {
-      setMessage(
-        remainingStock > 0
-          ? `You can add only ${remainingStock} more item(s).`
-          : "Available stock is already in your cart."
-      );
+    if (quantity > stock) {
+      setMessage("Requested quantity is not available. Refresh the page.");
       return;
     }
 
-    dispatch(
-      addToCart({
-        ...product,
+    setAddingToCart(true);
+
+    try {
+      const response = await fetch(`${API_URL}/${productId}/reserve`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ quantity }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.ok || !data.product) {
+        throw new Error(data.message || "Unable to reserve stock.");
+      }
+
+      const updatedProduct = data.product;
+      const reservedQuantity = Number(data.reservedQuantity ?? quantity);
+
+      if (
+        !Number.isSafeInteger(reservedQuantity) ||
+        reservedQuantity !== quantity
+      ) {
+        throw new Error(
+          "The reservation response was invalid. Please check your cart and stock."
+        );
+      }
+
+      // Update the displayed product with MongoDB's latest stock.
+      setProduct(updatedProduct);
+
+      // Cart slice increments quantity one unit per dispatch.
+      // Its stock limit must represent the quantity available
+      // before this reservation, not the post-reservation stock.
+      const cartStock =
+        Number(updatedProduct.stock) + reservedQuantity;
+
+      const updatedCartProduct = {
+        ...updatedProduct,
         _id: productId,
         price: discountedPrice,
-        stock,
+        stock: cartStock,
         image: images[0] || product.image || "",
-      })
-    );
+      };
 
-    setMessage("Product added to cart successfully!");
-    setQuantity(1);
+      for (let i = 0; i < reservedQuantity; i += 1) {
+        dispatch(addToCart(updatedCartProduct));
+      }
+
+      setQuantity(1);
+      setMessage("Product added to cart successfully!");
+    } catch (err) {
+      setMessage(
+        err.message === "Failed to fetch"
+          ? "Unable to connect to the server. Please try again."
+          : err.message || "Unable to add product to cart."
+      );
+    } finally {
+      setAddingToCart(false);
+    }
   };
 
   return (
@@ -229,9 +285,9 @@ export default function ProductDetails() {
                   type="button"
                   onClick={() => setActiveImage(index)}
                   aria-label={`View image ${index + 1}`}
-                  aria-pressed={activeImage === index}
+                  aria-pressed={safeActiveImage === index}
                   className={`overflow-hidden border-2 transition-all duration-300 hover:opacity-80 active:scale-95 ${
-                    activeImage === index
+                    safeActiveImage === index
                       ? "scale-[0.98] border-slate-900"
                       : "border-transparent"
                   }`}
@@ -248,8 +304,8 @@ export default function ProductDetails() {
             <div className="group relative overflow-hidden bg-stone-100">
               {images.length > 0 ? (
                 <img
-                  key={images[activeImage]}
-                  src={images[activeImage]}
+                  key={images[safeActiveImage]}
+                  src={images[safeActiveImage]}
                   alt={product.title}
                   className="aspect-[3/4] w-full object-cover transition-transform duration-700 ease-out group-hover:scale-110 motion-reduce:transition-none"
                 />
@@ -270,7 +326,7 @@ export default function ProductDetails() {
                   type="button"
                   onClick={() =>
                     window.open(
-                      images[activeImage],
+                      images[safeActiveImage],
                       "_blank",
                       "noopener,noreferrer"
                     )
@@ -323,7 +379,7 @@ export default function ProductDetails() {
                   </span>
                   In Stock — {remainingStock} items available
                 </div>
-              ) : stock > 0 && remainingStock > 0 ? (
+              ) : stock > 0 ? (
                 <div className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-4 py-2 text-sm font-medium text-orange-700">
                   <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-orange-500" />
                   Only {remainingStock} left in stock!
@@ -331,7 +387,7 @@ export default function ProductDetails() {
               ) : (
                 <div className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700">
                   <span className="h-2.5 w-2.5 rounded-full bg-red-500" />
-                  {stock <= 0 ? "Out of Stock" : "All available stock is in your cart"}
+                  Out of Stock
                 </div>
               )}
             </div>
@@ -370,7 +426,7 @@ export default function ProductDetails() {
                     setQuantity((previous) => Math.max(1, previous - 1));
                     setMessage("");
                   }}
-                  disabled={quantity <= 1}
+                  disabled={quantity <= 1 || addingToCart}
                   aria-label="Decrease quantity"
                   className="h-full px-4 transition-colors hover:bg-gray-100 active:scale-90 disabled:opacity-30"
                 >
@@ -389,7 +445,11 @@ export default function ProductDetails() {
                     );
                     setMessage("");
                   }}
-                  disabled={quantity >= remainingStock}
+                  disabled={
+                    addingToCart ||
+                    quantity >= remainingStock ||
+                    remainingStock <= 0
+                  }
                   aria-label="Increase quantity"
                   className="h-full px-4 transition-colors hover:bg-gray-100 active:scale-90 disabled:opacity-30"
                 >
@@ -401,13 +461,20 @@ export default function ProductDetails() {
             <button
               type="button"
               onClick={handleAddToCart}
-              disabled={stock <= 0 || remainingStock <= 0 || quantity > remainingStock}
+              disabled={
+                addingToCart ||
+                stock <= 0 ||
+                quantity < 1 ||
+                quantity > stock
+              }
               className="mt-6 flex h-14 w-full items-center justify-center gap-3 bg-slate-900 px-6 font-medium text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-700 hover:shadow-xl active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-gray-400 disabled:hover:translate-y-0 disabled:hover:shadow-none"
             >
               <ShoppingCart size={20} />
-              {stock <= 0 || remainingStock <= 0
-                ? "Out of Available Stock"
-                : "Add to Cart"}
+              {addingToCart
+                ? "Adding to Cart..."
+                : stock <= 0
+                  ? "Out of Stock"
+                  : "Add to Cart"}
             </button>
 
             {message && (
@@ -496,8 +563,13 @@ export default function ProductDetails() {
                     </span>
                     <span className="whitespace-nowrap">
                       {formatPrice(
-                        Number(item.price ?? item.specialPrice ?? item.discountPrice ?? item.originalPrice ?? 0) *
-                          item.quantity
+                        Number(
+                          item.price ??
+                            item.specialPrice ??
+                            item.discountPrice ??
+                            item.originalPrice ??
+                            0
+                        ) * item.quantity
                       )}
                     </span>
                   </div>

@@ -1,6 +1,6 @@
 import Product from "../model/product.js";
 
-// Create Product
+// Create Product Controller
 
 export const createProduct = async (req, res) => {
   try {
@@ -83,7 +83,7 @@ export const createProduct = async (req, res) => {
 };
 
 
-// New Arrivals
+// New Arrivals Controller
 export const getNewArrivals = async (req, res) => {
   try {
     const limit = Math.min(
@@ -111,7 +111,7 @@ export const getNewArrivals = async (req, res) => {
   }
 };
 
-// Limited Time Offers - Special Prices
+// Limited Time Offers - Special Prices Controller
 export const getSpecialPrices = async (req, res) => {
   try {
     const limit = Math.min(
@@ -162,7 +162,7 @@ export const getAllProducts = async (req, res) => {
   }
 };
 
-// Get Single Product
+// Get Single Product Controller
 export const getSingleProduct = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
@@ -218,7 +218,7 @@ export const updateProduct = async (req, res) => {
   }
 };
 
-// Delete Product
+// Delete Product Controller
 export const deleteProduct = async (req, res) => {
   try {
     const product = await Product.findByIdAndDelete(req.params.id);
@@ -244,7 +244,7 @@ export const deleteProduct = async (req, res) => {
 
 
 
-
+///Search Product Controller
 export const searchProducts = async (req, res) => {
   try {
     const { q } = req.query;
@@ -276,6 +276,63 @@ export const searchProducts = async (req, res) => {
       ok: false,
       message: "Product search failed",
       error: error.message,
+    });
+  }
+};
+
+// Atomically reserve one item when adding to cart
+export const reserveProductStock = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!/^[0-9a-fA-F]{24}$/.test(id)) {
+      return res.status(400).json({
+        ok: false,
+        message: "Invalid product ID",
+      });
+    }
+
+    const product = await Product.findOneAndUpdate(
+      {
+        _id: id,
+        isActive: true,
+        stock: { $gte: 1 },
+      },
+      {
+        $inc: { stock: -1 },
+      },
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
+
+    if (!product) {
+      const existingProduct = await Product.findById(id);
+
+      if (!existingProduct) {
+        return res.status(404).json({
+          ok: false,
+          message: "Product not found",
+        });
+      }
+
+      return res.status(409).json({
+        ok: false,
+        message: "Product is out of stock",
+      });
+    }
+
+    return res.status(200).json({
+      ok: true,
+      message: "Stock reserved successfully",
+      product,
+      availableStock: product.stock,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      ok: false,
+      message: "Failed to reserve stock",
     });
   }
 };
