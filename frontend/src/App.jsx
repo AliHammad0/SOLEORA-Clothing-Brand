@@ -1,3 +1,4 @@
+
 import React from "react";
 import {
   Routes,
@@ -25,6 +26,7 @@ import CreateProduct from "./Pages/CreateProduct";
 import GetNewArrivals from "./Pages/GetNewArrivals";
 import ProductDetails from "./Pages/ProductDetails";
 import CategoryProducts from "./Pages/CategoryProducts";
+import MyOrders from "./Pages/MyOrders";
 
 import {
   LanguageProvider,
@@ -193,6 +195,7 @@ const App = () => (
         <Route path="/about" element={<AboutUs />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/search" element={<ProductSearch />} />
+        <Route path="/my-orders" element={<MyOrders />} />
 
         {/* Category Pages */}
         <Route

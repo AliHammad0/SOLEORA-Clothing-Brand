@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -52,6 +53,7 @@ const Checkout = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [orderNumber, setOrderNumber] = useState("");
 
   const subtotal = cartItems.reduce(
     (sum, item) => sum + getPrice(item) * Number(item.quantity || 1),
@@ -135,11 +137,19 @@ const Checkout = () => {
     try {
       setLoading(true);
 
+      const token = localStorage.getItem("token");
+
+      const headers = {
+        "Content-Type": "application/json",
+      };
+
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
       const response = await fetch(`${API_URL}/orders/place`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify({
           ...form,
           items,
@@ -155,15 +165,12 @@ const Checkout = () => {
         );
       }
 
-      setSuccess(
-        `Order placed successfully! Order number: ${data.order?.orderNumber || "Confirmed"}`
-      );
+      const newOrderNumber = data.order?.orderNumber || "";
+
+      setOrderNumber(newOrderNumber);
+      setSuccess("Your order has been placed successfully!");
 
       dispatch(clearCart());
-
-      setTimeout(() => {
-        navigate("/");
-      }, 4000);
     } catch (err) {
       setError(err.message || "Something went wrong. Please try again.");
     } finally {
@@ -199,10 +206,13 @@ const Checkout = () => {
         </Link>
 
         <h1 className="mt-5 text-3xl font-semibold sm:text-4xl">
-          Checkout
+          {success ? "Order Confirmed!" : "Checkout"}
         </h1>
+
         <p className="mt-2 text-sm text-gray-500">
-          Complete your delivery details. No account or login required.
+          {success
+            ? "Thank you for shopping with SOLEORA."
+            : "Complete your delivery details. No account or login required."}
         </p>
 
         {error && (
@@ -214,199 +224,238 @@ const Checkout = () => {
           </div>
         )}
 
-        {success && (
-          <div
-            role="status"
-            className="mt-6 border border-green-200 bg-green-50 p-4 text-sm text-green-800"
-          >
-            {success}
-          </div>
-        )}
+        {success ? (
+          <section className="mt-8 bg-white p-6 shadow-sm sm:p-10">
+            <div className="text-4xl">✓</div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="mt-8 grid grid-cols-1 items-start gap-8 lg:grid-cols-[1fr_380px]"
-        >
-          <section className="bg-white p-5 shadow-sm sm:p-8">
-            <h2 className="text-xl font-semibold">
-              Delivery Information
+            <h2 className="mt-4 text-2xl font-semibold">
+              Order placed successfully!
             </h2>
 
-            <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2">
-              <Field
-                label="First Name"
-                name="firstname"
-                value={form.firstname}
-                onChange={handleChange}
-                required
-              />
+            {orderNumber && (
+              <p className="mt-3 text-gray-600">
+                Order number: <strong>{orderNumber}</strong>
+              </p>
+            )}
 
-              <Field
-                label="Last Name"
-                name="lastname"
-                value={form.lastname}
-                onChange={handleChange}
-                required
-              />
+            <p className="mt-3 text-sm text-gray-500">
+              Payment method: Cash on Delivery (COD)
+            </p>
 
-              <Field
-                label="Email Address"
-                name="email"
-                type="email"
-                value={form.email}
-                onChange={handleChange}
-                required
-              />
+            {localStorage.getItem("token") ? (
+              <Link
+                to="/my-orders"
+                className="mt-7 inline-block bg-black px-7 py-3 text-white hover:bg-gray-800"
+              >
+                View My Orders
+              </Link>
+            ) : (
+              <p className="mt-5 text-sm text-gray-600">
+                Guest order confirmed. Log in before your next order to
+                track orders through your account.
+              </p>
+            )}
 
-              <Field
-                label="Phone Number"
-                name="phone"
-                type="tel"
-                value={form.phone}
-                onChange={handleChange}
-                required
-              />
+            <div>
+              <Link
+                to="/"
+                className="mt-4 inline-block border border-black px-7 py-3 hover:bg-gray-100"
+              >
+                Continue Shopping
+              </Link>
+            </div>
+          </section>
+        ) : (
+          <form
+            onSubmit={handleSubmit}
+            className="mt-8 grid grid-cols-1 items-start gap-8 lg:grid-cols-[1fr_380px]"
+          >
+            <section className="bg-white p-5 shadow-sm sm:p-8">
+              <h2 className="text-xl font-semibold">
+                Delivery Information
+              </h2>
 
-              <div className="sm:col-span-2">
+              <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2">
                 <Field
-                  label="Complete Address"
-                  name="address"
-                  value={form.address}
+                  label="First Name"
+                  name="firstname"
+                  value={form.firstname}
                   onChange={handleChange}
                   required
-                  placeholder="House number, street, area"
                 />
-              </div>
 
-              <Field
-                label="City"
-                name="city"
-                value={form.city}
-                onChange={handleChange}
-                required
-              />
-
-              <Field
-                label="Postal Code (Optional)"
-                name="postalCode"
-                value={form.postalCode}
-                onChange={handleChange}
-              />
-
-              <div className="sm:col-span-2">
-                <label className="mb-2 block text-sm font-medium">
-                  Order Notes (Optional)
-                </label>
-                <textarea
-                  name="notes"
-                  value={form.notes}
+                <Field
+                  label="Last Name"
+                  name="lastname"
+                  value={form.lastname}
                   onChange={handleChange}
-                  rows={3}
-                  maxLength={500}
-                  placeholder="Any delivery instructions?"
-                  className="w-full border border-gray-300 px-4 py-3 outline-none focus:border-black"
+                  required
                 />
-              </div>
-            </div>
 
-            <div className="mt-8 border border-gray-200 p-5">
-              <h3 className="font-semibold">Payment Method</h3>
-              <div className="mt-4 flex items-center gap-3">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full border border-black">
-                  <span className="h-2.5 w-2.5 rounded-full bg-black" />
-                </span>
-                <div>
-                  <p className="text-sm font-medium">
-                    Cash on Delivery (COD)
-                  </p>
-                  <p className="mt-1 text-xs text-gray-500">
-                    Pay when your order arrives.
-                  </p>
+                <Field
+                  label="Email Address"
+                  name="email"
+                  type="email"
+                  value={form.email}
+                  onChange={handleChange}
+                  required
+                />
+
+                <Field
+                  label="Phone Number"
+                  name="phone"
+                  type="tel"
+                  value={form.phone}
+                  onChange={handleChange}
+                  required
+                />
+
+                <div className="sm:col-span-2">
+                  <Field
+                    label="Complete Address"
+                    name="address"
+                    value={form.address}
+                    onChange={handleChange}
+                    required
+                    placeholder="House number, street, area"
+                  />
+                </div>
+
+                <Field
+                  label="City"
+                  name="city"
+                  value={form.city}
+                  onChange={handleChange}
+                  required
+                />
+
+                <Field
+                  label="Postal Code (Optional)"
+                  name="postalCode"
+                  value={form.postalCode}
+                  onChange={handleChange}
+                />
+
+                <div className="sm:col-span-2">
+                  <label className="mb-2 block text-sm font-medium">
+                    Order Notes (Optional)
+                  </label>
+                  <textarea
+                    name="notes"
+                    value={form.notes}
+                    onChange={handleChange}
+                    rows={3}
+                    maxLength={500}
+                    placeholder="Any delivery instructions?"
+                    className="w-full border border-gray-300 px-4 py-3 outline-none focus:border-black"
+                  />
                 </div>
               </div>
-            </div>
 
-            <button
-              type="submit"
-              disabled={loading || Boolean(success)}
-              className="mt-8 w-full bg-black px-6 py-4 text-sm font-semibold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {loading ? "Placing Order..." : "Place Order — Cash on Delivery"}
-            </button>
-          </section>
-
-          <aside className="h-fit bg-white p-5 shadow-sm sm:p-7">
-            <h2 className="text-xl font-semibold">Order Summary</h2>
-
-            <div className="mt-6 space-y-5">
-              {cartItems.map((item) => (
-                <div
-                  key={getProductId(item)}
-                  className="flex gap-4"
-                >
-                  <img
-                    src={
-                      item.images?.[0] ||
-                      item.image ||
-                      "https://placehold.co/100x120?text=SOLEORA"
-                    }
-                    alt={item.title || "SOLEORA Product"}
-                    className="h-20 w-16 object-cover"
-                  />
-
-                  <div className="min-w-0 flex-1">
+              <div className="mt-8 border border-gray-200 p-5">
+                <h3 className="font-semibold">Payment Method</h3>
+                <div className="mt-4 flex items-center gap-3">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full border border-black">
+                    <span className="h-2.5 w-2.5 rounded-full bg-black" />
+                  </span>
+                  <div>
                     <p className="text-sm font-medium">
-                      {item.title || item.name || "SOLEORA Product"}
+                      Cash on Delivery (COD)
                     </p>
                     <p className="mt-1 text-xs text-gray-500">
-                      Qty: {Number(item.quantity || 1)}
-                    </p>
-                    {item.size && (
-                      <p className="mt-1 text-xs text-gray-500">
-                        Size: {typeof item.size === "object" ? item.size.name : item.size}
-                      </p>
-                    )}
-                    {item.color && (
-                      <p className="mt-1 text-xs text-gray-500">
-                        Color: {typeof item.color === "object" ? item.color.name : item.color}
-                      </p>
-                    )}
-                    <p className="mt-2 text-sm font-semibold">
-                      {formatPrice(
-                        getPrice(item) * Number(item.quantity || 1)
-                      )}
+                      Pay when your order arrives.
                     </p>
                   </div>
                 </div>
-              ))}
-            </div>
-
-            <div className="mt-7 space-y-4 border-t border-gray-200 pt-5 text-sm">
-              <div className="flex justify-between gap-3">
-                <span className="text-gray-500">Subtotal</span>
-                <span>{formatPrice(subtotal)}</span>
               </div>
 
-              <div className="flex justify-between gap-3">
-                <span className="text-gray-500">Shipping</span>
-                <span>
-                  {shippingFee === 0 ? "FREE" : formatPrice(shippingFee)}
-                </span>
+              <button
+                type="submit"
+                disabled={loading || Boolean(success)}
+                className="mt-8 w-full bg-black px-6 py-4 text-sm font-semibold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loading
+                  ? "Placing Order..."
+                  : "Place Order — Cash on Delivery"}
+              </button>
+            </section>
+
+            <aside className="h-fit bg-white p-5 shadow-sm sm:p-7">
+              <h2 className="text-xl font-semibold">Order Summary</h2>
+
+              <div className="mt-6 space-y-5">
+                {cartItems.map((item) => (
+                  <div
+                    key={getProductId(item)}
+                    className="flex gap-4"
+                  >
+                    <img
+                      src={
+                        item.images?.[0] ||
+                        item.image ||
+                        "https://placehold.co/100x120?text=SOLEORA"
+                      }
+                      alt={item.title || "SOLEORA Product"}
+                      className="h-20 w-16 object-cover"
+                    />
+
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium">
+                        {item.title || item.name || "SOLEORA Product"}
+                      </p>
+                      <p className="mt-1 text-xs text-gray-500">
+                        Qty: {Number(item.quantity || 1)}
+                      </p>
+
+                      {item.size && (
+                        <p className="mt-1 text-xs text-gray-500">
+                          Size: {typeof item.size === "object" ? item.size.name : item.size}
+                        </p>
+                      )}
+
+                      {item.color && (
+                        <p className="mt-1 text-xs text-gray-500">
+                          Color: {typeof item.color === "object" ? item.color.name : item.color}
+                        </p>
+                      )}
+
+                      <p className="mt-2 text-sm font-semibold">
+                        {formatPrice(
+                          getPrice(item) * Number(item.quantity || 1)
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
 
-              <p className="text-xs text-gray-500">
-                {subtotal >= FREE_SHIPPING_LIMIT
-                  ? "Free shipping unlocked!"
-                  : `${formatPrice(FREE_SHIPPING_LIMIT - subtotal)} more for free shipping.`}
-              </p>
+              <div className="mt-7 space-y-4 border-t border-gray-200 pt-5 text-sm">
+                <div className="flex justify-between gap-3">
+                  <span className="text-gray-500">Subtotal</span>
+                  <span>{formatPrice(subtotal)}</span>
+                </div>
 
-              <div className="flex justify-between border-t border-gray-200 pt-4 text-base font-semibold">
-                <span>Total</span>
-                <span>{formatPrice(total)}</span>
+                <div className="flex justify-between gap-3">
+                  <span className="text-gray-500">Shipping</span>
+                  <span>
+                    {shippingFee === 0 ? "FREE" : formatPrice(shippingFee)}
+                  </span>
+                </div>
+
+                <p className="text-xs text-gray-500">
+                  {subtotal >= FREE_SHIPPING_LIMIT
+                    ? "Free shipping unlocked!"
+                    : `${formatPrice(FREE_SHIPPING_LIMIT - subtotal)} more for free shipping.`}
+                </p>
+
+                <div className="flex justify-between border-t border-gray-200 pt-4 text-base font-semibold">
+                  <span>Total</span>
+                  <span>{formatPrice(total)}</span>
+                </div>
               </div>
-            </div>
-          </aside>
-        </form>
+            </aside>
+          </form>
+        )}
 
         <p className="mt-8 text-center text-xs text-gray-400">
           © {new Date().getFullYear()} SOLEORA. All rights reserved.

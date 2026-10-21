@@ -1,3 +1,4 @@
+
 import mongoose from "mongoose";
 import Order from "../model/order.js";
 import Product from "../model/product.js";
@@ -75,12 +76,7 @@ export const placeOrder = async (req, res) => {
       const reservations = Array.isArray(item.reservations)
         ? item.reservations
         : item.reservationId
-          ? [
-              {
-                reservationId: item.reservationId,
-                quantity,
-              },
-            ]
+          ? [{ reservationId: item.reservationId, quantity }]
           : [];
 
       if (!reservations.length) {
@@ -171,9 +167,7 @@ export const placeOrder = async (req, res) => {
       orderItems.push({
         product: product._id,
         title: product.title,
-        image: Array.isArray(product.images)
-          ? product.images[0] || ""
-          : "",
+        image: Array.isArray(product.images) ? product.images[0] || "" : "",
         quantity,
         size: typeof item.size === "string" ? item.size : "",
         color: typeof item.color === "string" ? item.color : "",
@@ -193,10 +187,27 @@ export const placeOrder = async (req, res) => {
       1000 + Math.random() * 9000
     )}`;
 
-    // Create order first; reservations are finalized below.
+    // If the customer is logged in, link the order to their account.
+    // Guest checkout remains available.
+    let customerUser = null;
+
+    if (req.user?._id) {
+      customerUser = req.user._id;
+    } else {
+      const authHeader = req.headers.authorization;
+
+      if (authHeader?.startsWith("Bearer ")) {
+        return res.status(401).json({
+          ok: false,
+          message: "Please login again to place your order",
+        });
+      }
+    }
+
     const order = await Order.create({
       orderNumber,
       customer: {
+        user: customerUser,
         firstname: firstname.trim(),
         lastname: lastname.trim(),
         email: email.trim().toLowerCase(),
@@ -219,7 +230,6 @@ export const placeOrder = async (req, res) => {
       notes: typeof notes === "string" ? notes.trim().slice(0, 500) : "",
     });
 
-    // Mark every reservation as finalized so the cart cannot release it.
     const reservationIds = [...allReservationIds];
 
     const finalized = await StockReservation.updateMany(
@@ -279,6 +289,30 @@ export const getAllOrders = async (req, res) => {
   }
 };
 
+// Get My Orders — Logged-in Customer
+export const getMyOrders = async (req, res) => {
+  try {
+    const orders = await Order.find({
+      "customer.user": req.user._id,
+    })
+      .populate("items.product", "title images")
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      ok: true,
+      count: orders.length,
+      orders,
+    });
+  } catch (error) {
+    console.error("Get my orders error:", error);
+
+    return res.status(500).json({
+      ok: false,
+      message: "Failed to load your orders",
+    });
+  }
+};
+
 // Update Order Status — Admin
 export const updateOrderStatus = async (req, res) => {
   try {
@@ -316,7 +350,6 @@ export const updateOrderStatus = async (req, res) => {
       });
     }
 
-    // Restore reserved stock only when an order is cancelled.
     if (status === "cancelled") {
       for (const item of order.items) {
         const reservationIds = Array.isArray(item.reservationIds)
@@ -340,36 +373,19 @@ export const updateOrderStatus = async (req, res) => {
 
           if (!reservation) continue;
 
-          const restoredProduct = await Product.findByIdAndUpdate(
-            reservation.product,
-            {
-              $inc: { stock: reservation.quantity },
-            },
-            { new: true }
-          );
+          await Product.findByIdAndUpdate(reservation.product, {
+            $inc: { stock: reservation.quantity },
+          });
 
-          if (restoredProduct) {
-            await StockReservation.updateOne(
-              {
-                _id: reservation._id,
-                status: "active",
-              },
-              {
-                $set: { status: "released" },
-              }
-            );
-          } else {
-            // Allow retry if the product was not found.
-            await StockReservation.updateOne(
-              {
-                _id: reservation._id,
-                status: "active",
-              },
-              {
-                $set: { status: "released" },
-              }
-            );
-          }
+          await StockReservation.updateOne(
+            {
+              _id: reservation._id,
+              status: "active",
+            },
+            {
+              $set: { status: "released" },
+            }
+          );
         }
       }
     }
@@ -392,12 +408,10 @@ export const updateOrderStatus = async (req, res) => {
   }
 };
 
-///delete
-
+// Delete Cancelled Order — Admin
 export const deleteCancelledOrder = async (req, res) => {
   try {
     const { id } = req.params;
-
     const order = await Order.findById(id);
 
     if (!order) {
@@ -421,10 +435,11 @@ export const deleteCancelledOrder = async (req, res) => {
       message: "Cancelled order permanently deleted",
     });
   } catch (error) {
+    console.error("Delete cancelled order error:", error);
+
     return res.status(500).json({
       ok: false,
-      message: error.message,
+      message: "Failed to delete cancelled order",
     });
   }
 };
-

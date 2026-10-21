@@ -9,6 +9,7 @@ import {
   ChevronDown,
   Globe,
   LayoutDashboard,
+  Package,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
@@ -43,6 +44,7 @@ const translations = {
     account: "MY ACCOUNT",
     dashboard: "DASHBOARD",
     profile: "PROFILE",
+    myOrders: "MY ORDERS",
     searchPlaceholder: "Search products...",
     search: "SEARCH",
     country: "Country",
@@ -63,6 +65,7 @@ const translations = {
     account: "میرا اکاؤنٹ",
     dashboard: "ڈیش بورڈ",
     profile: "پروفائل",
+    myOrders: "میرے آرڈرز",
     searchPlaceholder: "پروڈکٹس تلاش کریں...",
     search: "تلاش کریں",
     country: "ملک",
@@ -83,6 +86,7 @@ const translations = {
     account: "আমার অ্যাকাউন্ট",
     dashboard: "ড্যাশবোর্ড",
     profile: "প্রোফাইল",
+    myOrders: "আমার অর্ডার",
     searchPlaceholder: "পণ্য খুঁজুন...",
     search: "খুঁজুন",
     country: "দেশ",
@@ -103,6 +107,7 @@ const translations = {
     account: "मेरा अकाउंट",
     dashboard: "डैशबोर्ड",
     profile: "प्रोफ़ाइल",
+    myOrders: "मेरे ऑर्डर",
     searchPlaceholder: "उत्पाद खोजें...",
     search: "खोजें",
     country: "देश",
@@ -123,6 +128,7 @@ const translations = {
     account: "حسابي",
     dashboard: "لوحة التحكم",
     profile: "الملف الشخصي",
+    myOrders: "طلباتي",
     searchPlaceholder: "ابحث عن المنتجات...",
     search: "بحث",
     country: "الدولة",
@@ -143,6 +149,7 @@ const translations = {
     account: "我的账户",
     dashboard: "管理面板",
     profile: "个人资料",
+    myOrders: "我的订单",
     searchPlaceholder: "搜索商品...",
     search: "搜索",
     country: "国家",
@@ -163,6 +170,7 @@ const translations = {
     account: "マイアカウント",
     dashboard: "管理パネル",
     profile: "プロフィール",
+    myOrders: "注文履歴",
     searchPlaceholder: "商品を検索...",
     search: "検索",
     country: "国",
@@ -183,6 +191,7 @@ const translations = {
     account: "MON COMPTE",
     dashboard: "TABLEAU DE BORD",
     profile: "PROFIL",
+    myOrders: "MES COMMANDES",
     searchPlaceholder: "Rechercher des produits...",
     search: "RECHERCHER",
     country: "Pays",
@@ -347,8 +356,6 @@ const Header = () => {
   const t = translations[language] || translations.en;
   const isRTL = language === "ur" || language === "ar";
 
-  // Navigation: Shoes aur Sale remove kar diye hain.
-  // Men aur Women ke dropdown mein sirf ek link hai.
   const navLinks = [
     { id: "new", name: t.newArrivals, href: "/new" },
     {
@@ -431,7 +438,6 @@ const Header = () => {
         regionOpen ? "z-[9999]" : "z-50"
       }`}
     >
-      {/* Announcement */}
       <div className="bg-black px-3 py-2 text-center text-[10px] tracking-wide text-white sm:text-xs">
         {t.announcement} {announcementAmount[selectedCountry.code] || "€60"}{" "}
         <Link to="/" className="ms-2 underline underline-offset-2">
@@ -439,11 +445,9 @@ const Header = () => {
         </Link>
       </div>
 
-      {/* Main Header */}
       <div className="border-b border-gray-200">
         <div className="mx-auto max-w-7xl px-3 sm:px-6">
           <div className="flex min-h-[68px] items-center justify-between gap-2 sm:min-h-[76px]">
-            {/* Mobile menu button */}
             <button
               type="button"
               onClick={() => {
@@ -458,7 +462,6 @@ const Header = () => {
               {mobileMenu ? <X size={23} /> : <Menu size={23} />}
             </button>
 
-            {/* Desktop Navigation */}
             <nav className="hidden flex-1 items-center gap-4 md:flex lg:gap-7">
               {navLinks.map((link) => (
                 <div
@@ -517,7 +520,6 @@ const Header = () => {
               ))}
             </nav>
 
-            {/* Logo */}
             <Link
               to="/"
               className="shrink-0 text-center text-lg font-bold tracking-[0.1em] sm:text-3xl sm:tracking-[0.18em]"
@@ -525,7 +527,6 @@ const Header = () => {
               SOLEORA
             </Link>
 
-            {/* Header Actions */}
             <div className="flex flex-1 items-center justify-end gap-1 sm:gap-3 md:gap-4">
               {isLoggedIn && (
                 <Link
@@ -541,7 +542,17 @@ const Header = () => {
                 </Link>
               )}
 
-              {/* Country & Language */}
+              {isLoggedIn && !isAdmin && (
+                <Link
+                  to="/my-orders"
+                  className="hidden shrink-0 items-center gap-2 border border-black px-3 py-3 text-xs font-semibold text-black transition hover:bg-gray-100 sm:flex"
+                  title={t.myOrders || "MY ORDERS"}
+                >
+                  <Package size={16} />
+                  <span>{t.myOrders || "MY ORDERS"}</span>
+                </Link>
+              )}
+
               <button
                 type="button"
                 onClick={() => {
@@ -565,7 +576,6 @@ const Header = () => {
                 />
               </button>
 
-              {/* Search Toggle */}
               <button
                 type="button"
                 onClick={() => {
@@ -580,7 +590,6 @@ const Header = () => {
                 <Search size={21} strokeWidth={1.5} />
               </button>
 
-              {/* Account */}
               <Link
                 to={isLoggedIn ? accountDestination : "/login"}
                 aria-label={isLoggedIn ? accountLabel : "My Account"}
@@ -594,7 +603,6 @@ const Header = () => {
                 )}
               </Link>
 
-              {/* Cart */}
               <Link
                 to="/cart"
                 aria-label={`Shopping Bag, ${cartCount} items`}
@@ -612,7 +620,6 @@ const Header = () => {
             </div>
           </div>
 
-          {/* Live Search Bar */}
           {searchOpen && (
             <div className="relative border-t border-gray-200 py-3 sm:py-4">
               <form
@@ -669,7 +676,6 @@ const Header = () => {
                 </button>
               </form>
 
-              {/* API Search Suggestions */}
               {searchText.trim() && (
                 <div className="absolute inset-x-0 top-full z-[90] max-h-[65vh] overflow-y-auto border border-t-0 border-gray-200 bg-white shadow-xl">
                   {searchLoading && suggestions.length === 0 && (
@@ -752,7 +758,6 @@ const Header = () => {
         </div>
       </div>
 
-      {/* Mobile Navigation */}
       {mobileMenu && (
         <nav className="absolute inset-x-0 top-full z-[60] max-h-[calc(100dvh-100px)] overflow-y-auto border-b border-gray-200 bg-white shadow-lg md:hidden">
           <div className="px-5 py-3">
@@ -825,6 +830,17 @@ const Header = () => {
               {isLoggedIn ? accountLabel : t.account}
             </Link>
 
+            {isLoggedIn && !isAdmin && (
+              <Link
+                to="/my-orders"
+                onClick={() => setMobileMenu(false)}
+                className="flex items-center gap-3 border-b border-gray-100 py-4 text-xs"
+              >
+                <Package size={18} />
+                {t.myOrders || "MY ORDERS"}
+              </Link>
+            )}
+
             <Link
               to="/cart"
               onClick={() => setMobileMenu(false)}
@@ -837,7 +853,6 @@ const Header = () => {
         </nav>
       )}
 
-      {/* Country & Language Modal */}
       {regionOpen && (
         <div
           className="fixed inset-0 z-[10000] flex items-center justify-center overflow-y-auto bg-black/50 p-4 sm:p-6"
