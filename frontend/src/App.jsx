@@ -39,6 +39,7 @@ import AdminSettings from "./Pages/AdminSettings";
 import AboutUs from "./Pages/AboutUs";
 import Profile from "./Pages/Profile";
 import ProductSearch from "./Pages/ProductSearch";
+import AdminUsers from "./Pages/AdminUsers";
 
 const Layout = () => (
   <>
@@ -191,6 +192,7 @@ const App = () => (
         <Route path="/about" element={<AboutUs />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/search" element={<ProductSearch />} />
+          <Route path="/users" element={<AdminUsers />} />
 
         {/* Category Pages */}
         <Route
