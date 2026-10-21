@@ -97,27 +97,27 @@ const TermsAndConditions = () => {
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <a
-                  href="tel:+923332279263"
+                  href="/"
                   className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white p-4 transition duration-300 hover:-translate-y-1 hover:border-black"
                 >
                   <span className="text-xl">☎</span>
                   <div>
                     <p className="text-xs text-neutral-500">Call us</p>
                     <p className="text-sm font-medium text-black">
-                      +92 333 2279263
+                      123456789
                     </p>
                   </div>
                 </a>
 
                 <a
-                  href="mailto:ask@wearzane.com"
+                  href=""
                   className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white p-4 transition duration-300 hover:-translate-y-1 hover:border-black"
                 >
                   <span className="text-xl">✉</span>
                   <div className="min-w-0">
                     <p className="text-xs text-neutral-500">Email us</p>
                     <p className="break-all text-sm font-medium text-black">
-                      ask@wearzane.com
+                    123@gmail.com
                     </p>
                   </div>
                 </a>
@@ -310,7 +310,7 @@ const TermsAndConditions = () => {
             <div className="flex items-center gap-3">
               <span className="h-px w-10 bg-black" />
               <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-neutral-500 sm:text-xs">
-                Wearzane / Legal
+                SOLEORA / Legal
               </p>
             </div>
             <span className="hidden text-xs tracking-widest text-neutral-400 sm:block">
@@ -449,13 +449,13 @@ const TermsAndConditions = () => {
 
             <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
               <a
-                href="mailto:ask@wearzane.com"
+                href="/"
                 className="inline-flex items-center justify-center gap-3 rounded-full bg-white px-7 py-4 text-sm font-semibold text-black transition duration-300 hover:-translate-y-1 hover:bg-neutral-200"
               >
                 Email Us <span>↗</span>
               </a>
               <a
-                href="tel:+923332279263"
+                href="/"
                 className="inline-flex items-center justify-center gap-3 rounded-full border border-white/25 px-7 py-4 text-sm font-semibold text-white transition duration-300 hover:-translate-y-1 hover:bg-white/10"
               >
                 Call Support <span>↗</span>
@@ -466,7 +466,7 @@ const TermsAndConditions = () => {
 
         <footer className="mt-8 flex flex-col gap-3 border-t border-neutral-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-neutral-400">
-            © {new Date().getFullYear()} Wearzane. All rights reserved.
+            © {new Date().getFullYear()}  Ali Hammad. All rights reserved.
           </p>
           <p className="max-w-xl text-xs leading-6 text-neutral-400 sm:text-right">
             Please review these Terms alongside your shipping, return,
