@@ -214,9 +214,9 @@ const Footer = () => {
             <ul className="space-y-3 text-sm text-gray-700">
               <li><a href="/about" className="hover:underline">{t("about")}</a></li>
               <li><a href="/pages/contact" className="hover:underline">{t("contact")}</a></li>
-              <li><a href="/pages/faqs" className="hover:underline">{t("faqs")}</a></li>
-              <li><a href="/pages/privacy-policy" className="hover:underline">{t("privacy")}</a></li>
-              <li><a href="/pages/careers" className="hover:underline">{t("careers")}</a></li>
+              <li><a href="/faq" className="hover:underline">{t("faqs")}</a></li>
+              <li><a href="/PrivacyPolicy" className="hover:underline">{t("privacy")}</a></li>
+              <li><a href="/careers" className="hover:underline">{t("careers")}</a></li>
             </ul>
           </div>
 

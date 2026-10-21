@@ -43,6 +43,9 @@ import Profile from "./Pages/Profile";
 import ProductSearch from "./Pages/ProductSearch";
 import AdminUsers from "./Pages/AdminUsers";
 import ShippingAndDelivery from "./Pages/ShippingAndDelivery";
+import FAQ from "./Pages/FAQ";
+import PrivacyPolicy from "./Pages/PrivacyPolicy";
+import Career from "./Pages/Career";
 
 const Layout = () => (
   <>
@@ -197,6 +200,9 @@ const App = () => (
         <Route path="/profile" element={<Profile />} />
         <Route path="/search" element={<ProductSearch />} />
         <Route path="/my-orders" element={<MyOrders />} />
+        <Route path="/faq" element={<FAQ />} />
+        <Route path="/PrivacyPolicy " element={<PrivacyPolicy />} />
+        <Route path="/careers " element={<Career />} />
          <Route path="/shipping-and-delivery" element={<ShippingAndDelivery />} />
 
         {/* Category Pages */}
