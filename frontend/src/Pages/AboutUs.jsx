@@ -24,7 +24,7 @@ const AboutUs = () => {
 
           <div className="mt-9">
             <Link
-              to="/shop"
+              to="/"
               className="inline-flex items-center gap-3 bg-black px-7 py-4 text-sm font-semibold text-white transition hover:bg-gray-800"
             >
               Explore the collection
@@ -174,7 +174,7 @@ const AboutUs = () => {
         </p>
 
         <Link
-          to="/shop"
+          to="/"
           className="mt-8 inline-flex items-center gap-3 bg-black px-8 py-4 text-sm font-semibold text-white transition hover:bg-gray-800"
         >
           Shop SOLEORA
