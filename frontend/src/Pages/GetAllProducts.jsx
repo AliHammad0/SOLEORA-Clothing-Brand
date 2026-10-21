@@ -8,7 +8,7 @@ import {
 } from "../redux/slices/cartSlice";
 
 const API_URL =
-  "https://soleora-clothing-brand-backend.vercel.app/api/v1/products/all";
+  "https://soleora-clothing-brand-backend.vercel.app/api/v1/products";
 
 const GetAllProducts = () => {
   const location = useLocation();
@@ -21,6 +21,8 @@ const GetAllProducts = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [addedProductId, setAddedProductId] = useState("");
+  const [addingProductIds, setAddingProductIds] = useState([]);
+  const [cartMessage, setCartMessage] = useState("");
 
   const gender = {
     "/men": "Men",
@@ -40,8 +42,8 @@ const GetAllProducts = () => {
       setError("");
 
       const url = gender
-        ? `${API_URL}?gender=${encodeURIComponent(gender)}`
-        : API_URL;
+        ? `${API_URL}/all?gender=${encodeURIComponent(gender)}`
+        : `${API_URL}/all`;
 
       const response = await fetch(url);
       const data = await response.json();
@@ -86,39 +88,168 @@ const GetAllProducts = () => {
     return price;
   };
 
-  const addToCart = (product) => {
-    const productId = product._id || product.id;
-    const stock = Number(product.stock ?? 0);
+  const addToCart = async (product) => {
+    const productId = String(product._id || product.id || "");
 
     if (!productId) {
-      alert("Unable to identify this product.");
+      setCartMessage("Unable to identify this product.");
       return;
     }
 
-    if (stock <= 0) {
-      alert("Sorry, this product is out of stock.");
-      return;
-    }
+    if (addingProductIds.includes(productId)) return;
 
-    const existingItem = cartItems.find(
-      (item) => String(item._id) === String(productId)
+    const currentProduct = products.find(
+      (item) => String(item._id || item.id) === productId
     );
 
-    if (existingItem && existingItem.quantity >= stock) {
-      alert("Sorry, no more stock is available for this product.");
+    if (!currentProduct || Number(currentProduct.stock ?? 0) <= 0) {
+      setCartMessage("Sorry, this product is out of stock.");
       return;
     }
 
-    dispatch(
-      addProductToCart({
-        ...product,
-        _id: productId,
-        price: getProductPrice(product),
-        stock,
-      })
-    );
+    setAddingProductIds((previous) => [...previous, productId]);
+    setCartMessage("");
 
-    setAddedProductId(productId);
+    try {
+      const response = await fetch(`${API_URL}/${productId}/reserve`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ quantity: 1 }),
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (!data || typeof data !== "object") {
+        throw new Error(
+          `Invalid backend response (${response.status}).`
+        );
+      }
+
+      if (
+        !response.ok ||
+        data.ok === false ||
+        data.success === false
+      ) {
+        throw new Error(
+          data.message || "Unable to reserve product stock."
+        );
+      }
+
+      const responseData =
+        data.data && typeof data.data === "object"
+          ? data.data
+          : data;
+
+      const reservation =
+        responseData.reservation ||
+        data.reservation ||
+        null;
+
+      const updatedProduct =
+        responseData.product ||
+        data.product ||
+        null;
+
+      const rawReservationId =
+        responseData.reservationId ||
+        data.reservationId ||
+        reservation?._id ||
+        reservation?.id ||
+        null;
+
+      const reservationId = rawReservationId
+        ? String(rawReservationId)
+        : "";
+
+      const rawReservedQuantity =
+        responseData.reservedQuantity ??
+        data.reservedQuantity ??
+        reservation?.quantity ??
+        responseData.quantity ??
+        data.quantity ??
+        1;
+
+      const reservedQuantity = Number(rawReservedQuantity);
+
+      if (!updatedProduct || typeof updatedProduct !== "object") {
+        throw new Error(
+          "Reservation response is missing the updated product."
+        );
+      }
+
+      if (!reservationId) {
+        throw new Error(
+          "Reservation ID is missing from the backend response."
+        );
+      }
+
+      if (
+        !Number.isSafeInteger(reservedQuantity) ||
+        reservedQuantity !== 1
+      ) {
+        throw new Error("The reserved quantity is invalid.");
+      }
+
+      const cartProduct = {
+        ...currentProduct,
+        ...updatedProduct,
+        _id: String(
+          updatedProduct._id ||
+          updatedProduct.id ||
+          productId
+        ),
+        price: getProductPrice(currentProduct),
+        image:
+          currentProduct.images?.[0] ||
+          currentProduct.image ||
+          updatedProduct.image ||
+          "",
+        stock: Math.max(
+          1,
+          Number(updatedProduct.stock) || 0
+        ),
+      };
+
+      dispatch(
+        addProductToCart({
+          product: cartProduct,
+          quantity: reservedQuantity,
+          reservationId,
+        })
+      );
+
+      setProducts((previous) =>
+        previous.map((item) =>
+          String(item._id || item.id) === productId
+            ? {
+                ...item,
+                ...updatedProduct,
+                stock: Math.max(
+                  0,
+                  Number(updatedProduct.stock) || 0
+                ),
+              }
+            : item
+        )
+      );
+
+      setAddedProductId(productId);
+      setCartMessage(`${currentProduct.title || "Product"} added to cart!`);
+    } catch (err) {
+      console.error("Add to cart error:", err);
+
+      setCartMessage(
+        err.message === "Failed to fetch"
+          ? "Server se connection nahi ho saka. Please try again."
+          : err.message || "Unable to add product to cart."
+      );
+    } finally {
+      setAddingProductIds((previous) =>
+        previous.filter((id) => id !== productId)
+      );
+    }
   };
 
   const filteredProducts = useMemo(() => {
@@ -277,11 +408,11 @@ const GetAllProducts = () => {
     const onSale = finalPrice < price;
     const image = product.images?.[0] || product.image;
     const isList = viewMode === "list";
-    const productId = product._id || product.id;
+    const productId = String(product._id || product.id || "");
     const productUrl = `/product/${productId}`;
     const outOfStock = Number(product.stock ?? 0) <= 0;
-    const wasAdded =
-      String(addedProductId) === String(productId);
+    const isAdding = addingProductIds.includes(productId);
+    const wasAdded = addedProductId === productId;
 
     return (
       <article
@@ -369,20 +500,22 @@ const GetAllProducts = () => {
           <button
             type="button"
             onClick={() => addToCart(product)}
-            disabled={outOfStock}
+            disabled={outOfStock || isAdding}
             className={`mt-3 w-full px-3 py-2.5 text-xs font-semibold transition sm:text-sm ${
-              outOfStock
+              outOfStock || isAdding
                 ? "cursor-not-allowed bg-gray-200 text-gray-500"
                 : wasAdded
-                ? "bg-green-700 text-white"
-                : "bg-black text-white hover:bg-gray-800"
+                  ? "bg-green-700 text-white"
+                  : "bg-black text-white hover:bg-gray-800"
             }`}
           >
             {outOfStock
               ? "Out of Stock"
-              : wasAdded
-              ? "Added to Cart ✓"
-              : "Add to Cart"}
+              : isAdding
+                ? "Adding..."
+                : wasAdded
+                  ? "Added to Cart ✓"
+                  : "Add to Cart"}
           </button>
         </div>
       </article>
@@ -434,6 +567,19 @@ const GetAllProducts = () => {
             </div>
           </div>
         </div>
+
+        {cartMessage && (
+          <p
+            role="status"
+            className={`mb-4 text-sm ${
+              cartMessage.includes("added to cart")
+                ? "text-green-700"
+                : "text-red-600"
+            }`}
+          >
+            {cartMessage}
+          </p>
+        )}
 
         {loading && (
           <div className="grid gap-3 sm:gap-5" style={gridStyle}>
