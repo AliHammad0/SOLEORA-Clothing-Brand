@@ -510,7 +510,7 @@ const GetAllProducts = () => {
             }`}
           >
             {outOfStock
-              ? "Out of Stock"
+              ? "😂 Bhai, Maal Khatam!"
               : isAdding
                 ? "Adding..."
                 : wasAdded
