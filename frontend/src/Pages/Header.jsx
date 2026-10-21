@@ -38,20 +38,8 @@ const translations = {
     newArrivals: "NEW ARRIVALS",
     women: "WOMEN",
     men: "MEN",
-    shoes: "SHOES",
-    sale: "SALE",
     allWomen: "All Women",
-    womensClothing: "Women's Clothing",
-    womensShoes: "Women's Shoes",
-    womensBags: "Women's Bags",
     allMen: "All Men",
-    mensClothing: "Men's Clothing",
-    mensShoes: "Men's Shoes",
-    mensAccessories: "Men's Accessories",
-    allShoes: "All Shoes",
-    sneakers: "Sneakers",
-    formalShoes: "Formal Shoes",
-    casualShoes: "Casual Shoes",
     account: "MY ACCOUNT",
     dashboard: "DASHBOARD",
     profile: "PROFILE",
@@ -70,20 +58,8 @@ const translations = {
     newArrivals: "نئی آمد",
     women: "خواتین",
     men: "مرد",
-    shoes: "جوتے",
-    sale: "سیل",
     allWomen: "تمام خواتین",
-    womensClothing: "خواتین کے کپڑے",
-    womensShoes: "خواتین کے جوتے",
-    womensBags: "خواتین کے بیگز",
     allMen: "تمام مرد",
-    mensClothing: "مردوں کے کپڑے",
-    mensShoes: "مردوں کے جوتے",
-    mensAccessories: "مردوں کی ایکسیسریز",
-    allShoes: "تمام جوتے",
-    sneakers: "اسنیکرز",
-    formalShoes: "فارمل جوتے",
-    casualShoes: "کیژول جوتے",
     account: "میرا اکاؤنٹ",
     dashboard: "ڈیش بورڈ",
     profile: "پروفائل",
@@ -102,20 +78,8 @@ const translations = {
     newArrivals: "নতুন কালেকশন",
     women: "নারী",
     men: "পুরুষ",
-    shoes: "জুতা",
-    sale: "ছাড়",
     allWomen: "সব নারীদের পণ্য",
-    womensClothing: "নারীদের পোশাক",
-    womensShoes: "নারীদের জুতা",
-    womensBags: "নারীদের ব্যাগ",
     allMen: "সব পুরুষদের পণ্য",
-    mensClothing: "পুরুষদের পোশাক",
-    mensShoes: "পুরুষদের জুতা",
-    mensAccessories: "পুরুষদের অ্যাক্সেসরিজ",
-    allShoes: "সব জুতা",
-    sneakers: "স্নিকার্স",
-    formalShoes: "ফরমাল জুতা",
-    casualShoes: "ক্যাজুয়াল জুতা",
     account: "আমার অ্যাকাউন্ট",
     dashboard: "ড্যাশবোর্ড",
     profile: "প্রোফাইল",
@@ -134,20 +98,8 @@ const translations = {
     newArrivals: "नए उत्पाद",
     women: "महिलाएं",
     men: "पुरुष",
-    shoes: "जूते",
-    sale: "सेल",
     allWomen: "सभी महिलाओं के उत्पाद",
-    womensClothing: "महिलाओं के कपड़े",
-    womensShoes: "महिलाओं के जूते",
-    womensBags: "महिलाओं के बैग",
     allMen: "सभी पुरुषों के उत्पाद",
-    mensClothing: "पुरुषों के कपड़े",
-    mensShoes: "पुरुषों के जूते",
-    mensAccessories: "पुरुषों की एक्सेसरीज़",
-    allShoes: "सभी जूते",
-    sneakers: "स्नीकर्स",
-    formalShoes: "फॉर्मल जूते",
-    casualShoes: "कैज़ुअल जूते",
     account: "मेरा अकाउंट",
     dashboard: "डैशबोर्ड",
     profile: "प्रोफ़ाइल",
@@ -166,20 +118,8 @@ const translations = {
     newArrivals: "وصل حديثًا",
     women: "نساء",
     men: "رجال",
-    shoes: "أحذية",
-    sale: "تخفيضات",
     allWomen: "جميع منتجات النساء",
-    womensClothing: "ملابس نسائية",
-    womensShoes: "أحذية نسائية",
-    womensBags: "حقائب نسائية",
     allMen: "جميع منتجات الرجال",
-    mensClothing: "ملابس رجالية",
-    mensShoes: "أحذية رجالية",
-    mensAccessories: "إكسسوارات رجالية",
-    allShoes: "جميع الأحذية",
-    sneakers: "أحذية رياضية",
-    formalShoes: "أحذية رسمية",
-    casualShoes: "أحذية كاجوال",
     account: "حسابي",
     dashboard: "لوحة التحكم",
     profile: "الملف الشخصي",
@@ -198,20 +138,8 @@ const translations = {
     newArrivals: "新品上市",
     women: "女装",
     men: "男装",
-    shoes: "鞋类",
-    sale: "促销",
     allWomen: "全部女装",
-    womensClothing: "女士服装",
-    womensShoes: "女士鞋履",
-    womensBags: "女士包袋",
     allMen: "全部男装",
-    mensClothing: "男士服装",
-    mensShoes: "男士鞋履",
-    mensAccessories: "男士配饰",
-    allShoes: "全部鞋类",
-    sneakers: "运动鞋",
-    formalShoes: "正装鞋",
-    casualShoes: "休闲鞋",
     account: "我的账户",
     dashboard: "管理面板",
     profile: "个人资料",
@@ -230,20 +158,8 @@ const translations = {
     newArrivals: "新着商品",
     women: "レディース",
     men: "メンズ",
-    shoes: "シューズ",
-    sale: "セール",
     allWomen: "レディース全商品",
-    womensClothing: "レディースウェア",
-    womensShoes: "レディースシューズ",
-    womensBags: "レディースバッグ",
     allMen: "メンズ全商品",
-    mensClothing: "メンズウェア",
-    mensShoes: "メンズシューズ",
-    mensAccessories: "メンズアクセサリー",
-    allShoes: "すべてのシューズ",
-    sneakers: "スニーカー",
-    formalShoes: "フォーマルシューズ",
-    casualShoes: "カジュアルシューズ",
     account: "マイアカウント",
     dashboard: "管理パネル",
     profile: "プロフィール",
@@ -262,20 +178,8 @@ const translations = {
     newArrivals: "NOUVEAUTÉS",
     women: "FEMMES",
     men: "HOMMES",
-    shoes: "CHAUSSURES",
-    sale: "SOLDES",
     allWomen: "Toutes les femmes",
-    womensClothing: "Vêtements femme",
-    womensShoes: "Chaussures femme",
-    womensBags: "Sacs femme",
     allMen: "Tous les hommes",
-    mensClothing: "Vêtements homme",
-    mensShoes: "Chaussures homme",
-    mensAccessories: "Accessoires homme",
-    allShoes: "Toutes les chaussures",
-    sneakers: "Baskets",
-    formalShoes: "Chaussures habillées",
-    casualShoes: "Chaussures décontractées",
     account: "MON COMPTE",
     dashboard: "TABLEAU DE BORD",
     profile: "PROFIL",
@@ -358,7 +262,6 @@ const Header = () => {
     };
   }, []);
 
-  // API se live product search
   useEffect(() => {
     const keyword = searchText.trim();
 
@@ -416,7 +319,6 @@ const Header = () => {
     };
   }, [searchText, searchOpen]);
 
-  // Modal open hone par body scroll band
   useEffect(() => {
     if (!regionOpen) return;
 
@@ -445,42 +347,22 @@ const Header = () => {
   const t = translations[language] || translations.en;
   const isRTL = language === "ur" || language === "ar";
 
+  // Navigation: Shoes aur Sale remove kar diye hain.
+  // Men aur Women ke dropdown mein sirf ek link hai.
   const navLinks = [
     { id: "new", name: t.newArrivals, href: "/new" },
     {
       id: "women",
       name: t.women,
       href: "/women",
-      dropdown: [
-        { name: t.allWomen, href: "/women" },
-        { name: t.womensClothing, href: "/women/clothing" },
-        { name: t.womensShoes, href: "/women/shoes" },
-        { name: t.womensBags, href: "/women/bags" },
-      ],
+      dropdown: [{ name: t.allWomen, href: "/women" }],
     },
     {
       id: "men",
       name: t.men,
       href: "/men",
-      dropdown: [
-        { name: t.allMen, href: "/men" },
-        { name: t.mensClothing, href: "/men/clothing" },
-        { name: t.mensShoes, href: "/men/shoes" },
-        { name: t.mensAccessories, href: "/men/accessories" },
-      ],
+      dropdown: [{ name: t.allMen, href: "/men" }],
     },
-    {
-      id: "shoes",
-      name: t.shoes,
-      href: "/shoes",
-      dropdown: [
-        { name: t.allShoes, href: "/shoes" },
-        { name: t.sneakers, href: "/shoes/sneakers" },
-        { name: t.formalShoes, href: "/shoes/formal" },
-        { name: t.casualShoes, href: "/shoes/casual" },
-      ],
-    },
-    { id: "sale", name: t.sale, href: "/sale" },
   ];
 
   const handleCountryChange = (code) => {
@@ -590,9 +472,7 @@ const Header = () => {
                   <div className="flex items-center gap-1">
                     <Link
                       to={link.href}
-                      className={`text-[11px] tracking-wide hover:underline hover:underline-offset-8 lg:text-xs ${
-                        link.id === "sale" ? "text-red-600" : ""
-                      }`}
+                      className="text-[11px] tracking-wide hover:underline hover:underline-offset-8 lg:text-xs"
                     >
                       {link.name}
                     </Link>
@@ -661,7 +541,7 @@ const Header = () => {
                 </Link>
               )}
 
-              {/* Country & Language button */}
+              {/* Country & Language */}
               <button
                 type="button"
                 onClick={() => {
@@ -835,10 +715,7 @@ const Header = () => {
                             />
                           ) : (
                             <div className="flex h-full items-center justify-center">
-                              <ShoppingBag
-                                size={18}
-                                className="text-gray-400"
-                              />
+                              <ShoppingBag size={18} className="text-gray-400" />
                             </div>
                           )}
                         </div>
@@ -884,10 +761,11 @@ const Header = () => {
                 <div className="flex items-center justify-between gap-3">
                   <Link
                     to={link.href}
-                    onClick={() => setMobileMenu(false)}
-                    className={`py-4 text-xs tracking-wider ${
-                      link.id === "sale" ? "text-red-600" : ""
-                    }`}
+                    onClick={() => {
+                      setMobileMenu(false);
+                      setActiveDropdown(null);
+                    }}
+                    className="py-4 text-xs tracking-wider"
                   >
                     {link.name}
                   </Link>
@@ -959,7 +837,7 @@ const Header = () => {
         </nav>
       )}
 
-      {/* Responsive Country & Language Modal */}
+      {/* Country & Language Modal */}
       {regionOpen && (
         <div
           className="fixed inset-0 z-[10000] flex items-center justify-center overflow-y-auto bg-black/50 p-4 sm:p-6"
