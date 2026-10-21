@@ -1,4 +1,3 @@
-
 import React from "react";
 import {
   Routes,
@@ -19,6 +18,7 @@ import TermsAndConditions from "./Pages/TermsAndConditions";
 import ReturnsExchangePolicy from "./Pages/ReturnPolicy";
 import Login from "./Pages/Login";
 import Cart from "./Pages/Cart";
+import Checkout from "./Pages/Checkout";
 import Signup from "./Pages/Signup";
 import GetAllProducts from "./Pages/GetAllProducts";
 import CreateProduct from "./Pages/CreateProduct";
@@ -47,7 +47,6 @@ const Layout = () => (
     <Outlet />
     <Footer />
     <GoToTop />
-   
   </>
 );
 
@@ -190,17 +189,16 @@ const App = () => (
         <Route path="/login" element={<Login />} />
         <Route path="/product/:id" element={<ProductDetails />} />
         <Route path="/cart" element={<Cart />} />
+        <Route path="/checkout" element={<Checkout />} />
         <Route path="/about" element={<AboutUs />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/search" element={<ProductSearch />} />
-         
 
         {/* Category Pages */}
         <Route
           path="/men"
           element={<CategoryProducts category="Men" />}
         />
-
 
         <Route
           path="/women"
@@ -223,7 +221,11 @@ const App = () => (
             path="/admin/dashboard"
             element={<AdminDashboard />}
           />
-           <Route path="/admin/users" element={<AdminUsers />} />
+
+          <Route
+            path="/admin/users"
+            element={<AdminUsers />}
+          />
 
           <Route
             path="/admin/products"
@@ -236,7 +238,7 @@ const App = () => (
           />
 
           <Route
-            path="/admin/users"
+            path="/admin/customers"
             element={<AdminCustomers />}
           />
 
