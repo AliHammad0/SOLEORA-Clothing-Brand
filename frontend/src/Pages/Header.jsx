@@ -434,7 +434,7 @@ const Header = () => {
       {/* Announcement */}
       <div className="bg-black px-3 py-2 text-center text-[10px] tracking-wide text-white sm:text-xs">
         {t.announcement} {announcementAmount[selectedCountry.code] || "€60"}{" "}
-        <Link to="/shipping" className="ms-2 underline underline-offset-2">
+        <Link to="/" className="ms-2 underline underline-offset-2">
           {t.shopNow}
         </Link>
       </div>
