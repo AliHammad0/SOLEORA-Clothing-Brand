@@ -47,6 +47,7 @@ const Layout = () => (
     <Outlet />
     <Footer />
     <GoToTop />
+    <AdminUsers/>
   </>
 );
 
