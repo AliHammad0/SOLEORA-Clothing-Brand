@@ -52,7 +52,11 @@ const Layout = () => (
     <Header />
     <Outlet />
     <Footer />
-    <GoToTop />
+
+    {/* Go To Top */}
+    <div className="fixed bottom-24 right-5 z-40 sm:bottom-28 sm:right-8">
+      <GoToTop />
+    </div>
 
     {/* Floating WhatsApp Button */}
     <a
@@ -61,7 +65,7 @@ const Layout = () => (
       rel="noopener noreferrer"
       aria-label="Chat with SOLEORA on WhatsApp"
       title="Chat with us on WhatsApp"
-      className="fixed bottom-6 right-5 z-[100] flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-xl transition duration-300 hover:scale-110 hover:bg-[#20ba5a] sm:bottom-8 sm:right-8"
+      className="fixed bottom-5 right-5 z-[100] flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-xl transition duration-300 hover:scale-110 hover:bg-[#20ba5a] sm:bottom-6 sm:right-8"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -295,4 +299,3 @@ const App = () => (
 );
 
 export default App;
-
