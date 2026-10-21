@@ -201,7 +201,7 @@ const App = () => (
         <Route path="/search" element={<ProductSearch />} />
         <Route path="/my-orders" element={<MyOrders />} />
         <Route path="/faq" element={<FAQ />} />
-        <Route path="/PrivacyPolicy " element={<PrivacyPolicy />} />
+        <Route path="/policy " element={<PrivacyPolicy />} />
         <Route path="/careers " element={<Career />} />
          <Route path="/shipping-and-delivery" element={<ShippingAndDelivery />} />
 
