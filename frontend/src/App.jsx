@@ -47,7 +47,7 @@ const Layout = () => (
     <Outlet />
     <Footer />
     <GoToTop />
-    <AdminUsers/>
+   
   </>
 );
 
@@ -193,13 +193,14 @@ const App = () => (
         <Route path="/about" element={<AboutUs />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/search" element={<ProductSearch />} />
-          <Route path="/users" element={<AdminUsers />} />
+         
 
         {/* Category Pages */}
         <Route
           path="/men"
           element={<CategoryProducts category="Men" />}
         />
+
 
         <Route
           path="/women"
@@ -222,6 +223,7 @@ const App = () => (
             path="/admin/dashboard"
             element={<AdminDashboard />}
           />
+           <Route path="admin/users" element={<AdminUsers />} />
 
           <Route
             path="/admin/products"
