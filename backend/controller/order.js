@@ -391,3 +391,40 @@ export const updateOrderStatus = async (req, res) => {
     });
   }
 };
+
+///delete
+
+export const deleteCancelledOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const order = await Order.findById(id);
+
+    if (!order) {
+      return res.status(404).json({
+        ok: false,
+        message: "Order not found",
+      });
+    }
+
+    if (order.status !== "cancelled") {
+      return res.status(400).json({
+        ok: false,
+        message: "Only cancelled orders can be deleted",
+      });
+    }
+
+    await Order.findByIdAndDelete(id);
+
+    return res.status(200).json({
+      ok: true,
+      message: "Cancelled order permanently deleted",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      ok: false,
+      message: error.message,
+    });
+  }
+};
+

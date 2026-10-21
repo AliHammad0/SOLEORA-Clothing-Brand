@@ -4,16 +4,15 @@ import {
   placeOrder,
   getAllOrders,
   updateOrderStatus,
+  deleteCancelledOrder,
 } from "../controller/order.js";
 import { verifyAdmin } from "../middleware/auth.js";
 
 const orderRoutes = express.Router();
 
-// Guest checkout — login required nahi
 orderRoutes.post("/place", placeOrder);
-
-// Admin only
 orderRoutes.get("/all", verifyAdmin, getAllOrders);
 orderRoutes.put("/:id/status", verifyAdmin, updateOrderStatus);
+orderRoutes.delete("/:id", verifyAdmin, deleteCancelledOrder);
 
 export default orderRoutes;

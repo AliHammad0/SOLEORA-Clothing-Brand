@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ShoppingBag, RefreshCw } from "lucide-react";
+import { ShoppingBag, RefreshCw, Trash2 } from "lucide-react";
 
 const API_URL =
   "https://soleora-clothing-brand-backend.vercel.app/api/v1";
@@ -9,6 +9,7 @@ export default function AdminOrders() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [updatingId, setUpdatingId] = useState("");
+  const [deletingId, setDeletingId] = useState("");
 
   const getToken = () =>
     localStorage.getItem("token") ||
@@ -39,9 +40,7 @@ export default function AdminOrders() {
       }
 
       setOrders(
-        Array.isArray(data)
-          ? data
-          : data.orders || data.data || []
+        Array.isArray(data) ? data : data.orders || data.data || []
       );
     } catch (err) {
       setError(err.message || "Orders load karne mein error aaya.");
@@ -57,6 +56,7 @@ export default function AdminOrders() {
   const updateStatus = async (id, status) => {
     try {
       setUpdatingId(id);
+      setError("");
 
       const response = await fetch(`${API_URL}/orders/${id}/status`, {
         method: "PUT",
@@ -78,6 +78,45 @@ export default function AdminOrders() {
       setError(err.message || "Status update nahi hua.");
     } finally {
       setUpdatingId("");
+    }
+  };
+
+  const deleteOrder = async (order) => {
+    if (order.status !== "cancelled") {
+      setError("Sirf cancelled orders delete ho sakte hain.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Order #${order._id.slice(-8).toUpperCase()} permanently delete karna hai? Yeh action undo nahi ho sakta.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setDeletingId(order._id);
+      setError("");
+
+      const response = await fetch(`${API_URL}/orders/${order._id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${getToken()}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Order delete nahi hua.");
+      }
+
+      setOrders((previous) =>
+        previous.filter((item) => item._id !== order._id)
+      );
+    } catch (err) {
+      setError(err.message || "Order delete nahi hua.");
+    } finally {
+      setDeletingId("");
     }
   };
 
@@ -119,7 +158,7 @@ export default function AdminOrders() {
           />
           <h2 className="text-xl font-semibold">Abhi koi order nahi</h2>
           <p className="mt-2 text-gray-500">
-            Orders yahan show honge jab backend se available honge.
+            Customer orders yahan show honge.
           </p>
         </div>
       ) : (
@@ -194,31 +233,51 @@ export default function AdminOrders() {
                       order.shippingAddress?.city,
                       order.shippingAddress?.province,
                     ]
-                        .filter(Boolean)
-                        .join(", ") || "Not provided"}
+                      .filter(Boolean)
+                      .join(", ") || "Not provided"}
               </div>
 
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
                 <span className="text-sm text-gray-600">
-                  Status:{" "}
-                  <strong>{order.status || "pending"}</strong>
+                  Status: <strong>{order.status || "pending"}</strong>
                 </span>
 
-                <select
-                  value={order.status || "pending"}
-                  disabled={updatingId === order._id}
-                  onChange={(e) =>
-                    updateStatus(order._id, e.target.value)
-                  }
-                  className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
-                >
-                  <option value="pending">Pending</option>
-                  <option value="confirmed">Confirmed</option>
-                  <option value="processing">Processing</option>
-                  <option value="shipped">Shipped</option>
-                  <option value="delivered">Delivered</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
+                <div className="flex flex-wrap items-center gap-2">
+                  <select
+                    value={order.status || "pending"}
+                    disabled={
+                      updatingId === order._id ||
+                      deletingId === order._id
+                    }
+                    onChange={(e) =>
+                      updateStatus(order._id, e.target.value)
+                    }
+                    className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="processing">Processing</option>
+                    <option value="shipped">Shipped</option>
+                    <option value="delivered">Delivered</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+
+                  {order.status === "cancelled" && (
+                    <button
+                      onClick={() => deleteOrder(order)}
+                      disabled={
+                        deletingId === order._id ||
+                        updatingId === order._id
+                      }
+                      className="flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-sm text-white hover:bg-red-700 disabled:opacity-50"
+                    >
+                      <Trash2 size={16} />
+                      {deletingId === order._id
+                        ? "Deleting..."
+                        : "Delete Permanently"}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           ))}
