@@ -48,6 +48,10 @@ const translations = {
     outOfStock: "Out of stock",
     error: "Could not update your cart. Please try again.",
     removing: "Removing...",
+    freeDelivery: "Free Shipping Unlocked!",
+    spendMore: "Spend",
+    moreForFree: "more for free delivery",
+    freeDeliveryAt: "Free Delivery",
   },
   ur: {
     selection: "آپ کا انتخاب",
@@ -79,6 +83,10 @@ const translations = {
     outOfStock: "اسٹاک ختم",
     error: "کارٹ اپ ڈیٹ نہیں ہو سکا۔ دوبارہ کوشش کریں۔",
     removing: "ہٹایا جا رہا ہے...",
+    freeDelivery: "مفت ڈیلیوری مل گئی!",
+    spendMore: "مزید",
+    moreForFree: "کی خریداری پر مفت ڈیلیوری ملے گی",
+    freeDeliveryAt: "مفت ڈیلیوری",
   },
   hi: {
     selection: "आपका चयन",
@@ -110,6 +118,10 @@ const translations = {
     outOfStock: "स्टॉक खत्म",
     error: "कार्ट अपडेट नहीं हो सका। दोबारा कोशिश करें।",
     removing: "हटाया जा रहा है...",
+    freeDelivery: "मुफ़्त डिलीवरी अनलॉक!",
+    spendMore: "और",
+    moreForFree: "खर्च करें और मुफ़्त डिलीवरी पाएँ",
+    freeDeliveryAt: "मुफ़्त डिलीवरी",
   },
   bn: {
     selection: "আপনার নির্বাচন",
@@ -141,6 +153,10 @@ const translations = {
     outOfStock: "স্টক শেষ",
     error: "কার্ট আপডেট করা যায়নি। আবার চেষ্টা করুন।",
     removing: "সরানো হচ্ছে...",
+    freeDelivery: "বিনামূল্যে ডেলিভারি চালু!",
+    spendMore: "আরও",
+    moreForFree: "খরচ করলে বিনামূল্যে ডেলিভারি পাবেন",
+    freeDeliveryAt: "বিনামূল্যে ডেলিভারি",
   },
   ar: {
     selection: "اختياراتك",
@@ -172,6 +188,10 @@ const translations = {
     outOfStock: "نفد المخزون",
     error: "تعذر تحديث السلة. حاول مرة أخرى.",
     removing: "جارٍ الإزالة...",
+    freeDelivery: "تم تفعيل الشحن المجاني!",
+    spendMore: "أنفق",
+    moreForFree: "إضافية للحصول على شحن مجاني",
+    freeDeliveryAt: "شحن مجاني",
   },
   zh: {
     selection: "您的选择",
@@ -203,6 +223,10 @@ const translations = {
     outOfStock: "缺货",
     error: "无法更新购物车，请重试。",
     removing: "正在删除...",
+    freeDelivery: "已解锁免费配送！",
+    spendMore: "再消费",
+    moreForFree: "即可享受免费配送",
+    freeDeliveryAt: "免费配送",
   },
   ja: {
     selection: "お選びいただいた商品",
@@ -234,6 +258,10 @@ const translations = {
     outOfStock: "在庫切れ",
     error: "カートを更新できませんでした。再試行してください。",
     removing: "削除中...",
+    freeDelivery: "送料無料が適用されました！",
+    spendMore: "あと",
+    moreForFree: "で送料無料になります",
+    freeDeliveryAt: "送料無料",
   },
   fr: {
     selection: "Votre sélection",
@@ -265,14 +293,15 @@ const translations = {
     outOfStock: "Rupture de stock",
     error: "Impossible de mettre à jour le panier. Réessayez.",
     removing: "Suppression...",
+    freeDelivery: "Livraison gratuite débloquée !",
+    spendMore: "Dépensez encore",
+    moreForFree: "pour obtenir la livraison gratuite",
+    freeDeliveryAt: "Livraison gratuite",
   },
 };
 
-// Product ID helper
 const getItemId = (item) => String(item._id ?? item.id ?? "");
 
-// Parse a valid price from the possible product price fields.
-// Zero/empty special prices are ignored so original price can be used.
 const getItemPrice = (item) => {
   const specialPrice = Number(item.specialPrice);
   const discountPrice = Number(item.discountPrice);
@@ -302,7 +331,6 @@ const getItemPrice = (item) => {
     return regularPrice;
   }
 
-  // Last fallback for products whose cart item only stores an offer price.
   if (Number.isFinite(specialPrice) && specialPrice > 0) {
     return specialPrice;
   }
@@ -325,6 +353,27 @@ const getItemName = (item) => item.title || item.name || "SOLEORA Product";
 const formatPrice = (price) =>
   `Rs. ${Number(price || 0).toLocaleString("en-PK")}`;
 
+const DeliveryTruck = () => (
+  <svg
+    width="30"
+    height="30"
+    viewBox="0 0 32 32"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M3 10h16v13H3z" />
+    <path d="M19 15h6l4 5v3H19z" />
+    <path d="M22 15v5h7" />
+    <circle cx="9" cy="24" r="3" fill="white" />
+    <circle cx="24" cy="24" r="3" fill="white" />
+    <path d="M6 14h7M6 18h5" />
+  </svg>
+);
+
 const Cart = () => {
   const { language } = useLanguage();
   const dispatch = useDispatch();
@@ -337,7 +386,6 @@ const Cart = () => {
   const subtotal = cartItems.reduce((sum, item) => {
     const price = getItemPrice(item);
     const quantity = Math.max(1, Number(item.quantity || 1));
-
     return sum + price * quantity;
   }, 0);
 
@@ -360,51 +408,59 @@ const Cart = () => {
         : text.items
       : text.items;
 
+  const shippingProgress = Math.min(
+    (subtotal / FREE_SHIPPING_LIMIT) * 100,
+    100
+  );
 
-const handleRemove = async (item) => {
-  const id = getItemId(item);
+  const remainingForFreeShipping = Math.max(
+    FREE_SHIPPING_LIMIT - subtotal,
+    0
+  );
 
-  if (processingId) return;
+  const handleRemove = async (item) => {
+    const id = getItemId(item);
 
-  try {
-    setProcessingId(id);
+    if (processingId) return;
 
-    const reservations = Array.isArray(item.reservations)
-      ? item.reservations
-          .map((reservation) => reservation?.reservationId)
-          .filter(Boolean)
-      : [];
+    try {
+      setProcessingId(id);
 
-    if (reservations.length === 0 && item.reservationId) {
-      reservations.push(item.reservationId);
-    }
+      const reservations = Array.isArray(item.reservations)
+        ? item.reservations
+            .map((reservation) => reservation?.reservationId)
+            .filter(Boolean)
+        : [];
 
-    for (const reservationId of [...new Set(reservations)]) {
-      const response = await fetch(
-        `${API_URL}/reservations/${reservationId}/release`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      const data = await response.json().catch(() => ({}));
-
-      if (!response.ok || data.ok !== true) {
-        throw new Error(data.message || text.error);
+      if (reservations.length === 0 && item.reservationId) {
+        reservations.push(item.reservationId);
       }
+
+      for (const reservationId of [...new Set(reservations)]) {
+        const response = await fetch(
+          `${API_URL}/reservations/${reservationId}/release`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok || data.ok !== true) {
+          throw new Error(data.message || text.error);
+        }
+      }
+
+      dispatch(removeFromCart(id));
+    } catch (error) {
+      alert(error.message || text.error);
+    } finally {
+      setProcessingId(null);
     }
-
-    dispatch(removeFromCart(id));
-  } catch (error) {
-    alert(error.message || text.error);
-  } finally {
-    setProcessingId(null);
-  }
-};
-
+  };
 
   return (
     <div
@@ -416,18 +472,28 @@ const handleRemove = async (item) => {
           from { opacity: 0; transform: translateY(-12px); }
           to { opacity: 1; transform: translateY(0); }
         }
+
         @keyframes cartFadeUp {
           from { opacity: 0; transform: translateY(15px); }
           to { opacity: 1; transform: translateY(0); }
         }
+
+        @keyframes truckBounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-3px); }
+        }
+
         .cart-header { animation: cartFadeDown .5s ease both; }
         .cart-content { animation: cartFadeUp .5s ease both; }
         .cart-item-image { transition: transform .3s ease; }
         .cart-item-image:hover { transform: scale(1.04); }
         .cart-button { transition: background-color .2s ease, color .2s ease; }
+        .delivery-truck { animation: truckBounce 1s ease-in-out infinite; }
+
         @media (prefers-reduced-motion: reduce) {
           .cart-header, .cart-content { animation: none !important; }
           .cart-item-image, .cart-button { transition: none !important; }
+          .delivery-truck { animation: none !important; }
         }
       `}</style>
 
@@ -630,6 +696,59 @@ const handleRemove = async (item) => {
 
             <aside className="h-fit border border-gray-200 p-6 md:p-7">
               <h2 className="text-xl font-semibold">{text.summary}</h2>
+
+              {/* Animated free-delivery progress */}
+              <div className="mt-6">
+                <div className="mb-4 flex items-center justify-between gap-3 text-xs">
+                  <span className="font-medium leading-5">
+                    {remainingForFreeShipping === 0
+                      ? text.freeDelivery
+                      : `${text.spendMore} ${formatPrice(
+                          remainingForFreeShipping
+                        )} ${text.moreForFree}`}
+                  </span>
+
+                  <span className="shrink-0 font-semibold">
+                    {Math.round(shippingProgress)}%
+                  </span>
+                </div>
+
+                <div
+                  className="relative mt-8 h-3 rounded-full bg-gray-200"
+                  role="progressbar"
+                  aria-label="Free shipping progress"
+                  aria-valuenow={Math.round(shippingProgress)}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                >
+                  <div
+                    className="h-full rounded-full bg-black transition-all duration-700 ease-out"
+                    style={{ width: `${shippingProgress}%` }}
+                  />
+
+                  <div
+                    className="delivery-truck absolute -top-8 transition-all duration-700 ease-out"
+                    style={{
+                      left: `calc(${shippingProgress}% - 15px)`,
+                    }}
+                  >
+                    <DeliveryTruck />
+                  </div>
+                </div>
+
+                <div className="mt-3 flex justify-between gap-2 text-[10px] text-gray-500 sm:text-[11px]">
+                  <span>Rs. 0</span>
+                  <span className="text-right">
+                    Rs. 5,000 — {text.freeDeliveryAt}
+                  </span>
+                </div>
+
+                {remainingForFreeShipping === 0 && (
+                  <p className="mt-3 text-xs font-medium text-green-700">
+                    ✓ {text.unlocked}
+                  </p>
+                )}
+              </div>
 
               <div className="mt-7 space-y-5 border-b border-gray-200 pb-6">
                 <div className="flex justify-between gap-4 text-sm">
