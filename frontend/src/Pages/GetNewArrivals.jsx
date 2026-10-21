@@ -67,11 +67,7 @@ const GetNewArrivals = () => {
       return specialPrice;
     }
 
-    if (
-      discount > 0 &&
-      discount < 100 &&
-      originalPrice > 0
-    ) {
+    if (discount > 0 && discount < 100 && originalPrice > 0) {
       return originalPrice - (originalPrice * discount) / 100;
     }
 
@@ -158,14 +154,10 @@ const GetNewArrivals = () => {
           : data;
 
       const reservation =
-        responseData.reservation ||
-        data.reservation ||
-        null;
+        responseData.reservation || data.reservation || null;
 
       const updatedProduct =
-        responseData.product ||
-        data.product ||
-        null;
+        responseData.product || data.product || null;
 
       const reservationId = String(
         responseData.reservationId ||
@@ -412,7 +404,7 @@ const GetNewArrivals = () => {
                     type="button"
                     onClick={() => addProductToCart(product)}
                     disabled={outOfStock || isAdding}
-                    className={`mt-3 w-full px-3 py-3 text-xs font-semibold uppercase tracking-wider text-white transition sm:text-sm ${
+                    className={`mt-2 w-full px-2 py-2 text-[10px] font-semibold uppercase tracking-wide text-white transition sm:mt-3 sm:px-3 sm:py-2 sm:text-xs sm:tracking-wider ${
                       outOfStock || isAdding
                         ? "cursor-not-allowed bg-gray-400"
                         : addedProduct === productId
