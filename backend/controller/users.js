@@ -2,17 +2,76 @@
 import User from "../model/users.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 import * as config from "../config/config.js";
 
-// Signup
+const createOtp = () => crypto.randomInt(100000, 1000000).toString();
+
+const hashOtp = (otp) =>
+  crypto.createHash("sha256").update(otp).digest("hex");
+
+const sendOtpEmail = async (email, otp) => {
+  const apiKey = process.env.RESEND_API_KEY;
+
+  if (!apiKey) {
+    throw new Error("RESEND_API_KEY is not configured");
+  }
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: "SOLEORA <onboarding@resend.dev>",
+      to: [email],
+      subject: "Your SOLEORA verification code",
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:500px;margin:auto">
+          <h2>Welcome to SOLEORA!</h2>
+          <p>Use this code to verify your email address:</p>
+          <h1 style="letter-spacing:8px">${otp}</h1>
+          <p>This code expires in 10 minutes.</p>
+          <p>If you did not request this code, you can ignore this email.</p>
+        </div>
+      `,
+    }),
+  });
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    console.error("Resend email error:", result);
+    throw new Error("Email could not be sent. Check Resend configuration.");
+  }
+};
+
+// Signup and send OTP
 export const signup = async (req, res) => {
+  let user;
+
   try {
     const { firstname, lastname, email, password } = req.body;
 
-    if (!firstname || !lastname || !email || !password) {
+    if (
+      !firstname?.trim() ||
+      !lastname?.trim() ||
+      !email?.trim() ||
+      !password
+    ) {
       return res.status(400).json({
         ok: false,
         message: "All fields are required",
+      });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      return res.status(400).json({
+        ok: false,
+        message: "Please enter a valid email address",
       });
     }
 
@@ -23,39 +82,58 @@ export const signup = async (req, res) => {
       });
     }
 
-    const normalizedEmail = email.toLowerCase().trim();
+    const existingUser = await User.findOne({ email: normalizedEmail });
 
-    const existingUser = await User.findOne({
-      email: normalizedEmail,
-    });
-
-    if (existingUser) {
+    if (existingUser?.isEmailVerified) {
       return res.status(409).json({
         ok: false,
-        message: "Email already exists",
+        message: "Email already exists. Please login.",
       });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const otp = createOtp();
+    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-    const user = await User.create({
-      firstname: firstname.trim(),
-      lastname: lastname.trim(),
-      email: normalizedEmail,
-      password: hashedPassword,
-      isAdmin: false,
-    });
+    if (existingUser) {
+      existingUser.firstname = firstname.trim();
+      existingUser.lastname = lastname.trim();
+      existingUser.password = await bcrypt.hash(password, 10);
+      existingUser.emailOtpHash = hashOtp(otp);
+      existingUser.emailOtpExpiresAt = otpExpiresAt;
+      existingUser.emailOtpAttempts = 0;
 
-    return res.status(201).json({
-      ok: true,
-      message: "Signup successful",
-      user: {
-        _id: user._id,
-        firstname: user.firstname,
-        lastname: user.lastname,
-        email: user.email,
+      user = await existingUser.save();
+    } else {
+      user = await User.create({
+        firstname: firstname.trim(),
+        lastname: lastname.trim(),
+        email: normalizedEmail,
+        password: await bcrypt.hash(password, 10),
         isAdmin: false,
-      },
+        isEmailVerified: false,
+        emailOtpHash: hashOtp(otp),
+        emailOtpExpiresAt: otpExpiresAt,
+        emailOtpAttempts: 0,
+      });
+    }
+
+    try {
+      await sendOtpEmail(normalizedEmail, otp);
+    } catch (emailError) {
+      if (!existingUser && user) {
+        await User.findByIdAndDelete(user._id);
+      }
+
+      return res.status(502).json({
+        ok: false,
+        message: emailError.message,
+      });
+    }
+
+    return res.status(200).json({
+      ok: true,
+      message: "Verification code sent to your email",
+      email: normalizedEmail,
     });
   } catch (error) {
     if (error.code === 11000) {
@@ -65,10 +143,92 @@ export const signup = async (req, res) => {
       });
     }
 
+    console.error("Signup error:", error);
+
     return res.status(500).json({
       ok: false,
       message: "Signup failed",
-      error: error.message,
+    });
+  }
+};
+
+// Verify email OTP
+export const verifyEmail = async (req, res) => {
+  try {
+    const email = req.body.email?.trim().toLowerCase();
+    const otp = String(req.body.otp || "").trim();
+
+    if (!email || !/^\d{6}$/.test(otp)) {
+      return res.status(400).json({
+        ok: false,
+        message: "Valid email and 6-digit OTP are required",
+      });
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({
+        ok: false,
+        message: "Account not found. Please sign up again.",
+      });
+    }
+
+    if (user.isEmailVerified) {
+      return res.status(200).json({
+        ok: true,
+        message: "Email is already verified. Please login.",
+      });
+    }
+
+    if (!user.emailOtpHash || !user.emailOtpExpiresAt) {
+      return res.status(400).json({
+        ok: false,
+        message: "Please sign up again to request a new code",
+      });
+    }
+
+    if (user.emailOtpExpiresAt.getTime() < Date.now()) {
+      return res.status(400).json({
+        ok: false,
+        message: "OTP expired. Please sign up again to get a new code",
+      });
+    }
+
+    if (user.emailOtpAttempts >= 5) {
+      return res.status(429).json({
+        ok: false,
+        message: "Too many attempts. Please request a new code",
+      });
+    }
+
+    if (hashOtp(otp) !== user.emailOtpHash) {
+      user.emailOtpAttempts += 1;
+      await user.save();
+
+      return res.status(400).json({
+        ok: false,
+        message: "Incorrect verification code",
+      });
+    }
+
+    user.isEmailVerified = true;
+    user.emailOtpHash = null;
+    user.emailOtpExpiresAt = null;
+    user.emailOtpAttempts = 0;
+
+    await user.save();
+
+    return res.status(200).json({
+      ok: true,
+      message: "Email verified successfully. You can now login.",
+    });
+  } catch (error) {
+    console.error("Email verification error:", error);
+
+    return res.status(500).json({
+      ok: false,
+      message: "Email verification failed",
     });
   }
 };
@@ -85,16 +245,22 @@ export const login = async (req, res) => {
       });
     }
 
-    const normalizedEmail = email.toLowerCase().trim();
-
     const user = await User.findOne({
-      email: normalizedEmail,
+      email: email.trim().toLowerCase(),
     });
 
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({
         ok: false,
         message: "Invalid email or password",
+      });
+    }
+
+    if (!user.isEmailVerified) {
+      return res.status(403).json({
+        ok: false,
+        message: "Please verify your email before logging in",
+        needsEmailVerification: true,
       });
     }
 
@@ -122,13 +288,15 @@ export const login = async (req, res) => {
         email: user.email,
         isAdmin: user.isAdmin === true,
         isActive: user.isActive,
+        isEmailVerified: user.isEmailVerified,
       },
     });
   } catch (error) {
+    console.error("Login error:", error);
+
     return res.status(500).json({
       ok: false,
       message: "Login failed",
-      error: error.message,
     });
   }
 };
@@ -137,7 +305,7 @@ export const login = async (req, res) => {
 export const getAllUsers = async (req, res) => {
   try {
     const users = await User.find()
-      .select("-password")
+      .select("-password -emailOtpHash -emailOtpExpiresAt -emailOtpAttempts")
       .sort({ createdAt: -1 });
 
     return res.status(200).json({
@@ -150,7 +318,6 @@ export const getAllUsers = async (req, res) => {
     return res.status(500).json({
       ok: false,
       message: "Failed to fetch users",
-      error: error.message,
     });
   }
 };
@@ -167,7 +334,9 @@ export const getSingleUser = async (req, res) => {
       });
     }
 
-    const user = await User.findById(id).select("-password");
+    const user = await User.findById(id).select(
+      "-password -emailOtpHash -emailOtpExpiresAt -emailOtpAttempts"
+    );
 
     if (!user) {
       return res.status(404).json({
@@ -185,7 +354,6 @@ export const getSingleUser = async (req, res) => {
     return res.status(500).json({
       ok: false,
       message: "Failed to fetch user",
-      error: error.message,
     });
   }
 };
@@ -228,7 +396,10 @@ export const updateUser = async (req, res) => {
     }
 
     if (email !== undefined) {
-      if (typeof email !== "string" || !email.trim()) {
+      if (
+        typeof email !== "string" ||
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+      ) {
         return res.status(400).json({
           ok: false,
           message: "A valid email is required",
@@ -268,16 +439,18 @@ export const updateUser = async (req, res) => {
           message: "Email already exists",
         });
       }
+
+      updateData.isEmailVerified = false;
+      updateData.emailOtpHash = null;
+      updateData.emailOtpExpiresAt = null;
+      updateData.emailOtpAttempts = 0;
     }
 
     const user = await User.findByIdAndUpdate(
       id,
       { $set: updateData },
-      {
-        new: true,
-        runValidators: true,
-      }
-    ).select("-password");
+      { new: true, runValidators: true }
+    ).select("-password -emailOtpHash -emailOtpExpiresAt -emailOtpAttempts");
 
     if (!user) {
       return res.status(404).json({
@@ -309,7 +482,6 @@ export const updateUser = async (req, res) => {
     return res.status(500).json({
       ok: false,
       message: "Failed to update user",
-      error: error.message,
     });
   }
 };
@@ -349,7 +521,6 @@ export const deleteUser = async (req, res) => {
     return res.status(500).json({
       ok: false,
       message: "Failed to delete user",
-      error: error.message,
     });
   }
 };

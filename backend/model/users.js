@@ -1,3 +1,4 @@
+
 import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema(
@@ -30,6 +31,22 @@ const userSchema = new mongoose.Schema(
     isActive: {
       type: Boolean,
       default: true,
+    },
+    isEmailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    emailOtpHash: {
+      type: String,
+      default: null,
+    },
+    emailOtpExpiresAt: {
+      type: Date,
+      default: null,
+    },
+    emailOtpAttempts: {
+      type: Number,
+      default: 0,
     },
   },
   { timestamps: true }
