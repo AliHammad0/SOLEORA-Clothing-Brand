@@ -5,6 +5,7 @@ import mongoose from "mongoose";
 import * as config from "./config/config.js";
 import productRoutes from "./routes/product.js";
 import userRouter from "./routes/users.js";
+import orderRoutes from "./routes/order.js";
 
 const app = express();
 
@@ -65,6 +66,7 @@ app.use(async (req, res, next) => {
 
 app.use("/api/v1/products", productRoutes);
 app.use("/api/v1/users", userRouter);
+app.use("/api/v1/orders", orderRoutes);
 
 app.get("/", (req, res) => {
   res.status(200).json({
