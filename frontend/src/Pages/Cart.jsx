@@ -360,39 +360,51 @@ const Cart = () => {
         : text.items
       : text.items;
 
-  const handleRemove = async (item) => {
-    const id = getItemId(item);
 
-    if (processingId) return;
+const handleRemove = async (item) => {
+  const id = getItemId(item);
 
-    try {
-      setProcessingId(id);
+  if (processingId) return;
 
-      const reservationId = item.reservationId;
+  try {
+    setProcessingId(id);
 
-      if (reservationId) {
-        const response = await fetch(
-          `${API_URL}/reservations/${reservationId}/release`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-          }
-        );
+    const reservations = Array.isArray(item.reservations)
+      ? item.reservations
+          .map((reservation) => reservation?.reservationId)
+          .filter(Boolean)
+      : [];
 
-        const data = await response.json().catch(() => ({}));
-
-        if (!response.ok || data.ok !== true) {
-          throw new Error(data.message || text.error);
-        }
-      }
-
-      dispatch(removeFromCart(id));
-    } catch (error) {
-      alert(error.message || text.error);
-    } finally {
-      setProcessingId(null);
+    if (reservations.length === 0 && item.reservationId) {
+      reservations.push(item.reservationId);
     }
-  };
+
+    for (const reservationId of [...new Set(reservations)]) {
+      const response = await fetch(
+        `${API_URL}/reservations/${reservationId}/release`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok || data.ok !== true) {
+        throw new Error(data.message || text.error);
+      }
+    }
+
+    dispatch(removeFromCart(id));
+  } catch (error) {
+    alert(error.message || text.error);
+  } finally {
+    setProcessingId(null);
+  }
+};
+
 
   return (
     <div

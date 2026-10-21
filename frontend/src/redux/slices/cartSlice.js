@@ -1,3 +1,4 @@
+
 import { createSlice } from "@reduxjs/toolkit";
 
 const getCartFromStorage = () => {
@@ -19,6 +20,26 @@ const saveCartToStorage = (cart) => {
 
 const getProductId = (item) => String(item?._id ?? item?.id ?? "");
 
+const getReservations = (item) => {
+  if (Array.isArray(item?.reservations) && item.reservations.length > 0) {
+    return item.reservations.filter(
+      (reservation) => reservation?.reservationId
+    );
+  }
+
+  // Support older cart items containing only one reservationId.
+  if (item?.reservationId) {
+    return [
+      {
+        reservationId: item.reservationId,
+        quantity: Number(item.quantity || 1),
+      },
+    ];
+  }
+
+  return [];
+};
+
 const cartSlice = createSlice({
   name: "cart",
 
@@ -27,66 +48,68 @@ const cartSlice = createSlice({
   },
 
   reducers: {
-  addToCart: (state, action) => {
-  const payload = action.payload;
-  const product = payload.product || payload;
-  const productId = getProductId(product);
+    addToCart: (state, action) => {
+      const payload = action.payload;
+      const product = payload.product || payload;
+      const productId = getProductId(product);
 
-  if (!productId) return;
+      if (!productId) return;
 
-  const quantityToAdd = Math.max(
-    1,
-    Number(payload.quantity || 1)
-  );
+      const quantityToAdd = Math.max(
+        1,
+        Number(payload.quantity || 1)
+      );
 
-  const isReserved = Boolean(payload.reservationId);
-  const stock = Math.max(0, Number(product.stock ?? 0));
+      const isReserved = Boolean(payload.reservationId);
+      const stock = Math.max(0, Number(product.stock ?? 0));
 
-  const existingItem = state.items.find(
-    (item) => getProductId(item) === productId
-  );
+      const existingItem = state.items.find(
+        (item) => getProductId(item) === productId
+      );
 
-  if (!isReserved && stock <= 0) return;
+      if (!isReserved && stock <= 0) return;
 
-  if (existingItem) {
-    existingItem.quantity =
-      Number(existingItem.quantity || 0) + quantityToAdd;
+      if (existingItem) {
+        existingItem.quantity =
+          Number(existingItem.quantity || 0) + quantityToAdd;
 
-    existingItem.stock = stock;
+        existingItem.stock = stock;
 
-    if (isReserved) {
-      existingItem.reservations = [
-        ...(existingItem.reservations || []),
-        {
-          reservationId: payload.reservationId,
+        if (!Array.isArray(existingItem.reservations)) {
+          existingItem.reservations = getReservations(existingItem);
+        }
+
+        if (isReserved) {
+          existingItem.reservations.push({
+            reservationId: payload.reservationId,
+            quantity: quantityToAdd,
+          });
+        }
+
+        // Keep the first reservationId for compatibility.
+        if (!existingItem.reservationId && payload.reservationId) {
+          existingItem.reservationId = payload.reservationId;
+        }
+      } else {
+        state.items.push({
+          ...product,
+          _id: productId,
           quantity: quantityToAdd,
-        },
-      ];
-    }
+          stock,
+          reservations: isReserved
+            ? [
+                {
+                  reservationId: payload.reservationId,
+                  quantity: quantityToAdd,
+                },
+              ]
+            : [],
+          reservationId: payload.reservationId || null,
+        });
+      }
 
-    if (!existingItem.reservationId && payload.reservationId) {
-      existingItem.reservationId = payload.reservationId;
-    }
-  } else {
-    state.items.push({
-      ...product,
-      _id: productId,
-      quantity: quantityToAdd,
-      stock,
-      reservations: isReserved
-        ? [
-            {
-              reservationId: payload.reservationId,
-              quantity: quantityToAdd,
-            },
-          ]
-        : [],
-      reservationId: payload.reservationId || null,
-    });
-  }
-
-  saveCartToStorage(state.items);
-},
+      saveCartToStorage(state.items);
+    },
 
     increaseQuantity: (state, action) => {
       const item = state.items.find(
@@ -125,7 +148,6 @@ const cartSlice = createSlice({
       saveCartToStorage(state.items);
     },
 
-    // Use after a backend reservation has been successfully released.
     removeReservation: (state, action) => {
       const { productId, reservationId, quantity } = action.payload;
 
@@ -135,19 +157,25 @@ const cartSlice = createSlice({
 
       if (!item) return;
 
-      const reservations = item.reservations || [];
+      const reservations = getReservations(item);
       const reservation = reservations.find(
         (entry) => entry.reservationId === reservationId
       );
 
       if (reservation) {
-        reservation.quantity -= Number(quantity || reservation.quantity);
+        const quantityToRemove = Math.max(
+          1,
+          Number(quantity || reservation.quantity)
+        );
 
-        if (reservation.quantity <= 0) {
-          item.reservations = reservations.filter(
-            (entry) => entry.reservationId !== reservationId
-          );
-        }
+        reservation.quantity -= quantityToRemove;
+
+        item.reservations = reservations.filter(
+          (entry) => entry.quantity > 0
+        );
+
+        item.reservationId =
+          item.reservations[0]?.reservationId || null;
       }
 
       saveCartToStorage(state.items);
