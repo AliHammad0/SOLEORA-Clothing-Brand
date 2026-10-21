@@ -53,6 +53,26 @@ const Layout = () => (
     <Outlet />
     <Footer />
     <GoToTop />
+
+    {/* Floating WhatsApp Button */}
+    <a
+      href="https://wa.me/923114237376"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Chat with SOLEORA on WhatsApp"
+      title="Chat with us on WhatsApp"
+      className="fixed bottom-6 right-5 z-[100] flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-xl transition duration-300 hover:scale-110 hover:bg-[#20ba5a] sm:bottom-8 sm:right-8"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        className="h-8 w-8"
+        aria-hidden="true"
+      >
+        <path d="M12.04 2a9.86 9.86 0 0 0-8.48 14.9L2.2 22l5.23-1.37A9.94 9.94 0 0 0 12.04 21a9.99 9.99 0 0 0 0-19Zm0 17.2c-1.45 0-2.87-.39-4.11-1.13l-.3-.18-3.1.81.83-3.02-.2-.31a8.15 8.15 0 1 1 6.88 3.83Zm4.47-6.1c-.25-.13-1.48-.73-1.71-.81-.23-.09-.4-.13-.57.13-.17.25-.65.81-.8.98-.14.17-.29.19-.54.06-.25-.13-1.05-.39-2-.1-.74-.68-1.24-1.52-1.38-1.77-.15-.25-.02-.39.11-.52.11-.11.25-.29.37-.43.13-.15.17-.25.25-.42.08-.17.04-.31-.02-.44-.06-.13-.57-1.37-.78-1.87-.21-.49-.42-.42-.57-.43h-.49c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1s.9 2.44 1.03 2.61c.12.17 1.77 2.7 4.29 3.79.6.26 1.07.41 1.44.52.61.19 1.16.16 1.6.1.49-.07 1.48-.61 1.69-1.2.21-.59.21-1.1.15-1.2-.06-.11-.23-.17-.48-.3Z" />
+      </svg>
+    </a>
   </>
 );
 
@@ -203,7 +223,11 @@ const App = () => (
         <Route path="/faq" element={<FAQ />} />
         <Route path="/policy" element={<PrivacyPolicy />} />
         <Route path="/careers" element={<Career />} />
-         <Route path="/shipping-and-delivery" element={<ShippingAndDelivery />} />
+
+        <Route
+          path="/shipping-and-delivery"
+          element={<ShippingAndDelivery />}
+        />
 
         {/* Category Pages */}
         <Route
@@ -271,3 +295,4 @@ const App = () => (
 );
 
 export default App;
+
