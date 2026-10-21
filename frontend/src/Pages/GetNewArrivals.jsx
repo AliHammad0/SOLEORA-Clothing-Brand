@@ -1,10 +1,11 @@
+
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { addToCart } from "../redux/slices/cartSlice";
 
 const API_URL =
-  "https://soleora-clothing-brand-backend.vercel.app/api/v1/products/new?limit=8";
+  "https://soleora-clothing-brand-backend.vercel.app/api/v1/products";
 
 const GetNewArrivals = () => {
   const dispatch = useDispatch();
@@ -13,35 +14,37 @@ const GetNewArrivals = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [addedProduct, setAddedProduct] = useState("");
+  const [addingProducts, setAddingProducts] = useState([]);
+  const [cartMessage, setCartMessage] = useState("");
+
+  const fetchNewArrivals = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await fetch(`${API_URL}/new?limit=8`);
+      const data = await response.json();
+
+      if (!response.ok || !data.ok) {
+        throw new Error(data.message || "Products load nahi huay");
+      }
+
+      setProducts(
+        (data.products || []).filter(
+          (product) =>
+            product.isActive !== false &&
+            product.active !== false &&
+            product.isNewArrival === true
+        )
+      );
+    } catch (err) {
+      setError(err.message || "Backend se connection nahi ho saka");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchNewArrivals = async () => {
-      try {
-        setLoading(true);
-        setError("");
-
-        const response = await fetch(API_URL);
-        const data = await response.json();
-
-        if (!response.ok || !data.ok) {
-          throw new Error(data.message || "Products load nahi huay");
-        }
-
-        setProducts(
-          (data.products || []).filter(
-            (product) =>
-              product.isActive !== false &&
-              product.active !== false &&
-              product.isNewArrival === true
-          )
-        );
-      } catch (err) {
-        setError(err.message || "Backend se connection nahi ho saka");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchNewArrivals();
   }, []);
 
@@ -64,7 +67,11 @@ const GetNewArrivals = () => {
       return specialPrice;
     }
 
-    if (discount > 0 && discount < 100 && originalPrice > 0) {
+    if (
+      discount > 0 &&
+      discount < 100 &&
+      originalPrice > 0
+    ) {
       return originalPrice - (originalPrice * discount) / 100;
     }
 
@@ -89,50 +96,169 @@ const GetNewArrivals = () => {
       maximumFractionDigits: 2,
     });
 
-  const addProductToCart = (product) => {
-    try {
-      const stock = Number(product.stock ?? 0);
+  const addProductToCart = async (product) => {
+    const productId = String(product._id || product.id || "");
 
-      if (stock <= 0) {
-        alert("Sorry! Ye product abhi out of stock hai.");
-        return;
+    if (!productId || addingProducts.includes(productId)) return;
+
+    if (Number(product.stock ?? 0) <= 0) {
+      setCartMessage("😂 Bhai, Maal Khatam!");
+      return;
+    }
+
+    setAddingProducts((previous) => [...previous, productId]);
+    setCartMessage("");
+
+    try {
+      const response = await fetch(`${API_URL}/${productId}/reserve`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ quantity: 1 }),
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (!data || typeof data !== "object") {
+        throw new Error("Backend se valid response nahi mila.");
       }
 
+      if (
+        !response.ok ||
+        data.ok === false ||
+        data.success === false
+      ) {
+        if (
+          response.status === 409 ||
+          /stock|available|out of stock|quantity/i.test(
+            data.message || ""
+          )
+        ) {
+          setProducts((previous) =>
+            previous.map((item) =>
+              String(item._id || item.id) === productId
+                ? { ...item, stock: 0 }
+                : item
+            )
+          );
+
+          setCartMessage("😂 Bhai, Maal Khatam!");
+          return;
+        }
+
+        throw new Error(
+          data.message || "Product reserve nahi ho saka."
+        );
+      }
+
+      const responseData =
+        data.data && typeof data.data === "object"
+          ? data.data
+          : data;
+
+      const reservation =
+        responseData.reservation ||
+        data.reservation ||
+        null;
+
+      const updatedProduct =
+        responseData.product ||
+        data.product ||
+        null;
+
+      const reservationId = String(
+        responseData.reservationId ||
+          data.reservationId ||
+          reservation?._id ||
+          reservation?.id ||
+          ""
+      );
+
+      const reservedQuantity = Number(
+        responseData.reservedQuantity ??
+          data.reservedQuantity ??
+          reservation?.quantity ??
+          responseData.quantity ??
+          data.quantity ??
+          1
+      );
+
+      if (
+        !updatedProduct ||
+        !reservationId ||
+        !Number.isSafeInteger(reservedQuantity) ||
+        reservedQuantity !== 1
+      ) {
+        throw new Error(
+          "Reservation response incomplete hai. Cart update nahi hua."
+        );
+      }
+
+      const originalPrice = getOriginalPrice(product);
       const finalPrice = getFinalPrice(product);
 
-      const productImage =
-        product.images?.[0] ||
-        product.imageUrls?.[0] ||
-        product.image ||
-        "";
+      const productImages = product.images?.length
+        ? product.images
+        : product.imageUrls?.length
+          ? product.imageUrls
+          : product.image
+            ? [product.image]
+            : [];
+
+      const cartProduct = {
+        ...product,
+        ...updatedProduct,
+        _id: String(
+          updatedProduct._id || updatedProduct.id || productId
+        ),
+        title: product.title,
+        price: finalPrice,
+        originalPrice,
+        specialPrice: finalPrice < originalPrice ? finalPrice : 0,
+        image: productImages[0] || updatedProduct.image || "",
+        images: productImages,
+        stock: Math.max(0, Number(updatedProduct.stock ?? 0)),
+      };
 
       dispatch(
         addToCart({
-          ...product,
-          _id: String(product._id),
-          title: product.title,
-          price: finalPrice,
-          originalPrice: getOriginalPrice(product),
-          specialPrice:
-            finalPrice < getOriginalPrice(product) ? finalPrice : 0,
-          image: productImage,
-          images: product.images?.length
-            ? product.images
-            : product.imageUrls?.length
-              ? product.imageUrls
-              : productImage
-                ? [productImage]
-                : [],
-          stock,
-          quantity: 1,
+          product: cartProduct,
+          quantity: reservedQuantity,
+          reservationId,
         })
       );
 
-      setAddedProduct(String(product._id));
+      setProducts((previous) =>
+        previous.map((item) =>
+          String(item._id || item.id) === productId
+            ? {
+                ...item,
+                ...updatedProduct,
+                stock: Math.max(
+                  0,
+                  Number(updatedProduct.stock ?? 0)
+                ),
+              }
+            : item
+        )
+      );
+
+      setAddedProduct(productId);
+      setCartMessage("Product added to cart! ✓");
       window.dispatchEvent(new Event("cartUpdated"));
     } catch (err) {
       console.error("Add to cart error:", err);
-      alert("Product cart mein add nahi ho saka. Dobara try karein.");
+
+      setCartMessage(
+        err.message === "Failed to fetch"
+          ? "Server se connection nahi ho saka. Dobara try karein."
+          : err.message || "Product cart mein add nahi ho saka."
+      );
+    } finally {
+      setAddingProducts((previous) =>
+        previous.filter((id) => id !== productId)
+      );
     }
   };
 
@@ -159,6 +285,21 @@ const GetNewArrivals = () => {
           </span>
         </div>
 
+        {cartMessage && (
+          <p
+            role="status"
+            className={`mb-4 text-sm ${
+              cartMessage.includes("Maal Khatam")
+                ? "font-semibold text-red-600"
+                : cartMessage.includes("added to cart")
+                  ? "text-green-700"
+                  : "text-gray-600"
+            }`}
+          >
+            {cartMessage}
+          </p>
+        )}
+
         {loading && (
           <p className="py-16 text-center text-gray-500">
             Loading new arrivals...
@@ -171,7 +312,7 @@ const GetNewArrivals = () => {
 
             <button
               type="button"
-              onClick={() => window.location.reload()}
+              onClick={fetchNewArrivals}
               className="mt-4 border border-black px-5 py-2 text-sm hover:bg-black hover:text-white"
             >
               Try Again
@@ -200,10 +341,14 @@ const GetNewArrivals = () => {
                 product.image ||
                 "https://placehold.co/600x750?text=SOLEORA";
 
+              const productId = String(product._id || product.id || "");
+              const outOfStock = Number(product.stock ?? 0) <= 0;
+              const isAdding = addingProducts.includes(productId);
+
               return (
-                <article key={product._id} className="group min-w-0">
+                <article key={productId} className="group min-w-0">
                   <Link
-                    to={`/product/${product._id}`}
+                    to={`/product/${productId}`}
                     className="block"
                     aria-label={`View ${product.title}`}
                   >
@@ -254,20 +399,34 @@ const GetNewArrivals = () => {
                           PKR {formatPrice(finalPrice)}
                         </span>
                       </div>
+
+                      <p className="mt-1 text-[11px] text-gray-500">
+                        {outOfStock
+                          ? "😂 Bhai, Maal Khatam!"
+                          : `${product.stock} left`}
+                      </p>
                     </div>
                   </Link>
 
                   <button
                     type="button"
                     onClick={() => addProductToCart(product)}
-                    disabled={Number(product.stock ?? 0) <= 0}
-                    className="mt-3 w-full bg-black px-3 py-3 text-xs font-semibold uppercase tracking-wider text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-400 sm:text-sm"
+                    disabled={outOfStock || isAdding}
+                    className={`mt-3 w-full px-3 py-3 text-xs font-semibold uppercase tracking-wider text-white transition sm:text-sm ${
+                      outOfStock || isAdding
+                        ? "cursor-not-allowed bg-gray-400"
+                        : addedProduct === productId
+                          ? "bg-green-700 hover:bg-green-800"
+                          : "bg-black hover:bg-gray-800"
+                    }`}
                   >
-                    {Number(product.stock ?? 0) <= 0
-                      ? "Out of Stock"
-                      : addedProduct === String(product._id)
-                        ? "Added to Cart ✓"
-                        : "Add to Cart"}
+                    {outOfStock
+                      ? "😂 Bhai, Maal Khatam!"
+                      : isAdding
+                        ? "Adding..."
+                        : addedProduct === productId
+                          ? "Added to Cart ✓"
+                          : "Add to Cart"}
                   </button>
                 </article>
               );
