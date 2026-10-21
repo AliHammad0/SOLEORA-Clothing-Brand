@@ -42,6 +42,7 @@ import AboutUs from "./Pages/AboutUs";
 import Profile from "./Pages/Profile";
 import ProductSearch from "./Pages/ProductSearch";
 import AdminUsers from "./Pages/AdminUsers";
+import ShippingAndDelivery from "./Pages/ShippingAndDelivery";
 
 const Layout = () => (
   <>
@@ -196,6 +197,7 @@ const App = () => (
         <Route path="/profile" element={<Profile />} />
         <Route path="/search" element={<ProductSearch />} />
         <Route path="/my-orders" element={<MyOrders />} />
+         <Route path="/shipping-and-delivery" element={<ShippingAndDelivery />} />
 
         {/* Category Pages */}
         <Route
