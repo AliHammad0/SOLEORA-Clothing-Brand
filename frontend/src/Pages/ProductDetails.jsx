@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -35,6 +34,8 @@ export default function ProductDetails() {
   const [product, setProduct] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState(0);
+  const [selectedSize, setSelectedSize] = useState("");
+  const [selectedColor, setSelectedColor] = useState("");
   const [loading, setLoading] = useState(true);
   const [addingToCart, setAddingToCart] = useState(false);
   const [error, setError] = useState("");
@@ -70,6 +71,8 @@ export default function ProductDetails() {
         setProduct(fetchedProduct);
         setActiveImage(0);
         setQuantity(1);
+        setSelectedSize("");
+        setSelectedColor("");
       } catch (err) {
         if (err.name === "AbortError") return;
 
@@ -114,7 +117,6 @@ export default function ProductDetails() {
         <p className="text-center text-red-600">
           {error || "Product not found"}
         </p>
-
         <button
           type="button"
           onClick={() => window.location.reload()}
@@ -122,7 +124,6 @@ export default function ProductDetails() {
         >
           Try Again
         </button>
-
         <Link to="/" className="text-sm underline">
           Back to Home
         </Link>
@@ -130,16 +131,9 @@ export default function ProductDetails() {
     );
   }
 
-  const originalPrice = Number(product.originalPrice ?? product.price ?? 0);
-
-  const specialPrice = Number(
-    product.specialPrice ?? product.discountPrice ?? 0
-  );
-
-  const discount = Math.min(
-    100,
-    Math.max(0, Number(product.discount) || 0)
-  );
+  const originalPrice = Number(product.price ?? product.originalPrice ?? 0);
+  const specialPrice = Number(product.specialPrice ?? product.discountPrice ?? 0);
+  const discount = Math.min(100, Math.max(0, Number(product.discount) || 0));
 
   const discountedPrice =
     specialPrice > 0 && specialPrice < originalPrice
@@ -164,13 +158,10 @@ export default function ProductDetails() {
 
   const discountPercentage =
     onSale && originalPrice > 0
-      ? Math.round(
-          ((originalPrice - discountedPrice) / originalPrice) * 100
-        )
+      ? Math.round(((originalPrice - discountedPrice) / originalPrice) * 100)
       : 0;
 
   const sizes = Array.isArray(product.sizes) ? product.sizes : [];
-
   const colors = Array.isArray(product.colors)
     ? product.colors
     : product.color
@@ -178,23 +169,27 @@ export default function ProductDetails() {
       : [];
 
   const fabric = product.fabric || product.material || "Not specified";
-
   const formatPrice = (price) =>
     `Rs. ${Number(price || 0).toLocaleString("en-PK")}`;
 
   const productId = String(product._id || product.id || "");
 
-  const cartItem = cartItems.find(
-    (item) => String(item._id || item.id) === productId
-  );
-
   const handleAddToCart = async () => {
     if (addingToCart) return;
-
     setMessage("");
 
     if (!productId) {
       setMessage("Product ID is missing.");
+      return;
+    }
+
+    if (sizes.length > 0 && !selectedSize) {
+      setMessage("Please select a size.");
+      return;
+    }
+
+    if (colors.length > 0 && !selectedColor) {
+      setMessage("Please select a color.");
       return;
     }
 
@@ -209,101 +204,64 @@ export default function ProductDetails() {
     }
 
     setAddingToCart(true);
-
     let reservationId = null;
 
     try {
       const response = await fetch(`${API_URL}/${productId}/reserve`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ quantity }),
       });
 
       const data = await response.json().catch(() => null);
 
       if (!data || typeof data !== "object") {
-        throw new Error(
-          `Backend returned an invalid response (${response.status}). Check the deployed API.`
-        );
+        throw new Error(`Invalid backend response (${response.status}).`);
       }
 
-      if (
-        !response.ok ||
-        data.ok === false ||
-        data.success === false
-      ) {
-        throw new Error(
-          data.message ||
-            `Stock reservation failed (${response.status}).`
-        );
+      if (!response.ok || data.ok === false || data.success === false) {
+        throw new Error(data.message || `Stock reservation failed (${response.status}).`);
       }
 
       const responseData =
-        data.data && typeof data.data === "object"
-          ? data.data
-          : data;
+        data.data && typeof data.data === "object" ? data.data : data;
 
       const reservation =
-        responseData.reservation ||
-        data.reservation ||
-        null;
+        responseData.reservation || data.reservation || null;
 
       const updatedProduct =
-        responseData.product ||
-        data.product ||
-        null;
+        responseData.product || data.product || null;
 
-      reservationId =
+      reservationId = String(
         responseData.reservationId ||
-        data.reservationId ||
-        reservation?._id ||
-        reservation?.id ||
-        null;
+          data.reservationId ||
+          reservation?._id ||
+          reservation?.id ||
+          ""
+      );
 
-      reservationId = reservationId
-        ? String(reservationId)
-        : null;
-
-      const rawReservedQuantity =
+      const reservedQuantity = Number(
         responseData.reservedQuantity ??
-        data.reservedQuantity ??
-        reservation?.quantity ??
-        responseData.quantity ??
-        data.quantity;
-
-      const reservedQuantity =
-        rawReservedQuantity == null
-          ? quantity
-          : Number(rawReservedQuantity);
+          data.reservedQuantity ??
+          reservation?.quantity ??
+          responseData.quantity ??
+          data.quantity ??
+          quantity
+      );
 
       if (!updatedProduct || typeof updatedProduct !== "object") {
-        throw new Error(
-          `Reservation response is missing the product. Received fields: ${Object.keys(
-            responseData
-          ).join(", ") || "none"}.`
-        );
+        throw new Error("Reservation response is missing the product.");
       }
 
-      if (!reservationId) {
-        throw new Error(
-          `Reservation ID is missing from the backend response. Received fields: ${Object.keys(
-            responseData
-          ).join(", ") || "none"}.`
-        );
+      if (!/^[0-9a-fA-F]{24}$/.test(reservationId)) {
+        throw new Error("Reservation ID is missing or invalid.");
       }
 
       if (
         !Number.isSafeInteger(reservedQuantity) ||
-        reservedQuantity < 1 ||
         reservedQuantity !== quantity
       ) {
-        throw new Error(
-          `Reserved quantity mismatch. Requested: ${quantity}, received: ${String(
-            rawReservedQuantity ?? "missing"
-          )}.`
-        );
+        throw new Error("Reserved quantity does not match the requested quantity.");
       }
 
       const cartProduct = {
@@ -311,17 +269,11 @@ export default function ProductDetails() {
         ...updatedProduct,
         _id: String(updatedProduct._id || updatedProduct.id || productId),
         price: discountedPrice,
-        image:
-          images[0] ||
-          updatedProduct.image ||
-          product.image ||
-          "",
-        // Keep the purchased item valid even when the reservation
-        // consumes the last available unit.
-        stock: Math.max(
-          reservedQuantity,
-          Number(updatedProduct.stock) || 0
-        ),
+        specialPrice: discountedPrice,
+        image: images[0] || updatedProduct.image || product.image || "",
+        selectedSize,
+        selectedColor,
+        stock: Math.max(reservedQuantity, Number(updatedProduct.stock) || 0),
       };
 
       dispatch(
@@ -329,6 +281,8 @@ export default function ProductDetails() {
           product: cartProduct,
           quantity: reservedQuantity,
           reservationId,
+          size: selectedSize,
+          color: selectedColor,
         })
       );
 
@@ -337,7 +291,6 @@ export default function ProductDetails() {
       setMessage("Product added to cart successfully!");
     } catch (err) {
       console.error("Add to cart error:", err);
-
       setMessage(
         err.message === "Failed to fetch"
           ? "Unable to connect to the server. Please check the backend deployment."
@@ -352,9 +305,7 @@ export default function ProductDetails() {
     <div className="min-h-screen bg-white text-slate-900">
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         <nav className="mb-6 flex flex-wrap items-center gap-2 text-sm text-gray-500">
-          <Link to="/" className="transition-colors hover:text-black">
-            Home
-          </Link>
+          <Link to="/" className="transition-colors hover:text-black">Home</Link>
           <ChevronRight size={15} />
           <span>{product.gender || "Collection"}</span>
           <ChevronRight size={15} />
@@ -372,9 +323,7 @@ export default function ProductDetails() {
                   aria-label={`View image ${index + 1}`}
                   aria-pressed={safeActiveImage === index}
                   className={`overflow-hidden border-2 transition-all duration-300 hover:opacity-80 active:scale-95 ${
-                    safeActiveImage === index
-                      ? "scale-[0.98] border-slate-900"
-                      : "border-transparent"
+                    safeActiveImage === index ? "scale-[0.98] border-slate-900" : "border-transparent"
                   }`}
                 >
                   <img
@@ -409,13 +358,7 @@ export default function ProductDetails() {
               {images.length > 0 && (
                 <button
                   type="button"
-                  onClick={() =>
-                    window.open(
-                      images[safeActiveImage],
-                      "_blank",
-                      "noopener,noreferrer"
-                    )
-                  }
+                  onClick={() => window.open(images[safeActiveImage], "_blank", "noopener,noreferrer")}
                   aria-label="Zoom product image"
                   className="absolute bottom-4 right-4 rounded-full bg-white p-3 shadow-md transition-all duration-300 hover:scale-110 hover:bg-black hover:text-white active:scale-95"
                 >
@@ -430,24 +373,15 @@ export default function ProductDetails() {
               {product.brand || "SOLEORA COLLECTION"}
             </p>
 
-            <h1 className="text-2xl font-bold leading-tight sm:text-3xl">
-              {product.title}
-            </h1>
+            <h1 className="text-2xl font-bold leading-tight sm:text-3xl">{product.title}</h1>
 
             <div className="mt-5 flex flex-wrap items-center gap-3">
-              <span
-                className={`text-3xl font-bold ${
-                  onSale ? "text-red-600" : "text-slate-900"
-                }`}
-              >
+              <span className={`text-3xl font-bold ${onSale ? "text-red-600" : "text-slate-900"}`}>
                 {formatPrice(discountedPrice)}
               </span>
-
               {onSale && (
                 <>
-                  <span className="text-lg text-gray-400 line-through">
-                    {formatPrice(originalPrice)}
-                  </span>
+                  <span className="text-lg text-gray-400 line-through">{formatPrice(originalPrice)}</span>
                   <span className="bg-red-50 px-2 py-1 text-sm font-semibold text-red-600">
                     Save {formatPrice(originalPrice - discountedPrice)}
                   </span>
@@ -479,15 +413,22 @@ export default function ProductDetails() {
 
             {sizes.length > 0 && (
               <div className="mt-6">
-                <p className="mb-3 text-sm font-medium">Available Sizes:</p>
+                <p className="mb-3 text-sm font-medium">Select Size:</p>
                 <div className="flex flex-wrap gap-2">
                   {sizes.map((size, index) => (
-                    <span
+                    <button
                       key={`${size}-${index}`}
-                      className="border border-gray-300 px-4 py-2 text-sm"
+                      type="button"
+                      onClick={() => setSelectedSize(size)}
+                      aria-pressed={selectedSize === size}
+                      className={`border px-4 py-2 text-sm transition ${
+                        selectedSize === size
+                          ? "border-black bg-black text-white"
+                          : "border-gray-300 hover:border-black"
+                      }`}
                     >
                       {size}
-                    </span>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -495,8 +436,24 @@ export default function ProductDetails() {
 
             {colors.length > 0 && (
               <div className="mt-5">
-                <p className="mb-2 text-sm font-medium">Available Colors:</p>
-                <p className="text-sm text-gray-600">{colors.join(", ")}</p>
+                <p className="mb-3 text-sm font-medium">Select Color:</p>
+                <div className="flex flex-wrap gap-2">
+                  {colors.map((color, index) => (
+                    <button
+                      key={`${color}-${index}`}
+                      type="button"
+                      onClick={() => setSelectedColor(color)}
+                      aria-pressed={selectedColor === color}
+                      className={`border px-4 py-2 text-sm transition ${
+                        selectedColor === color
+                          ? "border-black bg-black text-white"
+                          : "border-gray-300 hover:border-black"
+                      }`}
+                    >
+                      {color}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -515,22 +472,16 @@ export default function ProductDetails() {
                 >
                   <Minus size={16} />
                 </button>
-
                 <span className="flex h-full min-w-14 items-center justify-center border-x border-gray-200">
                   {quantity}
                 </span>
-
                 <button
                   type="button"
                   onClick={() => {
-                    setQuantity((previous) =>
-                      Math.min(stock, previous + 1)
-                    );
+                    setQuantity((previous) => Math.min(stock, previous + 1));
                     setMessage("");
                   }}
-                  disabled={
-                    addingToCart || quantity >= stock || stock <= 0
-                  }
+                  disabled={addingToCart || quantity >= stock || stock <= 0}
                   aria-label="Increase quantity"
                   className="h-full px-4 transition-colors hover:bg-gray-100 active:scale-90 disabled:opacity-30"
                 >
@@ -542,29 +493,18 @@ export default function ProductDetails() {
             <button
               type="button"
               onClick={handleAddToCart}
-              disabled={
-                addingToCart ||
-                stock <= 0 ||
-                quantity < 1 ||
-                quantity > stock
-              }
+              disabled={addingToCart || stock <= 0 || quantity < 1 || quantity > stock}
               className="mt-6 flex h-14 w-full items-center justify-center gap-3 bg-slate-900 px-6 font-medium text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-700 hover:shadow-xl active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-gray-400 disabled:hover:translate-y-0 disabled:hover:shadow-none"
             >
               <ShoppingCart size={20} />
-              {addingToCart
-                ? "Adding to Cart..."
-                : stock <= 0
-                  ? "Bhai, stock khatam — late ho gaye!"
-                  : "Add to Cart"}
+              {addingToCart ? "Adding to Cart..." : stock <= 0 ? "Bhai, stock khatam — late ho gaye!" : "Add to Cart"}
             </button>
 
             {message && (
               <p
                 role="status"
                 className={`mt-3 text-sm font-medium ${
-                  message.includes("successfully")
-                    ? "text-green-700"
-                    : "text-red-600"
+                  message.includes("successfully") ? "text-green-700" : "text-red-600"
                 }`}
               >
                 {message}
@@ -593,19 +533,13 @@ export default function ProductDetails() {
                   <h3 className="font-bold">FABRIC / MATERIAL:</h3>
                   <p className="text-gray-600">{fabric}</p>
                 </div>
-
                 <div>
                   <h3 className="font-bold">COLOR:</h3>
-                  <p className="text-gray-600">
-                    {colors.length > 0 ? colors.join(", ") : "Not specified"}
-                  </p>
+                  <p className="text-gray-600">{colors.length > 0 ? colors.join(", ") : "Not specified"}</p>
                 </div>
-
                 <div>
                   <h3 className="font-bold">DESCRIPTION:</h3>
-                  <p className="whitespace-pre-line text-gray-600">
-                    {product.description || "No description available."}
-                  </p>
+                  <p className="whitespace-pre-line text-gray-600">{product.description || "No description available."}</p>
                 </div>
               </div>
             </div>
@@ -629,36 +563,17 @@ export default function ProductDetails() {
               <div className="mt-8 animate-[fadeIn_0.4s_ease-out] border border-gray-200 p-4">
                 <div className="flex items-center justify-between gap-3">
                   <h3 className="font-bold">Cart Summary</h3>
-                  <Link to="/cart" className="text-sm underline">
-                    View Cart
-                  </Link>
+                  <Link to="/cart" className="text-sm underline">View Cart</Link>
                 </div>
-
                 {cartItems.map((item) => (
-                  <div
-                    key={item._id || item.id}
-                    className="mt-3 flex justify-between gap-4 text-sm"
-                  >
-                    <span>
-                      {item.title || item.name} × {item.quantity}
-                    </span>
+                  <div key={item._id || item.id} className="mt-3 flex justify-between gap-4 text-sm">
+                    <span>{item.title || item.name} × {item.quantity}</span>
                     <span className="whitespace-nowrap">
-                      {formatPrice(
-                        Number(
-                          item.price ??
-                            item.specialPrice ??
-                            item.discountPrice ??
-                            item.originalPrice ??
-                            0
-                        ) * item.quantity
-                      )}
+                      {formatPrice(Number(item.price ?? item.specialPrice ?? item.discountPrice ?? item.originalPrice ?? 0) * item.quantity)}
                     </span>
                   </div>
                 ))}
-
-                <p className="mt-4 border-t pt-3 font-bold">
-                  Total: {formatPrice(cartTotal)}
-                </p>
+                <p className="mt-4 border-t pt-3 font-bold">Total: {formatPrice(cartTotal)}</p>
               </div>
             )}
           </div>
@@ -667,20 +582,11 @@ export default function ProductDetails() {
 
       <style>{`
         @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(8px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
         }
-
         @media (prefers-reduced-motion: reduce) {
-          *,
-          *::before,
-          *::after {
+          *, *::before, *::after {
             animation-duration: 0.01ms !important;
             animation-iteration-count: 1 !important;
             scroll-behavior: auto !important;

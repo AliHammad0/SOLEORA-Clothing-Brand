@@ -1,4 +1,3 @@
-
 import mongoose from "mongoose";
 import Order from "../model/order.js";
 import Product from "../model/product.js";
@@ -43,32 +42,24 @@ export const placeOrder = async (req, res) => {
       });
     }
 
-    if (!Array.isArray(items) || items.length === 0) {
+    if (!Array.isArray(items) || items.length === 0 || items.length > 50) {
       return res.status(400).json({
         ok: false,
-        message: "Your cart is empty",
-      });
-    }
-
-    if (items.length > 50) {
-      return res.status(400).json({
-        ok: false,
-        message: "Too many products in one order",
+        message: "Your cart is empty or contains too many products",
       });
     }
 
     const orderItems = [];
-    let subtotal = 0;
+    const allReservationIds = new Set();
     const seenProducts = new Set();
+    let subtotal = 0;
 
     for (const item of items) {
       const productId = String(item.productId || "");
-      const reservationId = String(item.reservationId || "");
       const quantity = Number(item.quantity);
 
       if (
         !mongoose.isValidObjectId(productId) ||
-        !mongoose.isValidObjectId(reservationId) ||
         !Number.isSafeInteger(quantity) ||
         quantity < 1 ||
         seenProducts.has(productId)
@@ -81,17 +72,68 @@ export const placeOrder = async (req, res) => {
 
       seenProducts.add(productId);
 
-      const reservation = await StockReservation.findOne({
-        _id: reservationId,
-        product: productId,
-        quantity,
-        status: "active",
-      });
+      const reservations = Array.isArray(item.reservations)
+        ? item.reservations
+        : item.reservationId
+          ? [
+              {
+                reservationId: item.reservationId,
+                quantity,
+              },
+            ]
+          : [];
 
-      if (!reservation) {
+      if (!reservations.length) {
         return res.status(409).json({
           ok: false,
-          message: "A product reservation has expired or is invalid. Please update your cart.",
+          message: "Product reservation missing. Please add the product again.",
+        });
+      }
+
+      let reservedQuantity = 0;
+      const itemReservationIds = [];
+
+      for (const entry of reservations) {
+        const reservationId = String(entry.reservationId || "");
+        const reservationQuantity = Number(entry.quantity);
+
+        if (
+          !mongoose.isValidObjectId(reservationId) ||
+          !Number.isSafeInteger(reservationQuantity) ||
+          reservationQuantity < 1 ||
+          allReservationIds.has(reservationId)
+        ) {
+          return res.status(400).json({
+            ok: false,
+            message: "Invalid stock reservation",
+          });
+        }
+
+        const reservation = await StockReservation.findOne({
+          _id: reservationId,
+          product: productId,
+          quantity: reservationQuantity,
+          status: "active",
+        });
+
+        if (!reservation) {
+          return res.status(409).json({
+            ok: false,
+            message:
+              "A stock reservation has expired or is invalid. Please update your cart.",
+          });
+        }
+
+        allReservationIds.add(reservationId);
+        itemReservationIds.push(reservation._id);
+        reservedQuantity += reservation.quantity;
+      }
+
+      if (reservedQuantity !== quantity) {
+        return res.status(409).json({
+          ok: false,
+          message:
+            "Cart quantity does not match reserved stock. Please update your cart.",
         });
       }
 
@@ -107,11 +149,15 @@ export const placeOrder = async (req, res) => {
         });
       }
 
+      const regularPrice = Number(product.price);
+      const specialPrice = Number(product.specialPrice);
+
       const price =
-        Number(product.specialPrice) > 0 &&
-        Number(product.specialPrice) < Number(product.price)
-          ? Number(product.specialPrice)
-          : Number(product.price);
+        Number.isFinite(specialPrice) &&
+        specialPrice > 0 &&
+        specialPrice < regularPrice
+          ? specialPrice
+          : regularPrice;
 
       if (!Number.isFinite(price) || price < 0) {
         return res.status(400).json({
@@ -120,9 +166,7 @@ export const placeOrder = async (req, res) => {
         });
       }
 
-      const lineTotal = price * quantity;
-
-      subtotal += lineTotal;
+      subtotal += price * quantity;
 
       orderItems.push({
         product: product._id,
@@ -131,10 +175,10 @@ export const placeOrder = async (req, res) => {
           ? product.images[0] || ""
           : "",
         quantity,
-        size: item.size || "",
-        color: item.color || "",
+        size: typeof item.size === "string" ? item.size : "",
+        color: typeof item.color === "string" ? item.color : "",
         price,
-        reservationId: reservation._id,
+        reservationIds: itemReservationIds,
       });
     }
 
@@ -149,6 +193,7 @@ export const placeOrder = async (req, res) => {
       1000 + Math.random() * 9000
     )}`;
 
+    // Create order first; reservations are finalized below.
     const order = await Order.create({
       orderNumber,
       customer: {
@@ -160,7 +205,8 @@ export const placeOrder = async (req, res) => {
       shippingAddress: {
         address: address.trim(),
         city: city.trim(),
-        postalCode: postalCode?.trim() || "",
+        postalCode:
+          typeof postalCode === "string" ? postalCode.trim() : "",
         country: "Pakistan",
       },
       items: orderItems,
@@ -170,14 +216,13 @@ export const placeOrder = async (req, res) => {
       paymentMethod: "COD",
       paymentStatus: "pending",
       status: "pending",
-      notes: typeof notes === "string" ? notes.trim() : "",
+      notes: typeof notes === "string" ? notes.trim().slice(0, 500) : "",
     });
 
-    const reservationIds = orderItems.map(
-      (item) => item.reservationId
-    );
+    // Mark every reservation as finalized so the cart cannot release it.
+    const reservationIds = [...allReservationIds];
 
-    const updatedReservations = await StockReservation.updateMany(
+    const finalized = await StockReservation.updateMany(
       {
         _id: { $in: reservationIds },
         status: "active",
@@ -187,12 +232,13 @@ export const placeOrder = async (req, res) => {
       }
     );
 
-    if (updatedReservations.modifiedCount !== reservationIds.length) {
+    if (finalized.modifiedCount !== reservationIds.length) {
       await Order.findByIdAndDelete(order._id);
 
       return res.status(409).json({
         ok: false,
-        message: "Cart stock reservations changed. Please update your cart and try again.",
+        message:
+          "Stock reservations changed. Please refresh your cart and try again.",
       });
     }
 
@@ -211,7 +257,7 @@ export const placeOrder = async (req, res) => {
   }
 };
 
-// Get All Orders — Admin Dashboard
+// Get All Orders — Admin
 export const getAllOrders = async (req, res) => {
   try {
     const orders = await Order.find()
@@ -270,30 +316,60 @@ export const updateOrderStatus = async (req, res) => {
       });
     }
 
+    // Restore reserved stock only when an order is cancelled.
     if (status === "cancelled") {
       for (const item of order.items) {
-        if (!item.reservationId) continue;
+        const reservationIds = Array.isArray(item.reservationIds)
+          ? item.reservationIds
+          : item.reservationId
+            ? [item.reservationId]
+            : [];
 
-        const reservation = await StockReservation.findOneAndUpdate(
-          {
-            _id: item.reservationId,
-            status: "released",
-          },
-          {
-            $set: { status: "active" },
-          },
-          { new: true }
-        );
-
-        if (reservation) {
-          await Product.findByIdAndUpdate(reservation.product, {
-            $inc: { stock: reservation.quantity },
-          });
-
-          await StockReservation.updateOne(
-            { _id: reservation._id, status: "active" },
-            { $set: { status: "released" } }
+        for (const reservationId of reservationIds) {
+          const reservation = await StockReservation.findOneAndUpdate(
+            {
+              _id: reservationId,
+              product: item.product,
+              status: "released",
+            },
+            {
+              $set: { status: "active" },
+            },
+            { new: true }
           );
+
+          if (!reservation) continue;
+
+          const restoredProduct = await Product.findByIdAndUpdate(
+            reservation.product,
+            {
+              $inc: { stock: reservation.quantity },
+            },
+            { new: true }
+          );
+
+          if (restoredProduct) {
+            await StockReservation.updateOne(
+              {
+                _id: reservation._id,
+                status: "active",
+              },
+              {
+                $set: { status: "released" },
+              }
+            );
+          } else {
+            // Allow retry if the product was not found.
+            await StockReservation.updateOne(
+              {
+                _id: reservation._id,
+                status: "active",
+              },
+              {
+                $set: { status: "released" },
+              }
+            );
+          }
         }
       }
     }
