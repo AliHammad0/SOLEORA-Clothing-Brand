@@ -7,7 +7,7 @@ import {
   getAllOrders,
   updateOrderStatus,
   deleteCancelledOrder,
-  deleteMyCancelledOrder,
+  deleteMyOrder,
   getGuestOrderStatus,
 } from "../controller/order.js";
 
@@ -18,7 +18,6 @@ import {
 
 const orderRoutes = express.Router();
 
-// Guest checkout aur logged-in checkout dono support honge.
 const optionalUser = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
@@ -29,35 +28,20 @@ const optionalUser = (req, res, next) => {
   next();
 };
 
-// Place order
 orderRoutes.post("/place", optionalUser, placeOrder);
 
-// Logged-in customer ke orders
 orderRoutes.get("/my", verifyUser, getMyOrders);
 
-// Guest order status
 orderRoutes.get("/guest-status", getGuestOrderStatus);
 
-// Customer sirf apna cancelled order delete kar sakta hai.
-orderRoutes.delete(
-  "/my/:id",
-  verifyUser,
-  deleteMyCancelledOrder
-);
+// Customer: apne pending ya cancelled order ko delete kar sakta hai.
+orderRoutes.delete("/my/:id", verifyUser, deleteMyOrder);
 
 // Admin routes
 orderRoutes.get("/all", verifyAdmin, getAllOrders);
 
-orderRoutes.put(
-  "/:id/status",
-  verifyAdmin,
-  updateOrderStatus
-);
+orderRoutes.put("/:id/status", verifyAdmin, updateOrderStatus);
 
-orderRoutes.delete(
-  "/:id",
-  verifyAdmin,
-  deleteCancelledOrder
-);
+orderRoutes.delete("/:id", verifyAdmin, deleteCancelledOrder);
 
 export default orderRoutes;
