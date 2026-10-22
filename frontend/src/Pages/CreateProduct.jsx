@@ -12,6 +12,7 @@ const initialForm = {
   specialPrice: "",
   discount: "0",
   brand: "SOLEORA",
+  category: "",
   images: "",
   stock: "0",
   sizes: "",
@@ -74,6 +75,7 @@ export default function CreateProduct() {
             : Number(form.specialPrice),
         discount: Number(form.discount || 0),
         brand: form.brand.trim(),
+        category: form.category.trim(),
         images: toArray(form.images),
         stock: Number(form.stock),
         sizes: toArray(form.sizes),
@@ -224,6 +226,20 @@ export default function CreateProduct() {
                 />
               </div>
             ))}
+
+            <div>
+              <label className={labelClass}>
+                Category *
+              </label>
+              <input
+                className={inputClass}
+                name="category"
+                value={form.category}
+                onChange={handleChange}
+                placeholder="Shoes, Clothing, Accessories"
+                required
+              />
+            </div>
 
             <div>
               <label className={labelClass}>Gender</label>
