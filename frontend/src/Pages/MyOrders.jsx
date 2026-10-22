@@ -160,47 +160,12 @@ const MyOrders = () => {
   }, [fetchOrders]);
 
   const deleteOrder = async (order) => {
-    const status = String(order.status || "pending").toLowerCase();
-
-    // Sirf pending aur cancelled orders delete ho sakte hain.
-    if (!["pending", "cancelled"].includes(status)) {
-      setError("Only pending or cancelled orders can be deleted.");
+    if (String(order.status || "").toLowerCase() !== "cancelled") {
+      setError("Only orders cancelled by the admin can be deleted.");
       return;
     }
 
     const orderId = String(order._id || "");
-
-    const token = localStorage.getItem("token");
-
-    // Guest orders ki local copy hi delete hogi.
-    if (!token) {
-      const confirmed = window.confirm(
-        `Remove order ${order.orderNumber || orderId} from this browser?`
-      );
-
-      if (!confirmed) return;
-
-      setError("");
-      setNotice("");
-
-      const guestOrders = getGuestOrders();
-
-      const updatedOrders = guestOrders.filter(
-        (savedOrder) =>
-          String(savedOrder._id || "") !== orderId &&
-          String(savedOrder.orderNumber || "") !==
-            String(order.orderNumber || "")
-      );
-
-      localStorage.setItem(
-        GUEST_ORDERS_KEY,
-        JSON.stringify(updatedOrders)
-      );
-
-      setOrders(updatedOrders);
-      setNotice("Order removed from this browser.");
-      return;
-    }
 
     if (!orderId) {
       setError("Order ID is missing. This order cannot be deleted.");
@@ -208,7 +173,7 @@ const MyOrders = () => {
     }
 
     const confirmed = window.confirm(
-      `Delete ${status} order ${order.orderNumber || orderId}? This action cannot be undone.`
+      `Delete cancelled order ${order.orderNumber || orderId}? This action cannot be undone.`
     );
 
     if (!confirmed) return;
@@ -218,6 +183,27 @@ const MyOrders = () => {
     setDeletingId(orderId);
 
     try {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        const guestOrders = getGuestOrders();
+
+        const updatedOrders = guestOrders.filter(
+          (savedOrder) =>
+            String(savedOrder._id || "") !== orderId
+        );
+
+        localStorage.setItem(
+          GUEST_ORDERS_KEY,
+          JSON.stringify(updatedOrders)
+        );
+
+        setOrders(updatedOrders);
+        setNotice("Cancelled order removed from this browser.");
+        return;
+      }
+
+      // Requires a customer-authorized backend DELETE route.
       const response = await fetch(
         `${API_URL}/orders/my/${encodeURIComponent(orderId)}`,
         {
@@ -232,7 +218,8 @@ const MyOrders = () => {
 
       if (!response.ok || data.ok !== true) {
         throw new Error(
-          data.message || "Could not delete this order."
+          data.message ||
+            "Could not delete this order. The customer delete route may not be deployed yet."
         );
       }
 
@@ -243,7 +230,7 @@ const MyOrders = () => {
         )
       );
 
-      setNotice("Order deleted successfully.");
+      setNotice("Cancelled order deleted successfully.");
     } catch (err) {
       console.error("Delete order failed:", err);
       setError(err.message || "Unable to delete this order.");
@@ -341,17 +328,8 @@ const MyOrders = () => {
               const orderId =
                 order._id || order.orderNumber || `guest-${index}`;
 
-              const status = String(
-                order.status || "pending"
-              ).toLowerCase();
-
-              const canDelete = ["pending", "cancelled"].includes(status);
-
-              const currentOrderId = String(order._id || "");
-
-              const isDeleting =
-                Boolean(currentOrderId) &&
-                deletingId === currentOrderId;
+              const isCancelled =
+                String(order.status || "").toLowerCase() === "cancelled";
 
               return (
                 <section
@@ -495,17 +473,17 @@ const MyOrders = () => {
                     </p>
                   </div>
 
-                  {canDelete && (
+                  {isCancelled && (
                     <div className="mt-5 flex justify-end border-t border-gray-200 pt-5">
                       <button
                         type="button"
                         onClick={() => deleteOrder(order)}
-                        disabled={isDeleting}
+                        disabled={deletingId === String(order._id || "")}
                         className="border border-red-600 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        {isDeleting
+                        {deletingId === String(order._id || "")
                           ? "Deleting..."
-                          : "Delete Order"}
+                          : "Delete Cancelled Order"}
                       </button>
                     </div>
                   )}
@@ -520,4 +498,3 @@ const MyOrders = () => {
 };
 
 export default MyOrders;
-

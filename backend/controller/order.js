@@ -708,11 +708,7 @@ export const getGuestOrderStatus = async (req, res) => {
 /**
  * Customer apna sirf cancelled order delete kar sakta hai.
  */
-
-/**
- * Customer can delete their own pending or cancelled order.
- */
-export const deleteMyOrder = async (req, res) => {
+export const deleteMyCancelledOrder = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -735,12 +731,10 @@ export const deleteMyOrder = async (req, res) => {
       });
     }
 
-    const status = String(order.status).toLowerCase();
-
-    if (!["pending", "cancelled"].includes(status)) {
+    if (String(order.status).toLowerCase() !== "cancelled") {
       return res.status(400).json({
         ok: false,
-        message: "Only pending or cancelled orders can be deleted.",
+        message: "Only cancelled orders can be deleted.",
       });
     }
 
@@ -748,14 +742,14 @@ export const deleteMyOrder = async (req, res) => {
 
     return res.status(200).json({
       ok: true,
-      message: "Order deleted successfully.",
+      message: "Your cancelled order has been deleted.",
     });
   } catch (error) {
-    console.error("Delete my order error:", error);
+    console.error("Delete my cancelled order error:", error);
 
     return res.status(500).json({
       ok: false,
-      message: "Failed to delete order.",
+      message: "Failed to delete your cancelled order.",
     });
   }
 };
