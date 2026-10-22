@@ -46,6 +46,7 @@ import ShippingAndDelivery from "./Pages/ShippingAndDelivery";
 import FAQ from "./Pages/FAQ";
 import PrivacyPolicy from "./Pages/PrivacyPolicy";
 import Career from "./Pages/Career";
+import UpdateProduct from "./Pages/UpdateProduct";
 
 const Layout = () => (
   <>
@@ -228,6 +229,7 @@ const App = () => (
         <Route path="/policy" element={<PrivacyPolicy />} />
         <Route path="/careers" element={<Career />} />
 
+
         <Route
           path="/shipping-and-delivery"
           element={<ShippingAndDelivery />}
@@ -259,6 +261,10 @@ const App = () => (
           <Route
             path="/admin/dashboard"
             element={<AdminDashboard />}
+          />
+          <Route
+            path="/admin/products/edit/:id"
+            element={<UpdateProduct />}
           />
 
           <Route
