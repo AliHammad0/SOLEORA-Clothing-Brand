@@ -5,6 +5,7 @@ import {
   getAllOrders,
   updateOrderStatus,
   deleteCancelledOrder,
+  getGuestOrderStatus,
 } from "../controller/order.js";
 
 import {
@@ -29,6 +30,7 @@ orderRoutes.post("/place", optionalUser, placeOrder);
 orderRoutes.get("/my", verifyUser, getMyOrders);
 
 orderRoutes.get("/all", verifyAdmin, getAllOrders);
+orderRoutes.get("/guest-status", getGuestOrderStatus);
 
 orderRoutes.put("/:id/status", verifyAdmin, updateOrderStatus);
 
