@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
   selectCartItems,
@@ -10,216 +10,108 @@ import {
 const API_URL =
   "https://soleora-clothing-brand-backend.vercel.app/api/v1";
 
-const PRODUCTS_API = `${API_URL}/products`;
-const GUEST_ORDERS_KEY = "soleora-orders";
-
 const FREE_SHIPPING_LIMIT = 5000;
 const SHIPPING_CHARGE = 250;
+const GUEST_ORDERS_KEY = "soleora-orders";
 
-const getProductId = (item) => String(item._id ?? item.id ?? "");
+const getProductId = (item) =>
+  item.productId ||
+  item.product?._id ||
+  item._id ||
+  item.id ||
+  "";
 
-const getPrice = (item) => {
-  const price = Number(
-    item.price ?? item.originalPrice ?? item.original_price ?? 0
-  );
-  const specialPrice = Number(item.specialPrice);
-  const discountPrice = Number(item.discountPrice);
-
-  if (specialPrice > 0 && price > 0 && specialPrice < price) {
-    return specialPrice;
-  }
-
-  if (discountPrice > 0 && price > 0 && discountPrice < price) {
-    return discountPrice;
-  }
-
-  if (price > 0) return price;
-  if (specialPrice > 0) return specialPrice;
-  if (discountPrice > 0) return discountPrice;
-
-  return 0;
-};
-
-const formatPrice = (price) =>
-  `Rs. ${Number(price || 0).toLocaleString("en-PK")}`;
-
-const getReservations = (item) => {
-  const reservations = Array.isArray(item.reservations)
-    ? item.reservations.filter(
-        (reservation) => reservation?.reservationId
-      )
-    : [];
-
-  if (reservations.length > 0) {
-    return reservations.map((reservation) => ({
-      reservationId: reservation.reservationId,
-      quantity: Number(reservation.quantity || 0),
-    }));
-  }
-
-  if (item.reservationId) {
-    return [
-      {
-        reservationId: item.reservationId,
-        quantity: Number(item.quantity || 1),
-      },
-    ];
-  }
-
-  return [];
-};
-
-const releaseReservation = async (reservationId) => {
-  try {
-    await fetch(
-      `${PRODUCTS_API}/reservations/${encodeURIComponent(
-        reservationId
-      )}/release`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
-  } catch {
-    // Continue checkout if an old reservation cannot be released.
-  }
-};
-
-const reserveCurrentQuantity = async (item) => {
-  const productId = getProductId(item);
-  const quantity = Number(item.quantity || 1);
-
-  if (!productId || !Number.isInteger(quantity) || quantity < 1) {
-    throw new Error(
-      `Invalid product or quantity for ${item.title || "a product"}.`
-    );
-  }
-
-  const previousReservations = getReservations(item);
-  const uniqueReservationIds = [
-    ...new Set(
-      previousReservations.map(
-        (reservation) => reservation.reservationId
-      )
-    ),
-  ];
-
-  for (const reservationId of uniqueReservationIds) {
-    await releaseReservation(reservationId);
-  }
-
-  const response = await fetch(
-    `${PRODUCTS_API}/${encodeURIComponent(productId)}/reserve`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ quantity }),
-    }
+const getPrice = (item) =>
+  Number(
+    item.specialPrice ??
+      item.product?.specialPrice ??
+      item.price ??
+      item.product?.price ??
+      0
   );
 
-  const data = await response.json().catch(() => ({}));
+const getImage = (item) =>
+  item.images?.[0] ||
+  item.image ||
+  item.product?.images?.[0] ||
+  "";
 
-  if (!response.ok || data.ok === false || !data.reservationId) {
-    throw new Error(
-      data.message ||
-        `Could not reserve stock for ${
-          item.title || "a product"
-        }. Please check stock availability.`
-    );
-  }
+const getSize = (item) =>
+  typeof item.size === "object"
+    ? item.size?.name || ""
+    : item.size || "";
 
-  const reservedQuantity = Number(
-    data.reservedQuantity ?? quantity
-  );
+const getColor = (item) =>
+  typeof item.color === "object"
+    ? item.color?.name || ""
+    : item.color || "";
 
-  if (reservedQuantity !== quantity) {
-    await releaseReservation(data.reservationId);
-
-    throw new Error(
-      `Stock reservation for ${
-        item.title || "a product"
-      } does not match the requested quantity. Please try again.`
-    );
-  }
-
-  return {
-    productId,
-    quantity,
-    size:
-      typeof item.size === "object"
-        ? item.size?.name || ""
-        : item.size || "",
-    color:
-      typeof item.color === "object"
-        ? item.color?.name || ""
-        : item.color || "",
-    reservations: [
-      {
-        reservationId: data.reservationId,
-        quantity: reservedQuantity,
-      },
-    ],
-  };
-};
-
-// Save a guest order locally so it appears on My Orders.
-const saveGuestOrder = (order, cartItems, totals) => {
+const saveGuestOrder = (
+  order,
+  cartItems,
+  totals,
+  customerEmail
+) => {
   try {
     const saved = JSON.parse(
       localStorage.getItem(GUEST_ORDERS_KEY) || "[]"
     );
 
     const existingOrders = Array.isArray(saved) ? saved : [];
-
     const orderNumber = order.orderNumber || order._id || "";
+
+    const email = String(
+      customerEmail ||
+        order.customer?.email ||
+        order.email ||
+        ""
+    )
+      .trim()
+      .toLowerCase();
 
     const guestOrder = {
       _id: order._id || orderNumber || `guest-${Date.now()}`,
-      orderNumber: order.orderNumber || order._id || "",
+      orderNumber,
+      email,
+      customer: {
+        ...(order.customer || {}),
+        email,
+      },
       createdAt: order.createdAt || new Date().toISOString(),
       status: order.status || "pending",
       paymentMethod: order.paymentMethod || "COD",
       items: cartItems.map((item) => ({
         _id: getProductId(item),
         title: item.title || item.name || "SOLEORA Product",
-        image: item.images?.[0] || item.image || "",
+        image: getImage(item),
         price: getPrice(item),
         quantity: Number(item.quantity || 1),
-        size:
-          typeof item.size === "object"
-            ? item.size?.name || ""
-            : item.size || "",
-        color:
-          typeof item.color === "object"
-            ? item.color?.name || ""
-            : item.color || "",
+        size: getSize(item),
+        color: getColor(item),
       })),
       subtotal: Number(order.subtotal ?? totals.subtotal),
       shippingFee: Number(
-        order.shippingFee ?? order.shipping ?? totals.shippingFee
+        order.shippingFee ??
+          order.shipping ??
+          totals.shippingFee
       ),
       total: Number(order.total ?? totals.total),
     };
 
-    const alreadySaved = existingOrders.some(
-      (savedOrder) =>
+    const isSameOrder = (savedOrder) =>
+      Boolean(
         (orderNumber &&
           (savedOrder.orderNumber === orderNumber ||
             savedOrder._id === orderNumber)) ||
-        (order._id && savedOrder._id === order._id)
-    );
+          (order._id && savedOrder._id === order._id)
+      );
+
+    const alreadySaved = existingOrders.some(isSameOrder);
 
     const updatedOrders = alreadySaved
       ? existingOrders.map((savedOrder) =>
-          (orderNumber &&
-            (savedOrder.orderNumber === orderNumber ||
-              savedOrder._id === orderNumber)) ||
-          (order._id && savedOrder._id === order._id)
-            ? guestOrder
+          isSameOrder(savedOrder)
+            ? { ...savedOrder, ...guestOrder }
             : savedOrder
         )
       : [guestOrder, ...existingOrders];
@@ -229,14 +121,16 @@ const saveGuestOrder = (order, cartItems, totals) => {
       JSON.stringify(updatedOrders)
     );
   } catch (error) {
-    // Local storage failure must not undo a successfully placed order.
-    console.error("Unable to save guest order locally:", error);
+    console.error("Unable to save guest order:", error);
   }
 };
 
 const Checkout = () => {
-  const cartItems = useSelector(selectCartItems);
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const cartItems = useSelector(selectCartItems);
+
+  const token = localStorage.getItem("token");
 
   const [form, setForm] = useState({
     firstname: "",
@@ -251,8 +145,7 @@ const Checkout = () => {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [orderNumber, setOrderNumber] = useState("");
+  const [placedOrder, setPlacedOrder] = useState(null);
 
   const subtotal = cartItems.reduce(
     (sum, item) =>
@@ -261,7 +154,7 @@ const Checkout = () => {
   );
 
   const shippingFee =
-    subtotal === 0 || subtotal >= FREE_SHIPPING_LIMIT
+    subtotal >= FREE_SHIPPING_LIMIT || subtotal === 0
       ? 0
       : SHIPPING_CHARGE;
 
@@ -278,241 +171,356 @@ const Checkout = () => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-
-    if (loading) return;
-
     setError("");
-    setSuccess("");
 
-    if (cartItems.length === 0) {
+    if (!cartItems.length) {
       setError("Your cart is empty.");
+      return;
+    }
+
+    const email = form.email.trim().toLowerCase();
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
+    const items = cartItems.map((item) => ({
+      productId: getProductId(item),
+      quantity: Number(item.quantity || 1),
+      size: getSize(item),
+      color: getColor(item),
+      reservationIds: Array.isArray(item.reservationIds)
+        ? item.reservationIds
+        : item.reservationId
+          ? [item.reservationId]
+          : [],
+    }));
+
+    if (items.some((item) => !item.productId)) {
+      setError(
+        "A product in your cart is missing its ID. Please update your cart and try again."
+      );
       return;
     }
 
     setLoading(true);
 
     try {
-      const items = [];
-
-      for (const item of cartItems) {
-        const reservedItem = await reserveCurrentQuantity(item);
-        items.push(reservedItem);
-      }
-
-      const token = localStorage.getItem("token");
-
-      const headers = {
-        "Content-Type": "application/json",
-      };
-
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
-
       const response = await fetch(`${API_URL}/orders/place`, {
         method: "POST",
-        headers,
+        headers: {
+          "Content-Type": "application/json",
+          ...(token
+            ? { Authorization: `Bearer ${token}` }
+            : {}),
+        },
         body: JSON.stringify({
           ...form,
+          email,
           items,
           paymentMethod: "COD",
         }),
       });
 
-      const data = await response.json().catch(() => ({}));
+      const data = await response.json();
 
-      if (!response.ok || data.ok !== true) {
+      if (!response.ok || data.ok === false) {
         throw new Error(
-          data.message ||
-            "Could not place your order. Please try again."
+          data.message || "Unable to place your order."
         );
       }
 
-      const placedOrder = data.order || {};
+      const order = data.order || data.data?.order || data.data || {};
 
-      // Save guest orders before clearing the cart.
-      if (!token) {
-        saveGuestOrder(placedOrder, cartItems, {
-          subtotal,
-          shippingFee,
-          total,
-        });
+      if (!order.orderNumber && !order._id) {
+        throw new Error(
+          "Order response did not contain an order number. Please contact support before trying again."
+        );
       }
 
-      setOrderNumber(placedOrder.orderNumber || "");
-      setSuccess("Your order has been placed successfully!");
+      if (!token) {
+        saveGuestOrder(
+          order,
+          cartItems,
+          {
+            subtotal,
+            shippingFee,
+            total,
+          },
+          email
+        );
+      }
 
+      setPlacedOrder(order);
       dispatch(clearCart());
     } catch (err) {
       setError(
-        err.message || "Something went wrong. Please try again."
+        err.message ||
+          "Something went wrong while placing your order."
       );
     } finally {
       setLoading(false);
     }
   };
 
-  if (cartItems.length === 0 && !success) {
+  if (placedOrder) {
     return (
-      <main className="mx-auto max-w-3xl px-5 py-20 text-center">
-        <h1 className="text-3xl font-semibold">
-          Your cart is empty
-        </h1>
+      <main className="min-h-screen bg-gray-50 px-4 py-16">
+        <div className="mx-auto max-w-xl rounded-2xl bg-white p-8 text-center shadow-sm">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-3xl text-green-700">
+            ✓
+          </div>
 
-        <p className="mt-3 text-gray-500">
-          Add products before proceeding to checkout.
-        </p>
+          <h1 className="mb-3 text-2xl font-bold text-gray-900">
+            Order Placed Successfully!
+          </h1>
 
-        <Link
-          to="/"
-          className="mt-7 inline-block bg-black px-8 py-4 text-white"
-        >
-          Continue Shopping
-        </Link>
+          <p className="mb-5 text-gray-600">
+            Thank you for shopping with SOLEORA.
+          </p>
+
+          <p className="mb-2 text-sm text-gray-500">
+            Order Number
+          </p>
+
+          <p className="mb-4 break-all font-semibold text-gray-900">
+            {placedOrder.orderNumber || placedOrder._id}
+          </p>
+
+          <p className="mb-6 text-sm text-gray-600">
+            Payment Method: Cash on Delivery
+          </p>
+
+          {!token && (
+            <p className="mb-6 text-sm text-gray-600">
+              Apna order check karne ke liye My Orders page par
+              jao aur order number ke saath wahi email use karo
+              jo checkout mein di thi.
+            </p>
+          )}
+
+          <div className="flex flex-col justify-center gap-3 sm:flex-row">
+            <Link
+              to="/my-orders"
+              className="rounded-lg bg-black px-6 py-3 font-medium text-white transition hover:bg-gray-800"
+            >
+              View My Orders
+            </Link>
+
+            <Link
+              to="/"
+              className="rounded-lg border border-gray-300 px-6 py-3 font-medium text-gray-800 transition hover:bg-gray-100"
+            >
+              Continue Shopping
+            </Link>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (!cartItems.length) {
+    return (
+      <main className="min-h-screen bg-gray-50 px-4 py-16">
+        <div className="mx-auto max-w-xl rounded-2xl bg-white p-8 text-center shadow-sm">
+          <h1 className="mb-3 text-2xl font-bold text-gray-900">
+            Your Cart Is Empty
+          </h1>
+
+          <p className="mb-6 text-gray-600">
+            Add some products before proceeding to checkout.
+          </p>
+
+          <Link
+            to="/"
+            className="inline-block rounded-lg bg-black px-6 py-3 font-medium text-white hover:bg-gray-800"
+          >
+            Continue Shopping
+          </Link>
+        </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 px-4 py-10 text-black sm:px-6">
+    <main className="min-h-screen bg-gray-50 px-4 py-10 sm:px-6">
       <div className="mx-auto max-w-6xl">
-        <Link
-          to="/cart"
-          className="text-sm text-gray-600 hover:text-black"
-        >
-          ← Back to Cart
-        </Link>
-
-        <h1 className="mt-5 text-3xl font-semibold sm:text-4xl">
-          {success ? "Order Confirmed!" : "Checkout"}
+        <h1 className="mb-2 text-3xl font-bold text-gray-900">
+          Checkout
         </h1>
 
-        <p className="mt-2 text-sm text-gray-500">
-          {success
-            ? "Thank you for shopping with SOLEORA."
-            : "Complete your delivery details. No account or login required."}
+        <p className="mb-8 text-gray-600">
+          Complete your details to place your SOLEORA order.
         </p>
 
         {error && (
           <div
             role="alert"
-            className="mt-6 border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+            className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700"
           >
             {error}
           </div>
         )}
 
-        {success ? (
-          <section className="mt-8 bg-white p-6 shadow-sm sm:p-10">
-            <div className="text-4xl">✓</div>
-
-            <h2 className="mt-4 text-2xl font-semibold">
-              Order placed successfully!
-            </h2>
-
-            {orderNumber && (
-              <p className="mt-3 text-gray-600">
-                Order number: <strong>{orderNumber}</strong>
-              </p>
-            )}
-
-            <p className="mt-3 text-sm text-gray-500">
-              Payment method: Cash on Delivery (COD)
-            </p>
-
-            <Link
-              to="/my-orders"
-              className="mt-7 inline-block bg-black px-7 py-3 text-white hover:bg-gray-800"
-            >
-              View My Orders
-            </Link>
-
-            <div>
-              <Link
-                to="/"
-                className="mt-4 inline-block border border-black px-7 py-3 hover:bg-gray-100"
-              >
-                Continue Shopping
-              </Link>
-            </div>
-          </section>
-        ) : (
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           <form
             onSubmit={handleSubmit}
-            className="mt-8 grid grid-cols-1 items-start gap-8 lg:grid-cols-[1fr_380px]"
+            className="space-y-6 rounded-2xl bg-white p-6 shadow-sm lg:col-span-2 sm:p-8"
           >
-            <section className="bg-white p-5 shadow-sm sm:p-8">
-              <h2 className="text-xl font-semibold">
+            <section>
+              <h2 className="mb-5 text-xl font-semibold text-gray-900">
                 Delivery Information
               </h2>
 
-              <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2">
-                <Field
-                  label="First Name"
-                  name="firstname"
-                  value={form.firstname}
-                  onChange={handleChange}
-                  required
-                />
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label
+                    htmlFor="firstname"
+                    className="mb-2 block text-sm font-medium text-gray-700"
+                  >
+                    First Name *
+                  </label>
 
-                <Field
-                  label="Last Name"
-                  name="lastname"
-                  value={form.lastname}
-                  onChange={handleChange}
-                  required
-                />
+                  <input
+                    id="firstname"
+                    name="firstname"
+                    value={form.firstname}
+                    onChange={handleChange}
+                    autoComplete="given-name"
+                    required
+                    className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-black"
+                    placeholder="First name"
+                  />
+                </div>
 
-                <Field
-                  label="Email Address"
-                  name="email"
-                  type="email"
-                  value={form.email}
-                  onChange={handleChange}
-                  required
-                />
+                <div>
+                  <label
+                    htmlFor="lastname"
+                    className="mb-2 block text-sm font-medium text-gray-700"
+                  >
+                    Last Name *
+                  </label>
 
-                <Field
-                  label="Phone Number"
-                  name="phone"
-                  type="tel"
-                  value={form.phone}
-                  onChange={handleChange}
-                  required
-                />
+                  <input
+                    id="lastname"
+                    name="lastname"
+                    value={form.lastname}
+                    onChange={handleChange}
+                    autoComplete="family-name"
+                    required
+                    className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-black"
+                    placeholder="Last name"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="email"
+                    className="mb-2 block text-sm font-medium text-gray-700"
+                  >
+                    Email Address *
+                  </label>
+
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={form.email}
+                    onChange={handleChange}
+                    autoComplete="email"
+                    required
+                    className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-black"
+                    placeholder="you@example.com"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="phone"
+                    className="mb-2 block text-sm font-medium text-gray-700"
+                  >
+                    Phone Number *
+                  </label>
+
+                  <input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    value={form.phone}
+                    onChange={handleChange}
+                    autoComplete="tel"
+                    required
+                    className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-black"
+                    placeholder="03XXXXXXXXX"
+                  />
+                </div>
 
                 <div className="sm:col-span-2">
-                  <Field
-                    label="Complete Address"
+                  <label
+                    htmlFor="address"
+                    className="mb-2 block text-sm font-medium text-gray-700"
+                  >
+                    Complete Address *
+                  </label>
+
+                  <input
+                    id="address"
                     name="address"
                     value={form.address}
                     onChange={handleChange}
+                    autoComplete="street-address"
                     required
+                    className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-black"
                     placeholder="House number, street, area"
                   />
                 </div>
 
-                <Field
-                  label="City"
-                  name="city"
-                  value={form.city}
-                  onChange={handleChange}
-                  required
-                />
+                <div>
+                  <label
+                    htmlFor="city"
+                    className="mb-2 block text-sm font-medium text-gray-700"
+                  >
+                    City *
+                  </label>
 
-                <Field
-                  label="Postal Code (Optional)"
-                  name="postalCode"
-                  value={form.postalCode}
-                  onChange={handleChange}
-                />
+                  <input
+                    id="city"
+                    name="city"
+                    value={form.city}
+                    onChange={handleChange}
+                    autoComplete="address-level2"
+                    required
+                    className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-black"
+                    placeholder="Your city"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="postalCode"
+                    className="mb-2 block text-sm font-medium text-gray-700"
+                  >
+                    Postal Code
+                  </label>
+
+                  <input
+                    id="postalCode"
+                    name="postalCode"
+                    value={form.postalCode}
+                    onChange={handleChange}
+                    autoComplete="postal-code"
+                    className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-black"
+                    placeholder="Optional"
+                  />
+                </div>
 
                 <div className="sm:col-span-2">
                   <label
                     htmlFor="notes"
-                    className="mb-2 block text-sm font-medium"
+                    className="mb-2 block text-sm font-medium text-gray-700"
                   >
-                    Order Notes (Optional)
+                    Order Notes
                   </label>
 
                   <textarea
@@ -521,171 +529,140 @@ const Checkout = () => {
                     value={form.notes}
                     onChange={handleChange}
                     rows={3}
-                    maxLength={500}
-                    placeholder="Any delivery instructions?"
-                    className="w-full border border-gray-300 px-4 py-3 outline-none focus:border-black"
+                    className="w-full resize-y rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-black"
+                    placeholder="Optional delivery instructions"
                   />
                 </div>
               </div>
-
-              <div className="mt-8 border border-gray-200 p-5">
-                <h3 className="font-semibold">Payment Method</h3>
-
-                <div className="mt-4 flex items-center gap-3">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full border border-black">
-                    <span className="h-2.5 w-2.5 rounded-full bg-black" />
-                  </span>
-
-                  <div>
-                    <p className="text-sm font-medium">
-                      Cash on Delivery (COD)
-                    </p>
-
-                    <p className="mt-1 text-xs text-gray-500">
-                      Pay when your order arrives.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading || Boolean(success)}
-                className="mt-8 w-full bg-black px-6 py-4 text-sm font-semibold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {loading
-                  ? "Checking stock and placing order..."
-                  : "Place Order — Cash on Delivery"}
-              </button>
             </section>
 
-            <aside className="h-fit bg-white p-5 shadow-sm sm:p-7">
-              <h2 className="text-xl font-semibold">
-                Order Summary
+            <section className="border-t border-gray-200 pt-6">
+              <h2 className="mb-3 text-xl font-semibold text-gray-900">
+                Payment Method
               </h2>
 
-              <div className="mt-6 space-y-5">
-                {cartItems.map((item, index) => (
-                  <div
-                    key={getProductId(item) || index}
-                    className="flex gap-4"
-                  >
-                    <img
-                      src={
-                        item.images?.[0] ||
-                        item.image ||
-                        "https://placehold.co/100x120?text=SOLEORA"
-                      }
-                      alt={item.title || "SOLEORA Product"}
-                      className="h-20 w-16 object-cover"
-                    />
-
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium">
-                        {item.title || item.name || "SOLEORA Product"}
-                      </p>
-
-                      <p className="mt-1 text-xs text-gray-500">
-                        Qty: {Number(item.quantity || 1)}
-                      </p>
-
-                      {item.size && (
-                        <p className="mt-1 text-xs text-gray-500">
-                          Size:{" "}
-                          {typeof item.size === "object"
-                            ? item.size.name
-                            : item.size}
-                        </p>
-                      )}
-
-                      {item.color && (
-                        <p className="mt-1 text-xs text-gray-500">
-                          Color:{" "}
-                          {typeof item.color === "object"
-                            ? item.color.name
-                            : item.color}
-                        </p>
-                      )}
-
-                      <p className="mt-2 text-sm font-semibold">
-                        {formatPrice(
-                          getPrice(item) * Number(item.quantity || 1)
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-7 space-y-4 border-t border-gray-200 pt-5 text-sm">
-                <div className="flex justify-between gap-3">
-                  <span className="text-gray-500">Subtotal</span>
-                  <span>{formatPrice(subtotal)}</span>
-                </div>
-
-                <div className="flex justify-between gap-3">
-                  <span className="text-gray-500">Shipping</span>
-                  <span>
-                    {shippingFee === 0
-                      ? "FREE"
-                      : formatPrice(shippingFee)}
-                  </span>
-                </div>
-
-                <p className="text-xs text-gray-500">
-                  {subtotal >= FREE_SHIPPING_LIMIT
-                    ? "Free shipping unlocked!"
-                    : `${formatPrice(
-                        FREE_SHIPPING_LIMIT - subtotal
-                      )} more for free shipping.`}
+              <div className="rounded-lg border border-gray-300 p-4">
+                <p className="font-medium text-gray-900">
+                  Cash on Delivery (COD)
                 </p>
 
-                <div className="flex justify-between border-t border-gray-200 pt-4 text-base font-semibold">
-                  <span>Total</span>
-                  <span>{formatPrice(total)}</span>
-                </div>
+                <p className="mt-1 text-sm text-gray-600">
+                  Pay when your order is delivered.
+                </p>
               </div>
-            </aside>
-          </form>
-        )}
+            </section>
 
-        <p className="mt-8 text-center text-xs text-gray-400">
-          © {new Date().getFullYear()} SOLEORA. All rights reserved.
-        </p>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-lg bg-black px-6 py-4 font-semibold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loading ? "Placing Order..." : "Place Order"}
+            </button>
+          </form>
+
+          <aside className="h-fit rounded-2xl bg-white p-6 shadow-sm sm:p-8">
+            <h2 className="mb-6 text-xl font-semibold text-gray-900">
+              Order Summary
+            </h2>
+
+            <div className="mb-6 space-y-5">
+              {cartItems.map((item, index) => (
+                <div
+                  key={`${getProductId(item)}-${getSize(item)}-${getColor(item)}-${index}`}
+                  className="flex gap-4"
+                >
+                  <div className="h-20 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100">
+                    {getImage(item) ? (
+                      <img
+                        src={getImage(item)}
+                        alt={item.title || item.name || "Product"}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-xs text-gray-400">
+                        No Image
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-medium text-gray-900">
+                      {item.title || item.name || "SOLEORA Product"}
+                    </h3>
+
+                    {getSize(item) && (
+                      <p className="mt-1 text-sm text-gray-500">
+                        Size: {getSize(item)}
+                      </p>
+                    )}
+
+                    {getColor(item) && (
+                      <p className="text-sm text-gray-500">
+                        Color: {getColor(item)}
+                      </p>
+                    )}
+
+                    <p className="mt-1 text-sm text-gray-600">
+                      Qty: {Number(item.quantity || 1)}
+                    </p>
+
+                    <p className="mt-1 font-semibold text-gray-900">
+                      Rs.{" "}
+                      {(
+                        getPrice(item) *
+                        Number(item.quantity || 1)
+                      ).toLocaleString("en-PK")}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="space-y-3 border-t border-gray-200 pt-5">
+              <div className="flex justify-between gap-4 text-gray-600">
+                <span>Subtotal</span>
+                <span>
+                  Rs. {subtotal.toLocaleString("en-PK")}
+                </span>
+              </div>
+
+              <div className="flex justify-between gap-4 text-gray-600">
+                <span>Shipping</span>
+                <span>
+                  {shippingFee === 0
+                    ? "Free"
+                    : `Rs. ${shippingFee.toLocaleString("en-PK")}`}
+                </span>
+              </div>
+
+              {subtotal < FREE_SHIPPING_LIMIT && (
+                <p className="text-sm text-gray-500">
+                  Shop for Rs.{" "}
+                  {(
+                    FREE_SHIPPING_LIMIT - subtotal
+                  ).toLocaleString("en-PK")}{" "}
+                  more to get free shipping.
+                </p>
+              )}
+
+              <div className="flex justify-between gap-4 border-t border-gray-200 pt-4 text-lg font-bold text-gray-900">
+                <span>Total</span>
+                <span>
+                  Rs. {total.toLocaleString("en-PK")}
+                </span>
+              </div>
+            </div>
+
+            <p className="mt-5 text-xs leading-5 text-gray-500">
+              Your order will be processed after you confirm your
+              delivery details.
+            </p>
+          </aside>
+        </div>
       </div>
     </main>
   );
 };
-
-const Field = ({
-  label,
-  name,
-  value,
-  onChange,
-  type = "text",
-  required = false,
-  placeholder = "",
-}) => (
-  <div>
-    <label
-      htmlFor={name}
-      className="mb-2 block text-sm font-medium"
-    >
-      {label}
-    </label>
-
-    <input
-      id={name}
-      name={name}
-      type={type}
-      value={value}
-      onChange={onChange}
-      required={required}
-      placeholder={placeholder}
-      autoComplete={name}
-      className="w-full border border-gray-300 px-4 py-3 outline-none focus:border-black"
-    />
-  </div>
-);
 
 export default Checkout;
