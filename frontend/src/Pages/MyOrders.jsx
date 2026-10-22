@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 const API_URL =
@@ -25,22 +25,79 @@ const getGuestOrders = () => {
 const MyOrders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    const fetchOrders = async () => {
+  const syncGuestOrderStatuses = useCallback(async (guestOrders) => {
+    const updatedOrders = await Promise.all(
+      guestOrders.map(async (order) => {
+        const email =
+          order.customer?.email ||
+          order.email ||
+          order.customerEmail ||
+          "";
+
+        const orderNumber = order.orderNumber || "";
+
+        if (!email || !orderNumber) {
+          return order;
+        }
+
+        try {
+          const params = new URLSearchParams({
+            orderNumber,
+            email,
+          });
+
+          const response = await fetch(
+            `${API_URL}/orders/guest-status?${params.toString()}`
+          );
+
+          const data = await response.json().catch(() => ({}));
+
+          if (!response.ok || data.ok !== true || !data.order) {
+            return order;
+          }
+
+          return {
+            ...order,
+            status: data.order.status || order.status,
+            updatedAt: data.order.updatedAt || order.updatedAt,
+          };
+        } catch {
+          return order;
+        }
+      })
+    );
+
+    localStorage.setItem(
+      GUEST_ORDERS_KEY,
+      JSON.stringify(updatedOrders)
+    );
+
+    setOrders(updatedOrders);
+  }, []);
+
+  const fetchOrders = useCallback(
+    async (manualRefresh = false) => {
+      if (manualRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+
+      setError("");
+
       const guestOrders = getGuestOrders();
       const token = localStorage.getItem("token");
 
-      // Guest customer: show orders saved in this browser.
-      if (!token) {
-        setOrders(guestOrders);
-        setLoading(false);
-        return;
-      }
-
-      // Logged-in customer: load orders from the backend.
       try {
+        if (!token) {
+          setOrders(guestOrders);
+          await syncGuestOrderStatuses(guestOrders);
+          return;
+        }
+
         const response = await fetch(`${API_URL}/orders/my`, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -57,19 +114,25 @@ const MyOrders = () => {
 
         setOrders(Array.isArray(data.orders) ? data.orders : []);
       } catch (err) {
-        // If the API fails, still show any locally saved guest orders.
         if (guestOrders.length > 0) {
           setOrders(guestOrders);
+          if (!token) {
+            await syncGuestOrderStatuses(guestOrders);
+          }
         } else {
           setError(err.message || "Unable to load your orders.");
         }
       } finally {
         setLoading(false);
+        setRefreshing(false);
       }
-    };
+    },
+    [syncGuestOrderStatuses]
+  );
 
+  useEffect(() => {
     fetchOrders();
-  }, []);
+  }, [fetchOrders]);
 
   const getStatusStyle = (status) => {
     const styles = {
@@ -90,9 +153,7 @@ const MyOrders = () => {
   if (loading) {
     return (
       <main className="flex min-h-[60vh] items-center justify-center px-5">
-        <p className="text-sm text-gray-500">
-          Loading your orders...
-        </p>
+        <p className="text-sm text-gray-500">Loading your orders...</p>
       </main>
     );
   }
@@ -100,13 +161,26 @@ const MyOrders = () => {
   return (
     <main className="min-h-screen bg-gray-50 px-4 py-10 text-black sm:px-6">
       <div className="mx-auto max-w-5xl">
-        <h1 className="text-3xl font-semibold sm:text-4xl">
-          My Orders
-        </h1>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-semibold sm:text-4xl">
+              My Orders
+            </h1>
 
-        <p className="mt-2 text-sm text-gray-500">
-          Track your SOLEORA purchases and order status.
-        </p>
+            <p className="mt-2 text-sm text-gray-500">
+              Track your SOLEORA purchases and order status.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => fetchOrders(true)}
+            disabled={refreshing}
+            className="border border-black px-4 py-2 text-sm font-medium transition hover:bg-black hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {refreshing ? "Refreshing..." : "Refresh Status"}
+          </button>
+        </div>
 
         {error && (
           <div className="mt-6 border border-red-200 bg-red-50 p-4 text-sm text-red-700">
@@ -118,9 +192,7 @@ const MyOrders = () => {
           <section className="mt-10 bg-white px-5 py-16 text-center shadow-sm">
             <div className="text-5xl">🛍️</div>
 
-            <h2 className="mt-5 text-xl font-semibold">
-              No orders yet
-            </h2>
+            <h2 className="mt-5 text-xl font-semibold">No orders yet</h2>
 
             <p className="mt-2 text-sm text-gray-500">
               Your future purchases will appear here.
@@ -241,9 +313,7 @@ const MyOrders = () => {
                             </div>
 
                             <div className="min-w-0 flex-1">
-                              <p className="text-sm font-medium">
-                                {title}
-                              </p>
+                              <p className="text-sm font-medium">{title}</p>
 
                               <p className="mt-1 text-xs text-gray-500">
                                 Quantity: {quantity}

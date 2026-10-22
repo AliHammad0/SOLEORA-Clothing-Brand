@@ -658,3 +658,48 @@ export const deleteCancelledOrder = async (req, res) => {
     });
   }
 };
+
+
+// Get Guest Order Status
+export const getGuestOrderStatus = async (req, res) => {
+  try {
+    const orderNumber = String(req.query.orderNumber || "").trim();
+    const email = String(req.query.email || "").trim().toLowerCase();
+
+    if (!orderNumber || !email) {
+      return res.status(400).json({
+        ok: false,
+        message: "Order number and email are required.",
+      });
+    }
+
+    const order = await Order.findOne({
+      orderNumber,
+      "customer.email": email,
+    }).select("orderNumber status updatedAt createdAt");
+
+    if (!order) {
+      return res.status(404).json({
+        ok: false,
+        message: "Order not found. Please check your details.",
+      });
+    }
+
+    return res.status(200).json({
+      ok: true,
+      order: {
+        orderNumber: order.orderNumber,
+        status: order.status,
+        updatedAt: order.updatedAt,
+        createdAt: order.createdAt,
+      },
+    });
+  } catch (error) {
+    console.error("Get guest order status error:", error);
+
+    return res.status(500).json({
+      ok: false,
+      message: "Failed to load order status.",
+    });
+  }
+};
