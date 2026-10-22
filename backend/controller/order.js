@@ -158,17 +158,30 @@ export const placeOrder = async (req, res) => {
         });
       }
 
+      // Updated price validation only.
       const regularPrice = Number(product.price);
-      const specialPrice = Number(product.specialPrice);
+      const specialPrice = product.specialPrice;
 
-      const price =
-        Number.isFinite(specialPrice) &&
-        specialPrice > 0 &&
-        specialPrice < regularPrice
-          ? specialPrice
-          : regularPrice;
+      const hasValidRegularPrice =
+        Number.isFinite(regularPrice) && regularPrice > 0;
 
-      if (!Number.isFinite(price) || price <= 0) {
+      const hasValidSpecialPrice =
+        specialPrice !== null &&
+        specialPrice !== undefined &&
+        Number.isFinite(Number(specialPrice)) &&
+        Number(specialPrice) > 0 &&
+        hasValidRegularPrice &&
+        Number(specialPrice) < regularPrice;
+
+      const price = hasValidSpecialPrice
+        ? Number(specialPrice)
+        : regularPrice;
+
+      if (
+        !hasValidRegularPrice ||
+        !Number.isFinite(price) ||
+        price <= 0
+      ) {
         return res.status(400).json({
           ok: false,
           message: `Invalid price for ${product.title}.`,
