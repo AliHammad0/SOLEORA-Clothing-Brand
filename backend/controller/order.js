@@ -146,10 +146,12 @@ export const placeOrder = async (req, res) => {
 
       seenProducts.add(productId);
 
+      // lean() also exposes legacy fields stored in MongoDB,
+      // such as originalPrice, even if they are absent from the schema.
       const product = await Product.findOne({
         _id: productId,
         isActive: true,
-      });
+      }).lean();
 
       if (!product) {
         return res.status(409).json({
@@ -158,12 +160,23 @@ export const placeOrder = async (req, res) => {
         });
       }
 
-      // Updated price calculation only.
-      const regularPrice = Number(
-        product.price ?? product.originalPrice ?? product.original_price
-      );
+      // Use the first valid positive regular price.
+      const regularPriceCandidates = [
+        Number(product.price),
+        Number(product.originalPrice),
+        Number(product.original_price),
+      ];
 
-      const specialPrice = Number(product.specialPrice);
+      const regularPrice =
+        regularPriceCandidates.find(
+          (value) => Number.isFinite(value) && value > 0
+        ) ?? 0;
+
+      const specialPrice =
+        product.specialPrice == null
+          ? null
+          : Number(product.specialPrice);
+
       const discount = Number(
         product.discount ??
           product.discountPercentage ??
@@ -171,35 +184,33 @@ export const placeOrder = async (req, res) => {
           0
       );
 
-      const hasValidRegularPrice =
-        Number.isFinite(regularPrice) && regularPrice > 0;
-
-      const hasValidSpecialPrice =
-        product.specialPrice !== null &&
-        product.specialPrice !== undefined &&
-        Number.isFinite(specialPrice) &&
-        specialPrice > 0 &&
-        hasValidRegularPrice &&
-        specialPrice < regularPrice;
+      if (!Number.isFinite(regularPrice) || regularPrice <= 0) {
+        return res.status(400).json({
+          ok: false,
+          message: `Invalid price for ${product.title}.`,
+        });
+      }
 
       let price = regularPrice;
 
-      if (hasValidSpecialPrice) {
+      if (
+        specialPrice !== null &&
+        Number.isFinite(specialPrice) &&
+        specialPrice > 0 &&
+        specialPrice < regularPrice
+      ) {
         price = specialPrice;
       } else if (
-        hasValidRegularPrice &&
         Number.isFinite(discount) &&
         discount > 0 &&
         discount < 100
       ) {
-        price = Math.round(regularPrice * (1 - discount / 100));
+        price = Math.round(
+          regularPrice * (1 - discount / 100)
+        );
       }
 
-      if (
-        !hasValidRegularPrice ||
-        !Number.isFinite(price) ||
-        price <= 0
-      ) {
+      if (!Number.isFinite(price) || price <= 0) {
         return res.status(400).json({
           ok: false,
           message: `Invalid price for ${product.title}.`,
@@ -295,7 +306,7 @@ export const placeOrder = async (req, res) => {
       }
 
       if (!reservationListIsValid) {
-        // Release any matching active reservations before reserving again.
+        // Release matching active reservations before reserving again.
         for (const reservation of validReservations) {
           await releaseAndRestoreReservation(
             reservation._id,
