@@ -158,24 +158,42 @@ export const placeOrder = async (req, res) => {
         });
       }
 
-      // Updated price validation only.
-      const regularPrice = Number(product.price);
-      const specialPrice = product.specialPrice;
+      // Updated price calculation only.
+      const regularPrice = Number(
+        product.price ?? product.originalPrice ?? product.original_price
+      );
+
+      const specialPrice = Number(product.specialPrice);
+      const discount = Number(
+        product.discount ??
+          product.discountPercentage ??
+          product.discountPercent ??
+          0
+      );
 
       const hasValidRegularPrice =
         Number.isFinite(regularPrice) && regularPrice > 0;
 
       const hasValidSpecialPrice =
-        specialPrice !== null &&
-        specialPrice !== undefined &&
-        Number.isFinite(Number(specialPrice)) &&
-        Number(specialPrice) > 0 &&
+        product.specialPrice !== null &&
+        product.specialPrice !== undefined &&
+        Number.isFinite(specialPrice) &&
+        specialPrice > 0 &&
         hasValidRegularPrice &&
-        Number(specialPrice) < regularPrice;
+        specialPrice < regularPrice;
 
-      const price = hasValidSpecialPrice
-        ? Number(specialPrice)
-        : regularPrice;
+      let price = regularPrice;
+
+      if (hasValidSpecialPrice) {
+        price = specialPrice;
+      } else if (
+        hasValidRegularPrice &&
+        Number.isFinite(discount) &&
+        discount > 0 &&
+        discount < 100
+      ) {
+        price = Math.round(regularPrice * (1 - discount / 100));
+      }
 
       if (
         !hasValidRegularPrice ||
