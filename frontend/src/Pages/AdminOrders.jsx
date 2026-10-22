@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { ShoppingBag, RefreshCw, Trash2 } from "lucide-react";
 
@@ -8,6 +9,7 @@ export default function AdminOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [updatingId, setUpdatingId] = useState("");
   const [deletingId, setDeletingId] = useState("");
 
@@ -16,8 +18,8 @@ export default function AdminOrders() {
     localStorage.getItem("userToken") ||
     localStorage.getItem("authToken");
 
-  const fetchOrders = async () => {
-    setLoading(true);
+  const fetchOrders = async (showLoader = true) => {
+    if (showLoader) setLoading(true);
     setError("");
 
     try {
@@ -45,7 +47,7 @@ export default function AdminOrders() {
     } catch (err) {
       setError(err.message || "Orders load karne mein error aaya.");
     } finally {
-      setLoading(false);
+      if (showLoader) setLoading(false);
     }
   };
 
@@ -53,10 +55,18 @@ export default function AdminOrders() {
     fetchOrders();
   }, []);
 
+  useEffect(() => {
+    if (!notice) return;
+
+    const timer = setTimeout(() => setNotice(""), 3000);
+    return () => clearTimeout(timer);
+  }, [notice]);
+
   const updateStatus = async (id, status) => {
     try {
       setUpdatingId(id);
       setError("");
+      setNotice("");
 
       const response = await fetch(`${API_URL}/orders/${id}/status`, {
         method: "PUT",
@@ -73,7 +83,22 @@ export default function AdminOrders() {
         throw new Error(data.message || "Status update nahi hua.");
       }
 
-      await fetchOrders();
+      // Backend se returned order ko foran UI mein update karo.
+      if (data.order) {
+        setOrders((previous) =>
+          previous.map((order) =>
+            order._id === id ? data.order : order
+          )
+        );
+      }
+
+      setNotice(
+        status === "cancelled"
+          ? "Order cancelled. Stock restoration ka result verify karne ke liye Products page refresh karein."
+          : "Order status successfully update ho gaya."
+      );
+
+      await fetchOrders(false);
     } catch (err) {
       setError(err.message || "Status update nahi hua.");
     } finally {
@@ -96,6 +121,7 @@ export default function AdminOrders() {
     try {
       setDeletingId(order._id);
       setError("");
+      setNotice("");
 
       const response = await fetch(`${API_URL}/orders/${order._id}`, {
         method: "DELETE",
@@ -113,6 +139,8 @@ export default function AdminOrders() {
       setOrders((previous) =>
         previous.filter((item) => item._id !== order._id)
       );
+
+      setNotice("Cancelled order permanently delete ho gaya.");
     } catch (err) {
       setError(err.message || "Order delete nahi hua.");
     } finally {
@@ -131,7 +159,7 @@ export default function AdminOrders() {
         </div>
 
         <button
-          onClick={fetchOrders}
+          onClick={() => fetchOrders()}
           disabled={loading}
           className="flex items-center gap-2 rounded-lg bg-black px-4 py-2 text-sm text-white disabled:opacity-50"
         >
@@ -143,6 +171,12 @@ export default function AdminOrders() {
       {error && (
         <div className="mb-4 rounded-lg bg-red-100 p-4 text-sm text-red-700">
           {error}
+        </div>
+      )}
+
+      {notice && (
+        <div className="mb-4 rounded-lg bg-green-100 p-4 text-sm text-green-800">
+          {notice}
         </div>
       )}
 
@@ -174,7 +208,10 @@ export default function AdminOrders() {
                     Order #{order._id?.slice(-8).toUpperCase()}
                   </h2>
                   <p className="mt-1 text-sm text-gray-500">
-                    {order.customer?.name ||
+                    {[order.customer?.firstname, order.customer?.lastname]
+                      .filter(Boolean)
+                      .join(" ") ||
+                      order.customer?.name ||
                       order.customer?.fullName ||
                       "Customer"}
                   </p>
@@ -247,12 +284,14 @@ export default function AdminOrders() {
                     value={order.status || "pending"}
                     disabled={
                       updatingId === order._id ||
-                      deletingId === order._id
+                      deletingId === order._id ||
+                      order.status === "cancelled" ||
+                      order.status === "delivered"
                     }
                     onChange={(e) =>
                       updateStatus(order._id, e.target.value)
                     }
-                    className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                    className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm disabled:opacity-60"
                   >
                     <option value="pending">Pending</option>
                     <option value="confirmed">Confirmed</option>
@@ -286,3 +325,4 @@ export default function AdminOrders() {
     </div>
   );
 }
+

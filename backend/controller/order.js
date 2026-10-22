@@ -532,6 +532,7 @@ export const getMyOrders = async (req, res) => {
 // Update Order Status — Admin
 
  // Update Order Status — Admin
+
 export const updateOrderStatus = async (req, res) => {
   try {
     const allowedStatuses = [
@@ -552,74 +553,86 @@ export const updateOrderStatus = async (req, res) => {
       });
     }
 
-    const order = await Order.findById(req.params.id);
+    // Atomically claim the order status update.
+    const order = await Order.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        status: {
+          $nin: ["cancelled", "delivered"],
+        },
+      },
+      {
+        $set: {
+          status,
+        },
+      },
+      {
+        new: false,
+      }
+    );
 
     if (!order) {
-      return res.status(404).json({
-        ok: false,
-        message: "Order not found",
-      });
-    }
+      const existingOrder = await Order.findById(req.params.id);
 
-    if (order.status === "cancelled" || order.status === "delivered") {
+      if (!existingOrder) {
+        return res.status(404).json({
+          ok: false,
+          message: "Order not found",
+        });
+      }
+
       return res.status(400).json({
         ok: false,
         message: "This order can no longer be updated",
       });
     }
 
-    if (status === "cancelled") {
+    if (status === "cancelled" && !order.stockRestored) {
       for (const item of order.items) {
-        const reservationIds = Array.isArray(item.reservationIds)
-          ? item.reservationIds
-          : [];
+        const productId = item.product?._id || item.product;
 
-        for (const reservationId of reservationIds) {
-          // Reservation ko sirf ek baar restored mark karo.
-          const reservation = await StockReservation.findOneAndUpdate(
-            {
-              _id: reservationId,
-              product: item.product?._id || item.product,
-              status: "released",
+        const result = await Product.updateOne(
+          { _id: productId },
+          {
+            $inc: {
+              stock: item.quantity,
             },
-            {
-              $set: { status: "restored" },
-            },
-            { new: true }
-          );
-
-          if (!reservation) continue;
-
-          const result = await Product.updateOne(
-            { _id: reservation.product },
-            { $inc: { stock: reservation.quantity } }
-          );
-
-          if (result.modifiedCount !== 1) {
-            // Stock restore fail ho to retry ke liye status wapas karo.
-            await StockReservation.updateOne(
-              {
-                _id: reservation._id,
-                status: "restored",
-              },
-              {
-                $set: { status: "released" },
-              }
-            );
-
-            throw new Error("Could not restore reserved stock.");
           }
+        );
+
+        if (result.modifiedCount !== 1) {
+          console.error(
+            "Stock restoration failed for product:",
+            String(productId)
+          );
+
+          return res.status(500).json({
+            ok: false,
+            message:
+              "Order was cancelled, but stock restoration failed. Please check the product stock.",
+          });
         }
       }
+
+      await Order.updateOne(
+        {
+          _id: order._id,
+          status: "cancelled",
+        },
+        {
+          $set: {
+            stockRestored: true,
+          },
+        }
+      );
     }
 
-    order.status = status;
-    await order.save();
+    const updatedOrder = await Order.findById(order._id);
 
     return res.status(200).json({
       ok: true,
       message: "Order status updated successfully",
-      order,
+      order: updatedOrder,
     });
   } catch (error) {
     console.error("Update order status error:", error);
@@ -630,6 +643,7 @@ export const updateOrderStatus = async (req, res) => {
     });
   }
 };
+
 
 
 // Delete Cancelled Order — Admin
