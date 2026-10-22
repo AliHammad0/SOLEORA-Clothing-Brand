@@ -1,325 +1,599 @@
-
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  ShoppingCart,
+  Truck,
+  ShieldCheck,
+  RefreshCw,
+  Leaf,
+  Gem,
+  Star,
+  Plus,
+  Minus,
+  ChevronRight,
+  ZoomIn,
+} from "lucide-react";
+
+import {
+  addToCart,
+  selectCartItems,
+  selectCartTotal,
+} from "../redux/slices/cartSlice";
 
 const API_URL =
-  "https://soleora-clothing-brand-backend.vercel.app/api/v1/products/all";
+  "https://soleora-clothing-brand-backend.vercel.app/api/v1/products";
 
-const CategoryProducts = ({ category }) => {
-  const [products, setProducts] = useState([]);
+export default function ProductDetails() {
+  const { id } = useParams();
+  const dispatch = useDispatch();
+
+  const cartItems = useSelector(selectCartItems);
+  const cartTotal = useSelector(selectCartTotal);
+
+  const [product, setProduct] = useState(null);
+  const [quantity, setQuantity] = useState(1);
+  const [activeImage, setActiveImage] = useState(0);
+  const [selectedSize, setSelectedSize] = useState("");
+  const [selectedColor, setSelectedColor] = useState("");
   const [loading, setLoading] = useState(true);
+  const [addingToCart, setAddingToCart] = useState(false);
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    const controller = new AbortController();
+
+    const fetchProduct = async () => {
       try {
         setLoading(true);
         setError("");
 
-        const response = await fetch(API_URL);
-
-        if (!response.ok) {
-          throw new Error("Products load nahi ho sake.");
-        }
-
-        const result = await response.json();
-
-        const allProducts = Array.isArray(result)
-          ? result
-          : Array.isArray(result.products)
-          ? result.products
-          : Array.isArray(result.data)
-          ? result.data
-          : Array.isArray(result.data?.products)
-          ? result.data.products
-          : [];
-
-        const filteredProducts = allProducts.filter((product) => {
-          const productCategory = String(
-            product.category || product.gender || ""
-          ).toLowerCase();
-
-          return (
-            productCategory === category.toLowerCase() &&
-            product.isActive !== false
-          );
+        const response = await fetch(`${API_URL}/${id}`, {
+          signal: controller.signal,
         });
 
-        setProducts(filteredProducts);
+        const data = await response.json();
+
+        if (!response.ok || data?.ok === false) {
+          throw new Error(data?.message || "Product not found");
+        }
+
+        const fetchedProduct =
+          data?.product ||
+          data?.data?.product ||
+          data?.data;
+
+        if (!fetchedProduct || typeof fetchedProduct !== "object") {
+          throw new Error(data?.message || "Product not found");
+        }
+
+        setProduct(fetchedProduct);
+        setActiveImage(0);
+        setQuantity(1);
+        setSelectedSize("");
+        setSelectedColor("");
       } catch (err) {
-        setError(err.message || "Something went wrong.");
+        if (err.name === "AbortError") return;
+
+        setError(
+          err.message === "Failed to fetch"
+            ? "Unable to connect to the server. Check your backend and API URL."
+            : err.message || "Unable to load product."
+        );
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       }
     };
 
-    fetchProducts();
-  }, [category]);
+    if (id) {
+      fetchProduct();
+    } else {
+      setError("Product ID is missing from URL.");
+      setLoading(false);
+    }
+
+    return () => controller.abort();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-white">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-10 w-10 animate-spin rounded-full border-2 border-gray-200 border-t-black" />
+          <p className="animate-pulse text-sm text-gray-500">
+            Loading product...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !product) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-5">
+        <p className="text-center text-red-600">
+          {error || "Product not found"}
+        </p>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="border border-black px-5 py-2 text-sm transition-colors hover:bg-black hover:text-white"
+        >
+          Try Again
+        </button>
+        <Link to="/" className="text-sm underline">
+          Back to Home
+        </Link>
+      </div>
+    );
+  }
+
+  const originalPrice = Number(product.price ?? product.originalPrice ?? 0);
+  const specialPrice = Number(product.specialPrice ?? product.discountPrice ?? 0);
+  const discount = Math.min(100, Math.max(0, Number(product.discount) || 0));
+
+  const discountedPrice =
+    specialPrice > 0 && specialPrice < originalPrice
+      ? specialPrice
+      : discount > 0
+        ? originalPrice - (originalPrice * discount) / 100
+        : originalPrice;
+
+  const onSale = originalPrice > 0 && discountedPrice < originalPrice;
+  const stock = Math.max(0, Number(product.stock) || 0);
+
+  const images = Array.isArray(product.images)
+    ? product.images.filter(Boolean)
+    : product.image
+      ? [product.image]
+      : [];
+
+  const safeActiveImage = Math.min(
+    activeImage,
+    Math.max(0, images.length - 1)
+  );
+
+  const discountPercentage =
+    onSale && originalPrice > 0
+      ? Math.round(((originalPrice - discountedPrice) / originalPrice) * 100)
+      : 0;
+
+  const sizes = Array.isArray(product.sizes) ? product.sizes : [];
+  const colors = Array.isArray(product.colors)
+    ? product.colors
+    : product.color
+      ? [product.color]
+      : [];
+
+  const fabric = product.fabric || product.material || "Not specified";
+  const formatPrice = (price) =>
+    `Rs. ${Number(price || 0).toLocaleString("en-PK")}`;
+
+  const productId = String(product._id || product.id || "");
+
+  const handleAddToCart = async () => {
+    if (addingToCart) return;
+    setMessage("");
+
+    if (!productId) {
+      setMessage("Product ID is missing.");
+      return;
+    }
+
+    if (sizes.length > 0 && !selectedSize) {
+      setMessage("Please select a size.");
+      return;
+    }
+
+    if (colors.length > 0 && !selectedColor) {
+      setMessage("Please select a color.");
+      return;
+    }
+
+    if (!Number.isSafeInteger(quantity) || quantity < 1) {
+      setMessage("Please select a valid quantity.");
+      return;
+    }
+
+    if (quantity > stock || stock <= 0) {
+      setMessage("Requested quantity is not available. Refresh the page.");
+      return;
+    }
+
+    setAddingToCart(true);
+    let reservationId = null;
+
+    try {
+      const response = await fetch(`${API_URL}/${productId}/reserve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quantity }),
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (!data || typeof data !== "object") {
+        throw new Error(`Invalid backend response (${response.status}).`);
+      }
+
+      if (!response.ok || data.ok === false || data.success === false) {
+        throw new Error(data.message || `Stock reservation failed (${response.status}).`);
+      }
+
+      const responseData =
+        data.data && typeof data.data === "object" ? data.data : data;
+
+      const reservation =
+        responseData.reservation || data.reservation || null;
+
+      const updatedProduct =
+        responseData.product || data.product || null;
+
+      reservationId = String(
+        responseData.reservationId ||
+          data.reservationId ||
+          reservation?._id ||
+          reservation?.id ||
+          ""
+      );
+
+      const reservedQuantity = Number(
+        responseData.reservedQuantity ??
+          data.reservedQuantity ??
+          reservation?.quantity ??
+          responseData.quantity ??
+          data.quantity ??
+          quantity
+      );
+
+      if (!updatedProduct || typeof updatedProduct !== "object") {
+        throw new Error("Reservation response is missing the product.");
+      }
+
+      if (!/^[0-9a-fA-F]{24}$/.test(reservationId)) {
+        throw new Error("Reservation ID is missing or invalid.");
+      }
+
+      if (
+        !Number.isSafeInteger(reservedQuantity) ||
+        reservedQuantity !== quantity
+      ) {
+        throw new Error("Reserved quantity does not match the requested quantity.");
+      }
+
+      const cartProduct = {
+        ...product,
+        ...updatedProduct,
+        _id: String(updatedProduct._id || updatedProduct.id || productId),
+        price: discountedPrice,
+        specialPrice: discountedPrice,
+        image: images[0] || updatedProduct.image || product.image || "",
+        selectedSize,
+        selectedColor,
+        stock: Math.max(reservedQuantity, Number(updatedProduct.stock) || 0),
+      };
+
+      dispatch(
+        addToCart({
+          product: cartProduct,
+          quantity: reservedQuantity,
+          reservationId,
+          size: selectedSize,
+          color: selectedColor,
+        })
+      );
+
+      setProduct(updatedProduct);
+      setQuantity(1);
+      setMessage("Product added to cart successfully!");
+    } catch (err) {
+      console.error("Add to cart error:", err);
+      setMessage(
+        err.message === "Failed to fetch"
+          ? "Unable to connect to the server. Please check the backend deployment."
+          : err.message || "Unable to add product to cart."
+      );
+    } finally {
+      setAddingToCart(false);
+    }
+  };
 
   return (
-    <main className="min-h-screen bg-[#faf9f6] text-[#191919]">
-      {/* Collection Hero */}
-      <section className="px-4 pb-10 pt-10 sm:px-8 sm:pb-14 sm:pt-16 lg:px-12">
-        <div className="mx-auto max-w-7xl">
-          <div className="mb-5 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.25em] text-neutral-500 sm:text-xs">
-            <Link to="/" className="transition hover:text-black">
-              Home
-            </Link>
-            <span>/</span>
-            <span>{category} Collection</span>
-          </div>
+    <div className="min-h-screen bg-white text-slate-900">
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+        <nav className="mb-6 flex flex-wrap items-center gap-2 text-sm text-gray-500">
+          <Link to="/" className="transition-colors hover:text-black">Home</Link>
+          <ChevronRight size={15} />
+          <span>{product.gender || "Collection"}</span>
+          <ChevronRight size={15} />
+          <span className="line-clamp-1 text-gray-900">{product.title}</span>
+        </nav>
 
-          <div className="relative overflow-hidden bg-[#eee9e0] px-6 py-10 sm:px-12 sm:py-16 lg:px-16 lg:py-20">
-            <div className="pointer-events-none absolute -right-10 -top-20 h-64 w-64 rounded-full border border-black/10 sm:h-80 sm:w-80" />
-            <div className="pointer-events-none absolute -right-2 -top-12 h-48 w-48 border border-black/10 sm:h-64 sm:w-64" />
-
-            <div className="relative z-10 max-w-2xl">
-              <p className="mb-4 text-[10px] font-semibold uppercase tracking-[0.3em] text-neutral-600 sm:text-xs">
-                THE SOLEORA EDIT
-              </p>
-
-              <h1 className="text-4xl font-medium leading-[1.1] tracking-[-0.045em] sm:text-6xl lg:text-7xl">
-                {category}
-                <br />
-                <span className="font-serif italic">
-                  Collection.
-                </span>
-              </h1>
-
-              <p className="mt-5 max-w-md text-sm leading-7 text-neutral-600 sm:text-base">
-                Discover your next favourite style with SOLEORA.
-                Thoughtfully selected footwear for every moment.
-              </p>
-
-              <a
-                href="#collection-products"
-                className="mt-7 inline-flex items-center gap-4 bg-[#191919] px-6 py-3.5 text-xs font-medium uppercase tracking-[0.12em] text-white transition hover:bg-neutral-700 sm:mt-9"
-              >
-                Explore Collection
-                <span aria-hidden="true">↘</span>
-              </a>
-            </div>
-
-            <div className="absolute bottom-5 right-5 hidden text-right sm:block">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-neutral-500">
-                Designed for your everyday
-              </p>
-              <p className="mt-1 text-sm font-medium tracking-wide">
-                SOLEORA®
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Products */}
-      <section
-        id="collection-products"
-        className="px-4 pb-16 sm:px-8 sm:pb-20 lg:px-12 lg:pb-24"
-      >
-        <div className="mx-auto max-w-7xl">
-          <div className="mb-7 flex flex-wrap items-end justify-between gap-4 border-b border-neutral-200 pb-5 sm:mb-9">
-            <div>
-              <p className="mb-2 text-[10px] uppercase tracking-[0.22em] text-neutral-500">
-                MADE FOR YOUR STYLE
-              </p>
-              <h2 className="text-2xl font-medium tracking-tight sm:text-3xl">
-                Shop {category}
-              </h2>
-            </div>
-
-            {!loading && !error && (
-              <p className="text-xs text-neutral-500 sm:text-sm">
-                {products.length}{" "}
-                {products.length === 1 ? "product" : "products"}
-              </p>
-            )}
-          </div>
-
-          {loading ? (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 lg:grid-cols-4">
-              {[1, 2, 3, 4].map((item) => (
-                <div key={item} className="animate-pulse">
-                  <div className="aspect-[3/4] bg-[#eae7e1]" />
-                  <div className="mt-4 h-4 w-3/4 bg-[#eae7e1]" />
-                  <div className="mt-3 h-3 w-1/2 bg-[#eae7e1]" />
-                </div>
+        <section className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-12">
+          <div className="grid grid-cols-[60px_minmax(0,1fr)] gap-3 sm:grid-cols-[85px_minmax(0,1fr)] sm:gap-4">
+            <div className="flex flex-col gap-3">
+              {images.map((image, index) => (
+                <button
+                  key={`${image}-${index}`}
+                  type="button"
+                  onClick={() => setActiveImage(index)}
+                  aria-label={`View image ${index + 1}`}
+                  aria-pressed={safeActiveImage === index}
+                  className={`overflow-hidden border-2 transition-all duration-300 hover:opacity-80 active:scale-95 ${
+                    safeActiveImage === index ? "scale-[0.98] border-slate-900" : "border-transparent"
+                  }`}
+                >
+                  <img
+                    src={image}
+                    alt={`${product.title} ${index + 1}`}
+                    className="aspect-[3/4] w-full object-cover transition-transform duration-500 hover:scale-110"
+                  />
+                </button>
               ))}
             </div>
-          ) : error ? (
-            <div className="border border-neutral-200 bg-white px-5 py-16 text-center">
-              <p className="text-sm text-red-600">{error}</p>
-              <button
-                type="button"
-                onClick={() => window.location.reload()}
-                className="mt-5 border border-black px-6 py-3 text-xs uppercase tracking-wider transition hover:bg-black hover:text-white"
+
+            <div className="group relative overflow-hidden bg-stone-100">
+              {images.length > 0 ? (
+                <img
+                  key={images[safeActiveImage]}
+                  src={images[safeActiveImage]}
+                  alt={product.title}
+                  className="aspect-[3/4] w-full object-cover transition-transform duration-700 ease-out group-hover:scale-110 motion-reduce:transition-none"
+                />
+              ) : (
+                <div className="flex aspect-[3/4] items-center justify-center text-gray-400">
+                  No product image available
+                </div>
+              )}
+
+              {discountPercentage > 0 && (
+                <span className="absolute left-3 top-3 bg-red-600 px-3 py-2 text-xs font-bold text-white shadow-lg sm:text-sm">
+                  -{discountPercentage}% OFF
+                </span>
+              )}
+
+              {images.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => window.open(images[safeActiveImage], "_blank", "noopener,noreferrer")}
+                  aria-label="Zoom product image"
+                  className="absolute bottom-4 right-4 rounded-full bg-white p-3 shadow-md transition-all duration-300 hover:scale-110 hover:bg-black hover:text-white active:scale-95"
+                >
+                  <ZoomIn size={20} />
+                </button>
+              )}
+            </div>
+          </div>
+          ///
+
+          <div className="animate-[fadeIn_0.5s_ease-out]">
+            <p className="mb-3 text-xs font-semibold tracking-[0.2em] text-gray-500">
+              {product.brand || "SOLEORA COLLECTION"}
+            </p>
+
+            <h1 className="text-2xl font-bold leading-tight sm:text-3xl">{product.title}</h1>
+
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <span className={`text-3xl font-bold ${onSale ? "text-red-600" : "text-slate-900"}`}>
+                {formatPrice(discountedPrice)}
+              </span>
+              {onSale && (
+                <>
+                  <span className="text-lg text-gray-400 line-through">{formatPrice(originalPrice)}</span>
+                  <span className="bg-red-50 px-2 py-1 text-sm font-semibold text-red-600">
+                    Save {formatPrice(originalPrice - discountedPrice)}
+                  </span>
+                </>
+              )}
+            </div>
+
+            <div className="mt-6">
+              {stock > 5 ? (
+                <div className="inline-flex items-center gap-2 rounded-full border border-green-200 bg-green-50 px-4 py-2 text-sm font-medium text-green-700">
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500 opacity-60" />
+                    <span className="relative h-2.5 w-2.5 rounded-full bg-green-600" />
+                  </span>
+                  In Stock — {stock} items available
+                </div>
+              ) : stock > 0 ? (
+                <div className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-4 py-2 text-sm font-medium text-orange-700">
+                  <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-orange-500" />
+                  Only {stock} left in stock!
+                </div>
+              ) : (
+                <div className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700">
+                  <span className="h-2.5 w-2.5 rounded-full bg-red-500" />
+                  🏃 Bhai, stock khatam — late ho gaye!
+                </div>
+              )}
+            </div>
+
+            {sizes.length > 0 && (
+              <div className="mt-6">
+                <p className="mb-3 text-sm font-medium">Select Size:</p>
+                <div className="flex flex-wrap gap-2">
+                  {sizes.map((size, index) => (
+                    <button
+                      key={`${size}-${index}`}
+                      type="button"
+                      onClick={() => setSelectedSize(size)}
+                      aria-pressed={selectedSize === size}
+                      className={`border px-4 py-2 text-sm transition ${
+                        selectedSize === size
+                          ? "border-black bg-black text-white"
+                          : "border-gray-300 hover:border-black"
+                      }`}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {colors.length > 0 && (
+              <div className="mt-5">
+                <p className="mb-3 text-sm font-medium">Select Color:</p>
+                <div className="flex flex-wrap gap-2">
+                  {colors.map((color, index) => (
+                    <button
+                      key={`${color}-${index}`}
+                      type="button"
+                      onClick={() => setSelectedColor(color)}
+                      aria-pressed={selectedColor === color}
+                      className={`border px-4 py-2 text-sm transition ${
+                        selectedColor === color
+                          ? "border-black bg-black text-white"
+                          : "border-gray-300 hover:border-black"
+                      }`}
+                    >
+                      {color}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="mt-6">
+              <p className="mb-3 text-sm font-medium">Quantity:</p>
+              <div className="inline-flex h-11 items-center border border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuantity((previous) => Math.max(1, previous - 1));
+                    setMessage("");
+                  }}
+                  disabled={quantity <= 1 || addingToCart}
+                  aria-label="Decrease quantity"
+                  className="h-full px-4 transition-colors hover:bg-gray-100 active:scale-90 disabled:opacity-30"
+                >
+                  <Minus size={16} />
+                </button>
+                <span className="flex h-full min-w-14 items-center justify-center border-x border-gray-200">
+                  {quantity}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuantity((previous) => Math.min(stock, previous + 1));
+                    setMessage("");
+                  }}
+                  disabled={addingToCart || quantity >= stock || stock <= 0}
+                  aria-label="Increase quantity"
+                  className="h-full px-4 transition-colors hover:bg-gray-100 active:scale-90 disabled:opacity-30"
+                >
+                  <Plus size={16} />
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              disabled={addingToCart || stock <= 0 || quantity < 1 || quantity > stock}
+              className="mt-6 flex h-14 w-full items-center justify-center gap-3 bg-slate-900 px-6 font-medium text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-700 hover:shadow-xl active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-gray-400 disabled:hover:translate-y-0 disabled:hover:shadow-none"
+            >
+              <ShoppingCart size={20} />
+              {addingToCart ? "Adding to Cart..." : stock <= 0 ? "Bhai, stock khatam — late ho gaye!" : "Add to Cart"}
+            </button>
+
+            {message && (
+              <p
+                role="status"
+                className={`mt-3 text-sm font-medium ${
+                  message.includes("successfully") ? "text-green-700" : "text-red-600"
+                }`}
               >
-                Try Again
-              </button>
-            </div>
-          ) : products.length === 0 ? (
-            <div className="bg-white px-5 py-16 text-center sm:py-24">
-              <p className="text-xs uppercase tracking-[0.2em] text-neutral-400">
-                SOLEORA COLLECTION
+                {message}
               </p>
-              <h3 className="mt-4 text-2xl font-medium">
-                New styles are on their way.
-              </h3>
-              <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-neutral-500">
-                There are no products in this collection right now.
-                Explore the store to find your next favourite.
-              </p>
-              <Link
-                to="/"
-                className="mt-7 inline-flex border border-black px-6 py-3 text-xs uppercase tracking-wider transition hover:bg-black hover:text-white"
-              >
-                Explore All Products
-              </Link>
+            )}
+
+            <div className="mt-8 grid grid-cols-3 divide-x divide-gray-200 border-b border-gray-100 pb-7">
+              <div className="flex flex-col items-center gap-2 px-2 text-center transition-transform duration-300 hover:-translate-y-1">
+                <Truck size={24} />
+                <span className="text-xs">Fast Delivery</span>
+              </div>
+              <div className="flex flex-col items-center gap-2 px-2 text-center transition-transform duration-300 hover:-translate-y-1">
+                <ShieldCheck size={24} />
+                <span className="text-xs">Secure Payment</span>
+              </div>
+              <div className="flex flex-col items-center gap-2 px-2 text-center transition-transform duration-300 hover:-translate-y-1">
+                <RefreshCw size={24} />
+                <span className="text-xs">Easy Returns</span>
+              </div>
             </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-x-4 gap-y-9 sm:grid-cols-3 sm:gap-x-6 sm:gap-y-11 lg:grid-cols-4">
-              {products.map((product) => {
-                const productId = product._id || product.id;
 
-                const originalPrice = Number(
-                  product.price ??
-                    product.originalPrice ??
-                    product.original_price ??
-                    0
-                );
-
-                const specialPrice = Number(
-                  product.specialPrice ??
-                    product.discountPrice ??
-                    product.discount_price ??
-                    0
-                );
-
-                const hasValidSpecialPrice =
-                  Number.isFinite(originalPrice) &&
-                  Number.isFinite(specialPrice) &&
-                  originalPrice > 0 &&
-                  specialPrice > 0 &&
-                  specialPrice < originalPrice;
-
-                const price = hasValidSpecialPrice
-                  ? specialPrice
-                  : originalPrice;
-
-                const discount = hasValidSpecialPrice
-                  ? Math.round(
-                      ((originalPrice - price) / originalPrice) * 100
-                    )
-                  : 0;
-
-                const image = Array.isArray(product.images)
-                  ? product.images[0]
-                  : Array.isArray(product.image)
-                  ? product.image[0]
-                  : product.image || product.images || "";
-
-                const title =
-                  product.title || product.name || "SOLEORA Product";
-
-                return (
-                  <Link
-                    key={productId}
-                    to={`/product/${productId}`}
-                    className="group min-w-0"
-                  >
-                    <div className="relative aspect-[3/4] overflow-hidden bg-[#eeece7]">
-                      {image ? (
-                        <img
-                          src={image}
-                          alt={title}
-                          loading="lazy"
-                          className="h-full w-full object-cover transition duration-700 ease-out group-hover:scale-[1.045]"
-                        />
-                      ) : (
-                        <div className="flex h-full items-center justify-center text-xs uppercase tracking-widest text-neutral-400">
-                          SOLEORA
-                        </div>
-                      )}
-
-                      {discount > 0 && (
-                        <span className="absolute left-2 top-2 bg-white px-2 py-1 text-[9px] font-semibold uppercase tracking-wider text-black sm:left-3 sm:top-3 sm:px-3 sm:text-[10px]">
-                          -{discount}%
-                        </span>
-                      )}
-
-                      {product.isNewArrival && (
-                        <span className="absolute right-2 top-2 bg-[#191919] px-2 py-1 text-[9px] uppercase tracking-wider text-white sm:right-3 sm:top-3 sm:px-3 sm:text-[10px]">
-                          New
-                        </span>
-                      )}
-
-                      <div className="absolute inset-x-0 bottom-0 translate-y-full bg-black/85 px-3 py-3 text-center text-[10px] uppercase tracking-[0.16em] text-white transition-transform duration-300 group-hover:translate-y-0 max-sm:hidden">
-                        View Product
-                      </div>
-                    </div>
-
-                    <div className="pt-3 sm:pt-4">
-                      {product.brand && (
-                        <p className="mb-1.5 text-[9px] uppercase tracking-[0.18em] text-neutral-500 sm:text-[10px]">
-                          {product.brand}
-                        </p>
-                      )}
-
-                      <h3 className="line-clamp-2 text-sm font-medium leading-5 text-neutral-900 transition group-hover:text-neutral-500 sm:text-base">
-                        {title}
-                      </h3>
-
-                      <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <span className="text-sm font-semibold text-neutral-950">
-                          PKR {price.toLocaleString()}
-                        </span>
-
-                        {hasValidSpecialPrice && (
-                          <span className="text-xs text-neutral-400 line-through">
-                            PKR {originalPrice.toLocaleString()}
-                          </span>
-                        )}
-                      </div>
-
-                      {product.stock !== undefined && (
-                        <p
-                          className={`mt-2 text-[10px] ${
-                            product.stock > 0
-                              ? "text-neutral-500"
-                              : "text-red-600"
-                          }`}
-                        >
-                          {product.stock > 0
-                            ? "Available"
-                            : "Out of stock"}
-                        </p>
-                      )}
-                    </div>
-                  </Link>
-                );
-              })}
+            <div className="mt-8">
+              <h2 className="text-2xl font-bold">PRODUCT DETAILS</h2>
+              <div className="mt-6 space-y-5 text-sm leading-7">
+                <div>
+                  <h3 className="font-bold">FABRIC / MATERIAL:</h3>
+                  <p className="text-gray-600">{fabric}</p>
+                </div>
+                <div>
+                  <h3 className="font-bold">COLOR:</h3>
+                  <p className="text-gray-600">{colors.length > 0 ? colors.join(", ") : "Not specified"}</p>
+                </div>
+                <div>
+                  <h3 className="font-bold">DESCRIPTION:</h3>
+                  <p className="whitespace-pre-line text-gray-600">{product.description || "No description available."}</p>
+                </div>
+              </div>
             </div>
-          )}
-        </div>
-      </section>
 
-      {/* Brand footer banner */}
-      <section className="border-t border-neutral-200 bg-white px-4 py-12 text-center sm:px-8 sm:py-16">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-neutral-500">
-          STEP INTO YOUR STYLE
-        </p>
-        <h2 className="mt-3 font-serif text-3xl italic tracking-tight sm:text-4xl">
-          Find your sole story.
-        </h2>
-        <Link
-          to="/"
-          className="mt-6 inline-flex border-b border-black pb-1 text-xs uppercase tracking-[0.15em] transition hover:text-neutral-500"
-        >
-          Discover SOLEORA
-        </Link>
-      </section>
-    </main>
+            <div className="mt-8 grid grid-cols-3 divide-x divide-gray-200 border-y border-gray-100 py-5">
+              <div className="flex flex-col items-center gap-2 text-center transition-transform duration-300 hover:-translate-y-1">
+                <Leaf size={24} />
+                <span className="text-xs">Premium Quality</span>
+              </div>
+              <div className="flex flex-col items-center gap-2 text-center transition-transform duration-300 hover:-translate-y-1">
+                <Gem size={24} />
+                <span className="text-xs">Elegant Design</span>
+              </div>
+              <div className="flex flex-col items-center gap-2 text-center transition-transform duration-300 hover:-translate-y-1">
+                <Star size={24} />
+                <span className="text-xs">Quality Craftsmanship</span>
+              </div>
+            </div>
+
+            {cartItems.length > 0 && (
+              <div className="mt-8 animate-[fadeIn_0.4s_ease-out] border border-gray-200 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="font-bold">Cart Summary</h3>
+                  <Link to="/cart" className="text-sm underline">View Cart</Link>
+                </div>
+                {cartItems.map((item) => (
+                  <div key={item._id || item.id} className="mt-3 flex justify-between gap-4 text-sm">
+                    <span>{item.title || item.name} × {item.quantity}</span>
+                    <span className="whitespace-nowrap">
+                      {formatPrice(Number(item.price ?? item.specialPrice ?? item.discountPrice ?? item.originalPrice ?? 0) * item.quantity)}
+                    </span>
+                  </div>
+                ))}
+                <p className="mt-4 border-t pt-3 font-bold">Total: {formatPrice(cartTotal)}</p>
+              </div>
+            )}
+          </div>
+        </section>
+      </main>
+
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          *, *::before, *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            scroll-behavior: auto !important;
+          }
+        }
+      `}</style>
+    </div>
   );
-};
-
-export default CategoryProducts;
+}

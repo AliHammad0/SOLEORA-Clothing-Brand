@@ -71,7 +71,7 @@ const CategoryProducts = ({ category }) => {
 
           <div className="relative overflow-hidden bg-[#eee9e0] px-6 py-10 sm:px-12 sm:py-16 lg:px-16 lg:py-20">
             <div className="pointer-events-none absolute -right-10 -top-20 h-64 w-64 rounded-full border border-black/10 sm:h-80 sm:w-80" />
-            <div className="pointer-events-none absolute -right-2 -top-12 h-48 w-48 rounded-full border border-black/10 sm:h-64 sm:w-64" />
+            <div className="pointer-events-none absolute -right-2 -top-12 h-48 w-48 border border-black/10 sm:h-64 sm:w-64" />
 
             <div className="relative z-10 max-w-2xl">
               <p className="mb-4 text-[10px] font-semibold uppercase tracking-[0.3em] text-neutral-600 sm:text-xs">
@@ -181,16 +181,36 @@ const CategoryProducts = ({ category }) => {
               {products.map((product) => {
                 const productId = product._id || product.id;
 
-                const price = Number(
-                  product.specialPrice ??
-                    product.discountPrice ??
-                    product.price ??
+                const originalPrice = Number(
+                  product.price ??
+                    product.originalPrice ??
+                    product.original_price ??
                     0
                 );
 
-                const originalPrice = Number(
-                  product.originalPrice ?? product.price ?? 0
+                const specialPrice = Number(
+                  product.specialPrice ??
+                    product.discountPrice ??
+                    product.discount_price ??
+                    0
                 );
+
+                const hasValidSpecialPrice =
+                  Number.isFinite(originalPrice) &&
+                  Number.isFinite(specialPrice) &&
+                  originalPrice > 0 &&
+                  specialPrice > 0 &&
+                  specialPrice < originalPrice;
+
+                const price = hasValidSpecialPrice
+                  ? specialPrice
+                  : originalPrice;
+
+                const discount = hasValidSpecialPrice
+                  ? Math.round(
+                      ((originalPrice - price) / originalPrice) * 100
+                    )
+                  : 0;
 
                 const image = Array.isArray(product.images)
                   ? product.images[0]
@@ -200,13 +220,6 @@ const CategoryProducts = ({ category }) => {
 
                 const title =
                   product.title || product.name || "SOLEORA Product";
-
-                const discount =
-                  originalPrice > price && originalPrice > 0
-                    ? Math.round(
-                        ((originalPrice - price) / originalPrice) * 100
-                      )
-                    : Number(product.discount || product.discountPercentage || 0);
 
                 return (
                   <Link
@@ -261,7 +274,7 @@ const CategoryProducts = ({ category }) => {
                           PKR {price.toLocaleString()}
                         </span>
 
-                        {originalPrice > price && (
+                        {hasValidSpecialPrice && (
                           <span className="text-xs text-neutral-400 line-through">
                             PKR {originalPrice.toLocaleString()}
                           </span>
