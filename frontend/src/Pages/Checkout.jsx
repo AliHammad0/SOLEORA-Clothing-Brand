@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
   selectCartItems,
@@ -11,6 +11,7 @@ const API_URL =
   "https://soleora-clothing-brand-backend.vercel.app/api/v1";
 
 const PRODUCTS_API = `${API_URL}/products`;
+const GUEST_ORDERS_KEY = "soleora-orders";
 
 const FREE_SHIPPING_LIMIT = 5000;
 const SHIPPING_CHARGE = 250;
@@ -82,7 +83,7 @@ const releaseReservation = async (reservationId) => {
       }
     );
   } catch {
-    // A stale reservation must not prevent trying to reserve current stock.
+    // Continue checkout if an old reservation cannot be released.
   }
 };
 
@@ -96,11 +97,12 @@ const reserveCurrentQuantity = async (item) => {
     );
   }
 
-  // Release previous reservations before creating a fresh reservation.
   const previousReservations = getReservations(item);
   const uniqueReservationIds = [
     ...new Set(
-      previousReservations.map((reservation) => reservation.reservationId)
+      previousReservations.map(
+        (reservation) => reservation.reservationId
+      )
     ),
   ];
 
@@ -108,7 +110,6 @@ const reserveCurrentQuantity = async (item) => {
     await releaseReservation(reservationId);
   }
 
-  // Reserve the complete current cart quantity on the backend.
   const response = await fetch(
     `${PRODUCTS_API}/${encodeURIComponent(productId)}/reserve`,
     {
@@ -122,11 +123,7 @@ const reserveCurrentQuantity = async (item) => {
 
   const data = await response.json().catch(() => ({}));
 
-  if (
-    !response.ok ||
-    data.ok === false ||
-    !data.reservationId
-  ) {
+  if (!response.ok || data.ok === false || !data.reservationId) {
     throw new Error(
       data.message ||
         `Could not reserve stock for ${
@@ -169,10 +166,77 @@ const reserveCurrentQuantity = async (item) => {
   };
 };
 
+// Save a guest order locally so it appears on My Orders.
+const saveGuestOrder = (order, cartItems, totals) => {
+  try {
+    const saved = JSON.parse(
+      localStorage.getItem(GUEST_ORDERS_KEY) || "[]"
+    );
+
+    const existingOrders = Array.isArray(saved) ? saved : [];
+
+    const orderNumber = order.orderNumber || order._id || "";
+
+    const guestOrder = {
+      _id: order._id || orderNumber || `guest-${Date.now()}`,
+      orderNumber: order.orderNumber || order._id || "",
+      createdAt: order.createdAt || new Date().toISOString(),
+      status: order.status || "pending",
+      paymentMethod: order.paymentMethod || "COD",
+      items: cartItems.map((item) => ({
+        _id: getProductId(item),
+        title: item.title || item.name || "SOLEORA Product",
+        image: item.images?.[0] || item.image || "",
+        price: getPrice(item),
+        quantity: Number(item.quantity || 1),
+        size:
+          typeof item.size === "object"
+            ? item.size?.name || ""
+            : item.size || "",
+        color:
+          typeof item.color === "object"
+            ? item.color?.name || ""
+            : item.color || "",
+      })),
+      subtotal: Number(order.subtotal ?? totals.subtotal),
+      shippingFee: Number(
+        order.shippingFee ?? order.shipping ?? totals.shippingFee
+      ),
+      total: Number(order.total ?? totals.total),
+    };
+
+    const alreadySaved = existingOrders.some(
+      (savedOrder) =>
+        (orderNumber &&
+          (savedOrder.orderNumber === orderNumber ||
+            savedOrder._id === orderNumber)) ||
+        (order._id && savedOrder._id === order._id)
+    );
+
+    const updatedOrders = alreadySaved
+      ? existingOrders.map((savedOrder) =>
+          (orderNumber &&
+            (savedOrder.orderNumber === orderNumber ||
+              savedOrder._id === orderNumber)) ||
+          (order._id && savedOrder._id === order._id)
+            ? guestOrder
+            : savedOrder
+        )
+      : [guestOrder, ...existingOrders];
+
+    localStorage.setItem(
+      GUEST_ORDERS_KEY,
+      JSON.stringify(updatedOrders)
+    );
+  } catch (error) {
+    // Local storage failure must not undo a successfully placed order.
+    console.error("Unable to save guest order locally:", error);
+  }
+};
+
 const Checkout = () => {
   const cartItems = useSelector(selectCartItems);
   const dispatch = useDispatch();
-  const navigate = useNavigate();
 
   const [form, setForm] = useState({
     firstname: "",
@@ -228,7 +292,6 @@ const Checkout = () => {
     setLoading(true);
 
     try {
-      // Refresh stock reservations for the latest cart quantities.
       const items = [];
 
       for (const item of cartItems) {
@@ -265,14 +328,24 @@ const Checkout = () => {
         );
       }
 
-      setOrderNumber(data.order?.orderNumber || "");
+      const placedOrder = data.order || {};
+
+      // Save guest orders before clearing the cart.
+      if (!token) {
+        saveGuestOrder(placedOrder, cartItems, {
+          subtotal,
+          shippingFee,
+          total,
+        });
+      }
+
+      setOrderNumber(placedOrder.orderNumber || "");
       setSuccess("Your order has been placed successfully!");
 
       dispatch(clearCart());
     } catch (err) {
       setError(
-        err.message ||
-          "Something went wrong. Please try again."
+        err.message || "Something went wrong. Please try again."
       );
     } finally {
       setLoading(false);
@@ -347,19 +420,12 @@ const Checkout = () => {
               Payment method: Cash on Delivery (COD)
             </p>
 
-            {localStorage.getItem("token") ? (
-              <Link
-                to="/my-orders"
-                className="mt-7 inline-block bg-black px-7 py-3 text-white hover:bg-gray-800"
-              >
-                View My Orders
-              </Link>
-            ) : (
-              <p className="mt-5 text-sm text-gray-600">
-                Guest order confirmed. Log in before your next order to
-                track orders through your account.
-              </p>
-            )}
+            <Link
+              to="/my-orders"
+              className="mt-7 inline-block bg-black px-7 py-3 text-white hover:bg-gray-800"
+            >
+              View My Orders
+            </Link>
 
             <div>
               <Link
@@ -543,8 +609,7 @@ const Checkout = () => {
 
                       <p className="mt-2 text-sm font-semibold">
                         {formatPrice(
-                          getPrice(item) *
-                            Number(item.quantity || 1)
+                          getPrice(item) * Number(item.quantity || 1)
                         )}
                       </p>
                     </div>
