@@ -1,11 +1,26 @@
+
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 const API_URL =
   "https://soleora-clothing-brand-backend.vercel.app/api/v1";
 
+const GUEST_ORDERS_KEY = "soleora-orders";
+
 const formatPrice = (price) =>
   `Rs. ${Number(price || 0).toLocaleString("en-PK")}`;
+
+const getGuestOrders = () => {
+  try {
+    const savedOrders = JSON.parse(
+      localStorage.getItem(GUEST_ORDERS_KEY) || "[]"
+    );
+
+    return Array.isArray(savedOrders) ? savedOrders : [];
+  } catch {
+    return [];
+  }
+};
 
 const MyOrders = () => {
   const [orders, setOrders] = useState([]);
@@ -14,14 +29,18 @@ const MyOrders = () => {
 
   useEffect(() => {
     const fetchOrders = async () => {
+      const guestOrders = getGuestOrders();
+      const token = localStorage.getItem("token");
+
+      // Guest customer: show orders saved in this browser.
+      if (!token) {
+        setOrders(guestOrders);
+        setLoading(false);
+        return;
+      }
+
+      // Logged-in customer: load orders from the backend.
       try {
-        const token = localStorage.getItem("token");
-
-        if (!token) {
-          setError("Please login to view your orders.");
-          return;
-        }
-
         const response = await fetch(`${API_URL}/orders/my`, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -38,7 +57,12 @@ const MyOrders = () => {
 
         setOrders(Array.isArray(data.orders) ? data.orders : []);
       } catch (err) {
-        setError(err.message || "Something went wrong.");
+        // If the API fails, still show any locally saved guest orders.
+        if (guestOrders.length > 0) {
+          setOrders(guestOrders);
+        } else {
+          setError(err.message || "Unable to load your orders.");
+        }
       } finally {
         setLoading(false);
       }
@@ -57,30 +81,18 @@ const MyOrders = () => {
       cancelled: "bg-red-100 text-red-800",
     };
 
-    return styles[String(status || "").toLowerCase()] ||
-      "bg-gray-100 text-gray-700";
+    return (
+      styles[String(status || "pending").toLowerCase()] ||
+      "bg-gray-100 text-gray-700"
+    );
   };
 
   if (loading) {
     return (
       <main className="flex min-h-[60vh] items-center justify-center px-5">
-        <p className="text-sm text-gray-500">Loading your orders...</p>
-      </main>
-    );
-  }
-
-  if (error) {
-    return (
-      <main className="flex min-h-[60vh] flex-col items-center justify-center px-5 text-center">
-        <h1 className="text-2xl font-semibold">My Orders</h1>
-        <p className="mt-4 text-sm text-red-600">{error}</p>
-
-        <Link
-          to="/login"
-          className="mt-6 bg-black px-6 py-3 text-sm font-semibold text-white"
-        >
-          Login
-        </Link>
+        <p className="text-sm text-gray-500">
+          Loading your orders...
+        </p>
       </main>
     );
   }
@@ -96,7 +108,13 @@ const MyOrders = () => {
           Track your SOLEORA purchases and order status.
         </p>
 
-        {orders.length === 0 ? (
+        {error && (
+          <div className="mt-6 border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            {error}
+          </div>
+        )}
+
+        {!error && orders.length === 0 ? (
           <section className="mt-10 bg-white px-5 py-16 text-center shadow-sm">
             <div className="text-5xl">🛍️</div>
 
@@ -116,161 +134,167 @@ const MyOrders = () => {
             </Link>
           </section>
         ) : (
-          <div className="mt-8 space-y-6">
-            {orders.map((order) => {
-              const orderItems = Array.isArray(order.items)
-                ? order.items
-                : [];
+          orders.length > 0 && (
+            <div className="mt-8 space-y-6">
+              {orders.map((order, index) => {
+                const orderItems = Array.isArray(order.items)
+                  ? order.items
+                  : [];
 
-              return (
-                <section
-                  key={order._id}
-                  className="border border-gray-200 bg-white p-5 shadow-sm sm:p-7"
-                >
-                  <div className="flex flex-col justify-between gap-4 border-b border-gray-200 pb-5 sm:flex-row sm:items-center">
-                    <div>
-                      <p className="text-xs text-gray-500">
-                        Order Number
-                      </p>
+                const orderId =
+                  order._id || order.orderNumber || `guest-${index}`;
 
-                      <h2 className="mt-1 break-all font-semibold">
-                        {order.orderNumber || order._id}
-                      </h2>
+                return (
+                  <section
+                    key={orderId}
+                    className="border border-gray-200 bg-white p-5 shadow-sm sm:p-7"
+                  >
+                    <div className="flex flex-col justify-between gap-4 border-b border-gray-200 pb-5 sm:flex-row sm:items-center">
+                      <div>
+                        <p className="text-xs text-gray-500">
+                          Order Number
+                        </p>
 
-                      <p className="mt-2 text-xs text-gray-500">
-                        {order.createdAt
-                          ? new Date(order.createdAt).toLocaleDateString(
-                              "en-PK",
-                              {
-                                day: "numeric",
-                                month: "short",
-                                year: "numeric",
-                              }
-                            )
-                          : "Date unavailable"}
-                      </p>
-                    </div>
+                        <h2 className="mt-1 break-all font-semibold">
+                          {order.orderNumber || order._id || "Order confirmed"}
+                        </h2>
 
-                    <div className="flex flex-wrap items-center gap-3">
-                      <span
-                        className={`inline-block px-3 py-2 text-xs font-semibold capitalize ${getStatusStyle(
-                          order.status
-                        )}`}
-                      >
-                        {order.status || "Pending"}
-                      </span>
+                        <p className="mt-2 text-xs text-gray-500">
+                          {order.createdAt
+                            ? new Date(order.createdAt).toLocaleDateString(
+                                "en-PK",
+                                {
+                                  day: "numeric",
+                                  month: "short",
+                                  year: "numeric",
+                                }
+                              )
+                            : "Date unavailable"}
+                        </p>
+                      </div>
 
-                      <span className="text-sm font-semibold">
-                        {formatPrice(order.total)}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-5 py-5">
-                    {orderItems.map((item, index) => {
-                      const product =
-                        item.product && typeof item.product === "object"
-                          ? item.product
-                          : {};
-
-                      const title =
-                        item.title ||
-                        product.title ||
-                        item.name ||
-                        "SOLEORA Product";
-
-                      const image =
-                        item.image ||
-                        item.images?.[0] ||
-                        product.images?.[0] ||
-                        product.image ||
-                        "";
-
-                      const quantity = Number(item.quantity || 1);
-
-                      const unitPrice = Number(
-                        item.price ??
-                          item.specialPrice ??
-                          product.specialPrice ??
-                          product.discountPrice ??
-                          product.price ??
-                          product.originalPrice ??
-                          0
-                      );
-
-                      return (
-                        <div
-                          key={item._id || `${order._id}-${index}`}
-                          className="flex gap-4"
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span
+                          className={`inline-block px-3 py-2 text-xs font-semibold capitalize ${getStatusStyle(
+                            order.status
+                          )}`}
                         >
-                          <div className="h-20 w-16 shrink-0 overflow-hidden bg-gray-100">
-                            {image ? (
-                              <img
-                                src={image}
-                                alt={title}
-                                className="h-full w-full object-cover"
-                              />
-                            ) : (
-                              <div className="flex h-full items-center justify-center text-2xl">
-                                👕
-                              </div>
-                            )}
-                          </div>
+                          {order.status || "Pending"}
+                        </span>
 
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium">
-                              {title}
-                            </p>
+                        <span className="text-sm font-semibold">
+                          {formatPrice(order.total)}
+                        </span>
+                      </div>
+                    </div>
 
-                            <p className="mt-1 text-xs text-gray-500">
-                              Quantity: {quantity}
-                            </p>
+                    <div className="space-y-5 py-5">
+                      {orderItems.map((item, itemIndex) => {
+                        const product =
+                          item.product &&
+                          typeof item.product === "object"
+                            ? item.product
+                            : {};
 
-                            {item.size && (
-                              <p className="mt-1 text-xs text-gray-500">
-                                Size: {item.size}
+                        const title =
+                          item.title ||
+                          product.title ||
+                          item.name ||
+                          "SOLEORA Product";
+
+                        const image =
+                          item.image ||
+                          item.images?.[0] ||
+                          product.images?.[0] ||
+                          product.image ||
+                          "";
+
+                        const quantity = Number(item.quantity || 1);
+
+                        const unitPrice = Number(
+                          item.price ??
+                            item.specialPrice ??
+                            product.specialPrice ??
+                            product.discountPrice ??
+                            product.price ??
+                            product.originalPrice ??
+                            0
+                        );
+
+                        return (
+                          <div
+                            key={item._id || `${orderId}-${itemIndex}`}
+                            className="flex gap-4"
+                          >
+                            <div className="h-20 w-16 shrink-0 overflow-hidden bg-gray-100">
+                              {image ? (
+                                <img
+                                  src={image}
+                                  alt={title}
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <div className="flex h-full items-center justify-center text-2xl">
+                                  👕
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-medium">
+                                {title}
                               </p>
-                            )}
 
-                            {item.color && (
                               <p className="mt-1 text-xs text-gray-500">
-                                Color: {item.color}
+                                Quantity: {quantity}
                               </p>
-                            )}
 
-                            <p className="mt-2 text-sm font-semibold">
-                              {formatPrice(unitPrice * quantity)}
-                            </p>
+                              {item.size && (
+                                <p className="mt-1 text-xs text-gray-500">
+                                  Size: {item.size}
+                                </p>
+                              )}
+
+                              {item.color && (
+                                <p className="mt-1 text-xs text-gray-500">
+                                  Color: {item.color}
+                                </p>
+                              )}
+
+                              <p className="mt-2 text-sm font-semibold">
+                                {formatPrice(unitPrice * quantity)}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <div className="space-y-2 border-t border-gray-200 pt-4 text-sm">
-                    <div className="flex justify-between gap-3">
-                      <span className="text-gray-500">Subtotal</span>
-                      <span>{formatPrice(order.subtotal)}</span>
+                        );
+                      })}
                     </div>
 
-                    <div className="flex justify-between gap-3">
-                      <span className="text-gray-500">Shipping</span>
-                      <span>{formatPrice(order.shippingFee)}</span>
-                    </div>
+                    <div className="space-y-2 border-t border-gray-200 pt-4 text-sm">
+                      <div className="flex justify-between gap-3">
+                        <span className="text-gray-500">Subtotal</span>
+                        <span>{formatPrice(order.subtotal)}</span>
+                      </div>
 
-                    <div className="flex justify-between gap-3 border-t border-gray-200 pt-3 font-semibold">
-                      <span>Total</span>
-                      <span>{formatPrice(order.total)}</span>
-                    </div>
+                      <div className="flex justify-between gap-3">
+                        <span className="text-gray-500">Shipping</span>
+                        <span>{formatPrice(order.shippingFee)}</span>
+                      </div>
 
-                    <p className="pt-2 text-xs text-gray-500">
-                      Payment: Cash on Delivery
-                    </p>
-                  </div>
-                </section>
-              );
-            })}
-          </div>
+                      <div className="flex justify-between gap-3 border-t border-gray-200 pt-3 font-semibold">
+                        <span>Total</span>
+                        <span>{formatPrice(order.total)}</span>
+                      </div>
+
+                      <p className="pt-2 text-xs text-gray-500">
+                        Payment: {order.paymentMethod || "Cash on Delivery (COD)"}
+                      </p>
+                    </div>
+                  </section>
+                );
+              })}
+            </div>
+          )
         )}
       </div>
     </main>
