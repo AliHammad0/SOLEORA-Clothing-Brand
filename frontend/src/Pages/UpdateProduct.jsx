@@ -87,19 +87,7 @@ const getSpecialPrice = (product, regularPrice) => {
     }
   }
 
-  const discount = Number(product?.discount ?? 0);
-
-  if (
-    Number(regularPrice) > 0 &&
-    Number.isFinite(discount) &&
-    discount > 0 &&
-    discount < 100
-  ) {
-    return Math.round(
-      Number(regularPrice) * (1 - discount / 100) * 100
-    ) / 100;
-  }
-
+  // Discount ki bunyaad par Special Price auto-generate nahi hogi.
   return "";
 };
 
@@ -154,12 +142,14 @@ export default function UpdateProduct() {
         setForm({
           title: product.title || "",
           price: price === "" ? "" : String(price),
+
+          // Sirf database mein saved Special Price load hogi.
           specialPrice:
             specialPrice === "" ? "" : String(specialPrice),
-          discount:
-            specialPrice !== "" && Number(price) > 0
-              ? String(calculateDiscount(price, specialPrice))
-              : String(Number(product.discount || 0)),
+
+          // Discount apni saved value se load hoga.
+          discount: String(Number(product.discount || 0)),
+
           stock: String(product.stock ?? 0),
           brand: product.brand || "SOLEORA",
           gender: product.gender || "",
@@ -188,43 +178,10 @@ export default function UpdateProduct() {
   const handleChange = (event) => {
     const { name, value, checked, type } = event.target;
 
-    setForm((previous) => {
-      const next = {
-        ...previous,
-        [name]: type === "checkbox" ? checked : value,
-      };
-
-      if (name === "price" || name === "specialPrice") {
-        const price =
-          name === "price" ? value : previous.price;
-        const special =
-          name === "specialPrice" ? value : previous.specialPrice;
-
-        next.discount =
-          special !== "" && Number(price) > 0
-            ? String(calculateDiscount(price, special))
-            : "0";
-      }
-
-      if (name === "discount") {
-        const price = Number(previous.price);
-        const discount = Number(value);
-
-        next.specialPrice =
-          value !== "" &&
-          price > 0 &&
-          discount > 0 &&
-          discount < 100
-            ? String(
-                Math.round(
-                  price * (1 - discount / 100) * 100
-                ) / 100
-              )
-            : "";
-      }
-
-      return next;
-    });
+    setForm((previous) => ({
+      ...previous,
+      [name]: type === "checkbox" ? checked : value,
+    }));
   };
 
   const updateImage = (index, value) => {
@@ -277,6 +234,8 @@ export default function UpdateProduct() {
     const price = Number(form.price);
     const stock = Number(form.stock);
     const discount = Number(form.discount || 0);
+
+    // Blank Special Price ko null save karein.
     const specialPrice =
       form.specialPrice.trim() === ""
         ? null
@@ -309,7 +268,7 @@ export default function UpdateProduct() {
         specialPrice >= price)
     ) {
       setError(
-        "Special price original price se kam honi chahiye."
+        "Special Price original price se kam honi chahiye."
       );
       return;
     }
@@ -320,11 +279,6 @@ export default function UpdateProduct() {
       discount >= 100
     ) {
       setError("Discount 0 se 99 ke darmiyan enter karein.");
-      return;
-    }
-
-    if (specialPrice !== null && discount === 0) {
-      setError("Special price ke liye discount bhi enter karein.");
       return;
     }
 
@@ -491,6 +445,9 @@ export default function UpdateProduct() {
                   placeholder="No offer: leave blank"
                   className={inputClass}
                 />
+                <p className="mt-1 text-xs text-gray-500">
+                  Special Price sirf khud enter karne par save hogi.
+                </p>
               </div>
 
               <div>
@@ -552,9 +509,6 @@ export default function UpdateProduct() {
                   placeholder="Black, White, Blue"
                   className={inputClass}
                 />
-                <p className="mt-1 text-xs text-gray-500">
-                  Example: Black, White, Blue
-                </p>
               </div>
 
               <div className="sm:col-span-2">
