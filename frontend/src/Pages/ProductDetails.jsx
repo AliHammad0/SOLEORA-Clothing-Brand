@@ -367,7 +367,6 @@ export default function ProductDetails() {
               )}
             </div>
           </div>
-          ///
 
           <div className="animate-[fadeIn_0.5s_ease-out]">
             <p className="mb-3 text-xs font-semibold tracking-[0.2em] text-gray-500">
