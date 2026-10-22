@@ -195,6 +195,18 @@ const CategoryProducts = ({ category }) => {
                     0
                 );
 
+                const savedDiscount = Math.min(
+                  99,
+                  Math.max(
+                    0,
+                    Number(
+                      product.discount ??
+                        product.discountPercentage ??
+                        0
+                    ) || 0
+                  )
+                );
+
                 const hasValidSpecialPrice =
                   Number.isFinite(originalPrice) &&
                   Number.isFinite(specialPrice) &&
@@ -202,14 +214,30 @@ const CategoryProducts = ({ category }) => {
                   specialPrice > 0 &&
                   specialPrice < originalPrice;
 
+                const hasPercentageDiscount =
+                  Number.isFinite(originalPrice) &&
+                  originalPrice > 0 &&
+                  savedDiscount > 0;
+
+                const hasDiscount =
+                  hasValidSpecialPrice || hasPercentageDiscount;
+
                 const price = hasValidSpecialPrice
                   ? specialPrice
+                  : hasPercentageDiscount
+                  ? Math.round(
+                      originalPrice * (1 - savedDiscount / 100)
+                    )
                   : originalPrice;
 
                 const discount = hasValidSpecialPrice
                   ? Math.round(
-                      ((originalPrice - price) / originalPrice) * 100
+                      ((originalPrice - specialPrice) /
+                        originalPrice) *
+                        100
                     )
+                  : hasPercentageDiscount
+                  ? savedDiscount
                   : 0;
 
                 const image = Array.isArray(product.images)
@@ -241,7 +269,7 @@ const CategoryProducts = ({ category }) => {
                         </div>
                       )}
 
-                      {discount > 0 && (
+                      {hasDiscount && discount > 0 && (
                         <span className="absolute left-2 top-2 bg-white px-2 py-1 text-[9px] font-semibold uppercase tracking-wider text-black sm:left-3 sm:top-3 sm:px-3 sm:text-[10px]">
                           -{discount}%
                         </span>
@@ -274,7 +302,7 @@ const CategoryProducts = ({ category }) => {
                           PKR {price.toLocaleString()}
                         </span>
 
-                        {hasValidSpecialPrice && (
+                        {hasDiscount && price < originalPrice && (
                           <span className="text-xs text-neutral-400 line-through">
                             PKR {originalPrice.toLocaleString()}
                           </span>
