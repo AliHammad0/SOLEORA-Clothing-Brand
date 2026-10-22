@@ -530,6 +530,8 @@ export const getMyOrders = async (req, res) => {
 };
 
 // Update Order Status — Admin
+
+ // Update Order Status — Admin
 export const updateOrderStatus = async (req, res) => {
   try {
     const allowedStatuses = [
@@ -570,38 +572,43 @@ export const updateOrderStatus = async (req, res) => {
       for (const item of order.items) {
         const reservationIds = Array.isArray(item.reservationIds)
           ? item.reservationIds
-          : item.reservationId
-            ? [item.reservationId]
-            : [];
+          : [];
 
         for (const reservationId of reservationIds) {
+          // Reservation ko sirf ek baar restored mark karo.
           const reservation = await StockReservation.findOneAndUpdate(
             {
               _id: reservationId,
-              product: item.product,
+              product: item.product?._id || item.product,
               status: "released",
             },
             {
-              $set: { status: "active" },
+              $set: { status: "restored" },
             },
             { new: true }
           );
 
           if (!reservation) continue;
 
-          await Product.findByIdAndUpdate(reservation.product, {
-            $inc: { stock: reservation.quantity },
-          });
-
-          await StockReservation.updateOne(
-            {
-              _id: reservation._id,
-              status: "active",
-            },
-            {
-              $set: { status: "restored" },
-            }
+          const result = await Product.updateOne(
+            { _id: reservation.product },
+            { $inc: { stock: reservation.quantity } }
           );
+
+          if (result.modifiedCount !== 1) {
+            // Stock restore fail ho to retry ke liye status wapas karo.
+            await StockReservation.updateOne(
+              {
+                _id: reservation._id,
+                status: "restored",
+              },
+              {
+                $set: { status: "released" },
+              }
+            );
+
+            throw new Error("Could not restore reserved stock.");
+          }
         }
       }
     }
@@ -623,6 +630,7 @@ export const updateOrderStatus = async (req, res) => {
     });
   }
 };
+
 
 // Delete Cancelled Order — Admin
 export const deleteCancelledOrder = async (req, res) => {

@@ -1,3 +1,4 @@
+
 import mongoose from "mongoose";
 
 const stockReservationSchema = new mongoose.Schema(
@@ -14,7 +15,7 @@ const stockReservationSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["active", "released"],
+      enum: ["active", "released", "restored"],
       default: "active",
     },
   },
