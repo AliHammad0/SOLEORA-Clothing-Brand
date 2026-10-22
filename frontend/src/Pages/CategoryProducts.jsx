@@ -270,8 +270,8 @@ const CategoryProducts = ({ category }) => {
                       )}
 
                       {hasDiscount && discount > 0 && (
-                        <span className="absolute left-2 top-2 bg-white px-2 py-1 text-[9px] font-semibold uppercase tracking-wider text-black sm:left-3 sm:top-3 sm:px-3 sm:text-[10px]">
-                          -{discount}%
+                        <span className="absolute left-2 top-2 bg-white px-2 py-1 text-[14px] font-semibold uppercase tracking-wider text-red-700 sm:left-3 sm:top-3 sm:px-3 sm:text-[10px]">
+                          {discount}% OFF
                         </span>
                       )}
 
