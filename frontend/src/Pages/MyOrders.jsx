@@ -30,6 +30,17 @@ const MyOrders = () => {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
+  // Success message automatically disappears after 3 seconds.
+  useEffect(() => {
+    if (!notice) return;
+
+    const timeoutId = setTimeout(() => {
+      setNotice("");
+    }, 3000);
+
+    return () => clearTimeout(timeoutId);
+  }, [notice]);
+
   const syncGuestOrderStatuses = useCallback(async (guestOrders) => {
     let successCount = 0;
     let failureCount = 0;
@@ -92,7 +103,7 @@ const MyOrders = () => {
     setOrders(updatedOrders);
 
     if (guestOrders.length === 0) {
-      setNotice("No guest orders were found in this browser.");
+      setNotice("");
     } else if (successCount > 0 && failureCount === 0) {
       setNotice("Order status refreshed successfully.");
     } else if (successCount > 0) {
@@ -160,12 +171,46 @@ const MyOrders = () => {
   }, [fetchOrders]);
 
   const deleteOrder = async (order) => {
-    if (String(order.status || "").toLowerCase() !== "cancelled") {
-      setError("Only orders cancelled by the admin can be deleted.");
+    const status = String(order.status || "pending").toLowerCase();
+
+    // Sirf cancelled orders delete honge.
+    if (status !== "cancelled") {
+      setError("Only cancelled orders can be deleted.");
       return;
     }
 
     const orderId = String(order._id || "");
+    const token = localStorage.getItem("token");
+
+    // Guest order ki local browser copy delete hogi.
+    if (!token) {
+      const confirmed = window.confirm(
+        `Remove cancelled order ${order.orderNumber || orderId} from this browser?`
+      );
+
+      if (!confirmed) return;
+
+      setError("");
+      setNotice("");
+
+      const guestOrders = getGuestOrders();
+
+      const updatedOrders = guestOrders.filter(
+        (savedOrder) =>
+          String(savedOrder._id || "") !== orderId &&
+          String(savedOrder.orderNumber || "") !==
+            String(order.orderNumber || "")
+      );
+
+      localStorage.setItem(
+        GUEST_ORDERS_KEY,
+        JSON.stringify(updatedOrders)
+      );
+
+      setOrders(updatedOrders);
+      setNotice("Cancelled order removed from this browser.");
+      return;
+    }
 
     if (!orderId) {
       setError("Order ID is missing. This order cannot be deleted.");
@@ -183,27 +228,6 @@ const MyOrders = () => {
     setDeletingId(orderId);
 
     try {
-      const token = localStorage.getItem("token");
-
-      if (!token) {
-        const guestOrders = getGuestOrders();
-
-        const updatedOrders = guestOrders.filter(
-          (savedOrder) =>
-            String(savedOrder._id || "") !== orderId
-        );
-
-        localStorage.setItem(
-          GUEST_ORDERS_KEY,
-          JSON.stringify(updatedOrders)
-        );
-
-        setOrders(updatedOrders);
-        setNotice("Cancelled order removed from this browser.");
-        return;
-      }
-
-      // Requires a customer-authorized backend DELETE route.
       const response = await fetch(
         `${API_URL}/orders/my/${encodeURIComponent(orderId)}`,
         {
@@ -218,8 +242,7 @@ const MyOrders = () => {
 
       if (!response.ok || data.ok !== true) {
         throw new Error(
-          data.message ||
-            "Could not delete this order. The customer delete route may not be deployed yet."
+          data.message || "Could not delete this order."
         );
       }
 
@@ -330,6 +353,11 @@ const MyOrders = () => {
 
               const isCancelled =
                 String(order.status || "").toLowerCase() === "cancelled";
+
+              const currentOrderId = String(order._id || "");
+              const isDeleting =
+                Boolean(currentOrderId) &&
+                deletingId === currentOrderId;
 
               return (
                 <section
@@ -478,10 +506,10 @@ const MyOrders = () => {
                       <button
                         type="button"
                         onClick={() => deleteOrder(order)}
-                        disabled={deletingId === String(order._id || "")}
+                        disabled={isDeleting}
                         className="border border-red-600 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        {deletingId === String(order._id || "")
+                        {isDeleting
                           ? "Deleting..."
                           : "Delete Cancelled Order"}
                       </button>
