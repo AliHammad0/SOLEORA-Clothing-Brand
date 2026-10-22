@@ -703,3 +703,54 @@ export const getGuestOrderStatus = async (req, res) => {
     });
   }
 };
+
+
+/**
+ * Customer apna sirf cancelled order delete kar sakta hai.
+ */
+export const deleteMyCancelledOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({
+        ok: false,
+        message: "Invalid order ID.",
+      });
+    }
+
+    const order = await Order.findOne({
+      _id: id,
+      "customer.user": req.user._id,
+    });
+
+    if (!order) {
+      return res.status(404).json({
+        ok: false,
+        message: "Order not found or you do not have permission to delete it.",
+      });
+    }
+
+    if (String(order.status).toLowerCase() !== "cancelled") {
+      return res.status(400).json({
+        ok: false,
+        message: "Only cancelled orders can be deleted.",
+      });
+    }
+
+    await Order.findByIdAndDelete(order._id);
+
+    return res.status(200).json({
+      ok: true,
+      message: "Your cancelled order has been deleted.",
+    });
+  } catch (error) {
+    console.error("Delete my cancelled order error:", error);
+
+    return res.status(500).json({
+      ok: false,
+      message: "Failed to delete your cancelled order.",
+    });
+  }
+};
+
